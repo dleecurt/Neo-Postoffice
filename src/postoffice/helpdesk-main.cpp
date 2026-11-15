@@ -52,7 +52,7 @@ extern "C" {
   #include <jpeglib.h>
 }
 
-#define locs(uk,nam) (const char *) _USELOCALE ? _CLOCALE->Get_char(nam) : uk
+#define locs(uk,nam) ((const char *) (_USELOCALE ? _CLOCALE->Get_char(nam) : (uk)))
 
 int				  xwidths[6] = {365,175,115,0};
 int				  hdrwidths[3] = {32,100,0};
@@ -693,10 +693,10 @@ int main (int argc, char *argv[])
 				case CLASS_ERROR :
 					errorstring = new char [strlen (M->Message->Get(0)) + strlen (M->Message->Get(1)) + 64];
 					sprintf (errorstring, "Error in [%s]\n%s", M->Message->Get(0), M->Message->Get(1));
-					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ((const char *) errorstring);
+					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ("%s", errorstring);
 					eprintf ("\n*** ERROR ***\n%s\n", errorstring);
 
-					delete (errorstring);
+					delete[] errorstring;
 					break;
 
 				case CLASS_STATUS:

@@ -677,7 +677,7 @@ void GDBMStorage::StoreNode (StorageNode *N)
 		
 		// Field two: size
 		
-		sprintf (buf, "%i", N->Size);
+		sprintf (buf, "%zu", N->Size);
 		BF->Add (buf);
 		BF->Add ((unsigned char) '\t');
 		

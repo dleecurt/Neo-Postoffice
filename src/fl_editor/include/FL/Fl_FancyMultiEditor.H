@@ -21,7 +21,7 @@ class Fl_FancyMultiEditor : public Fl_MultiEditor
 protected:
 	Fl_StatusPanel *lights;
 	fleditor_FindOptions findopts;
-	char PositionString[30];
+	char PositionString[48];
 protected:
 	virtual FL_EXPORT Fl_Window *MakeFindDialog();
 	virtual FL_EXPORT Fl_Window *MakeReplaceDialog();

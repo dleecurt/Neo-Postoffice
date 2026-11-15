@@ -281,7 +281,7 @@ void MailBox::LoadMailBox (void)
         while (!feof (IDX)) // Browse through the index file
         {
             buf[0] = 0;
-            fgets (buf, 1023, IDX); // Read a line
+            if (!fgets (buf, 1023, IDX)) buf[0] = 0; // Read a line
             buf[1023] = 0;
             if ((strlen (buf)>1)&&(!feof (IDX)))
             {

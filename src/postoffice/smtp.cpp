@@ -225,18 +225,18 @@ char *send_message_smtp (WordList *HdrNames, WordList *HdrValues, char *mailfrom
 			//Fl::wait (1.0);
 			if (++errors > 256)
 			{
-				error = new char[96];
+				error = new char[strlen (C->Address) + 64];
 				sprintf (error, "Connection to %s timed out", C->Address);
 				delete (C);
 				return (error);
 			}
 		}
 	}
-	delete (C);
     if (!successfully_sent)
 	{
-		error = new char[96];
+		error = new char[strlen (C->Address) + 64];
 		sprintf (error, "Unspecified connection error to %s\n", C->Address);
 	}
+	delete (C);
 	return (error);
 }

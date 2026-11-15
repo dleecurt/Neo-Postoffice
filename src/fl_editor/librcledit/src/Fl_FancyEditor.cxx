@@ -129,7 +129,7 @@ FL_EXPORT int Fl_FancyEditor::handle(int event)
 		if ( handled )
 		{
 			// update position indicator
-			sprintf(PositionString, "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
+			snprintf(PositionString, sizeof(PositionString), "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
 			lights->status(PositionString);
 		}
 	}
@@ -421,7 +421,7 @@ FL_EXPORT bool Fl_FancyEditor::FindNext()
 	if(lights)
 	{
 		// update position indicator
-		sprintf(PositionString, "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
+		snprintf(PositionString, sizeof(PositionString), "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
 		lights->status(PositionString);
 	}
 	return(foundone);
@@ -497,7 +497,7 @@ FL_EXPORT bool Fl_FancyEditor::Replace()
 						if ( findopts.PromptReplace )
 						{
 							SyncDisplay();
-							if ( fl_ask("Replace this occurrence?") )
+							if ( fl_choice("Replace this occurrence?", fl_no, fl_yes, NULL) == 1 )
 								doreplace = true;
 						}
 						else
@@ -518,7 +518,7 @@ FL_EXPORT bool Fl_FancyEditor::Replace()
 	if(lights)
 	{
 		// update position indicator
-		sprintf(PositionString, "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
+		snprintf(PositionString, sizeof(PositionString), "R %ld C %ld", engine->CursorRow() + 1, engine->CursorColumn() + 1);
 		lights->status(PositionString);
 	}
 	return(foundone);

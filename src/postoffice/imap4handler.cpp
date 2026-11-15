@@ -353,7 +353,7 @@ IMAP4Handler::CheckGroup(char *groupname)
 		result = CheckReply(msg, 63);
 	} while ((strncmp (msg, "* SEAR", 6) != 0) && (result != 0));
 	
-	if (msg) {
+	if (msg[0]) {
 	  UIDS.Make(msg);
 	  UIDS.Delete(1);  // delete the junk that the server tosses on.
 	  if (Parent->ToCollector->UrgentPending)

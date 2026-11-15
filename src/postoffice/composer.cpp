@@ -203,7 +203,7 @@ void cb_reply_m (Fl_Menu_ *w, void *d)
 
 void cb_reply (Fl_Button *w, void *d)
 {
-	if (!currentmsgid[mdi_current]) return;
+	if (!currentmsgid[mdi_current][0]) return;
 	int i;
 	char buf[256];
 	WordList *quoted_lines;
@@ -276,7 +276,7 @@ void cb_forwardfull_m (Fl_Menu_ *w, void *d)
 
 void doforward (bool fullhdr)
 {
-	if (!currentmsgid[mdi_current]) return;
+	if (!currentmsgid[mdi_current][0]) return;
 	int i;
 	char buf[256];
 	WordList *quoted_lines;
@@ -640,7 +640,7 @@ void cb_compose_header_shrink (Fl_Widget *x, Composer_Window *W)
 	W->gr_groups->hide();
 
 	W->gr_to->position (base_x, base_y);
-	W->in_subject->position (base_x, base_y + 1 * base_inc);
+	W->in_subject->Fl_Widget::position (base_x, base_y + 1 * base_inc);
 
 	W->gr_headers->size (W->gr_headers->w(), top_inc + 2 * base_inc);
 	W->bt_resizeheader->callback ((Fl_Callback *) cb_compose_header_expand, (void *) W);

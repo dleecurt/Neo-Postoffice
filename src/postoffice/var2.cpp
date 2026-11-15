@@ -109,8 +109,7 @@ void Var::Load (FILE *F)
 	
 	while (!done)
 	{
-		fgets (Buffer, 1023, F);
-		if (feof (F)) done = 1;
+		if (!fgets (Buffer, 1023, F) || feof (F)) done = 1;
 		else
 		{
 			

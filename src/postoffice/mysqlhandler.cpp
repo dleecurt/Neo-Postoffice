@@ -293,6 +293,9 @@ int MySQLHandler::MsgToSQL (char *msgid)
 	if (!(crsr = strchr (msgid, '.'))) return 0;
 	if (!(crsr = strchr (crsr+1, '.'))) return 0;
 	return (atoi (crsr+1));
+#else
+	(void) msgid;
+	return 0;
 #endif
 }
 
@@ -314,6 +317,8 @@ int MySQLHandler::CheckError (void)
 		}
 		return 1;
 	}
+	return 0;
+#else
 	return 0;
 #endif
 }

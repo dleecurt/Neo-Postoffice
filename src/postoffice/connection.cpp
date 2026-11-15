@@ -385,7 +385,7 @@ void Connection::Close (void)
 		if (Redirect)
 		{
 			Connected = ST_DISCONNECTED;
-			delete (Redirect);
+			// Redirect is never set to an object; nothing to free.
 			Redirect = NULL;
 		}
 		else

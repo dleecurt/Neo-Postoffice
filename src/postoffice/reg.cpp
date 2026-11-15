@@ -44,9 +44,11 @@ _wild_match (u_char * mask, u_char * string)
 		case 0:
 			if (!*n)
 				return RETURN_TRUE;
+			[[fallthrough]];
 		case '\\':
-			if ((*m == '\\') && (m[1] == '*') || (m[1] == '?'))
+			if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
 				m++;
+			[[fallthrough]];
 		default:
 			if (tolower (*m) != tolower (*n))
 				return RETURN_FALSE;
@@ -87,9 +89,11 @@ _wild_match (u_char * mask, u_char * string)
 		case 0:
 			if (!*n || just)
 				return RETURN_TRUE;
+			[[fallthrough]];
 		case '\\':
-			if ((*m == '\\') && (m[1] == '*') || (m[1] == '?'))
+			if ((*m == '\\') && ((m[1] == '*') || (m[1] == '?')))
 				m++;
+			[[fallthrough]];
 		default:
 			just = 0;
 			if (tolower (*m) != tolower (*n))
@@ -147,7 +151,7 @@ int wild_match_end (char *pattern, char *str)
 		while ((pattern[i])&&(str[i]))
 		{
 			if (pattern[i]=='*') return 1;
-			if (lower_tab[pattern[i]]!=lower_tab[str[i]]) return 0;
+			if (lower_tab[(unsigned char) pattern[i]]!=lower_tab[(unsigned char) str[i]]) return 0;
 			++i;
 		}
 		if (!(pattern[i])) return 1;

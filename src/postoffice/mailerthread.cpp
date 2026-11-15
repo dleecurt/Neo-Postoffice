@@ -73,6 +73,7 @@ void *MailerThread::MailerMain (void *_box)
 				
 				case SCHED_CHECKNEW:
 					M->Message->Set (0, currentgroup);
+					[[fallthrough]];
 				
 				case CLASS_CHECKGROUP:
 					strcpy (currentgroup, M->Message->Get(0));

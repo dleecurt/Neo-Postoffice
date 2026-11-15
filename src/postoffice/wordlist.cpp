@@ -739,8 +739,7 @@ int WordList::GetInt (int theNumber)
 			return atoi (myWord->WContents->Get(0));
 		}
 	}
-	else
-		return 0;
+	return 0;
 }
 
 WordList *WordList::GetWordList (int theNumber)
@@ -762,8 +761,7 @@ WordList *WordList::GetWordList (int theNumber)
 			return myWord->WContents;
 		}
 	}
-	else
-		return NULL;
+	return NULL;
 }
 
 int WordList::IsWordList (int theNumber)

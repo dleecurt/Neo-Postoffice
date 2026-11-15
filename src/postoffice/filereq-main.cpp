@@ -124,7 +124,7 @@ const char *single_file_request (void)
 	FREQ->show();
 
 	buf[0] = 0;
-	getcwd (buf, 255);
+	if (!getcwd (buf, 255)) buf[0] = 0;
 	if (!buf[0])
 	{
 		strcpy (buf, "/");

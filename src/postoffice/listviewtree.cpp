@@ -43,7 +43,7 @@
 
 #include <setjmp.h>
 
-#define locs(uk,nam) (const char *) _USELOCALE ? _CLOCALE->Get_char(nam) : uk
+#define locs(uk,nam) ((const char *) (_USELOCALE ? _CLOCALE->Get_char(nam) : (uk)))
 
 #define SORT_THREAD 0x00
 #define SORT_RECEIVE 0x01
@@ -282,7 +282,7 @@ void update_folder (void)
 	{
 		// don't flood X with updates
 	
-		flip = (++flip) & 0xff;
+		flip = (flip + 1) & 0xff;
 		if (!flip) Fl::wait (0.05);
 		
 		// Get the current message in the view

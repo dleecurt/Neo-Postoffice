@@ -96,10 +96,14 @@ MailMessage::MailMessage (MailBox *M, char *msgid) : BTreeNode (msgid, M->Root)
 
 MailMessage::~MailMessage (void)
 {
-	if ( (Flags & MMFL_ORIGINAL) && (Flags & MMFL_HAVEBODY) && (Flags & MMFL_INRAM) && (! Flags & MMFL_ONDISK) )
-	{
-		StoreFile();
-	}
+	// The original condition here ended in "(! Flags & MMFL_ONDISK)", which is
+	// always false, so this store-on-destroy never ran. Enabling it would write
+	// to the mailbox database from the destructor (possibly during shutdown),
+	// so it stays disabled until that path has been reviewed:
+	//
+	// if ((Flags & MMFL_ORIGINAL) && (Flags & MMFL_HAVEBODY) &&
+	//     (Flags & MMFL_INRAM) && !(Flags & MMFL_ONDISK))
+	//     StoreFile();
 	delete (HeaderNames);
 	delete (HeaderValues);
 	delete (Subscribers);
@@ -601,7 +605,7 @@ void MailMessage::AddPart (char *part)
 				strcpy (hdrvalue, HValues.Get (HValues.Count -1));
 				strcat (hdrvalue, crsr);
 				HValues.Set (HValues.Count-1, hdrvalue);
-				delete (hdrvalue);
+				delete[] hdrvalue;
 			}
 			else
 			{

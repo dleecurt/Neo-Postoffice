@@ -6,6 +6,11 @@
 #include "substr.h"
 #include <string.h>
 #include <stdlib.h>
+#include <spawn.h>
+#include <sys/wait.h>
+#include <string>
+
+extern char **environ;
 
 #include <FL/fl_draw.H>
 #include <FL/Fl.H>
@@ -698,16 +703,59 @@ void HTWord::Draw (int off_x, int off_y, int x, int y, int w, int h, bool partia
 	fl_draw (text, off_x+x, off_y+y, W, H, FL_ALIGN_LEFT);
 }
 
+// Runs the user's URL action (a shell command template in which '$' stands
+// for the URL) without letting the URL be interpreted by the shell.
+//
+// The URL comes from message text, so it is never pasted into the command.
+// Each '$' is replaced by a reference to the shell's positional parameter
+// $1, quoted to match the quoting at that point in the template (so old
+// templates such as  netscape -remote 'openURL($)'  keep working), and the
+// URL itself is passed to /bin/sh as a separate argument.
+static void run_url_action (const char *tmpl, const char *url)
+{
+	std::string cmd;
+	bool in_single = false, in_double = false;
+
+	for (const char *p = tmpl; *p; ++p)
+	{
+		if (*p == '$')
+		{
+			if (in_single) cmd += "'\"$1\"'";
+			else if (in_double) cmd += "$1";
+			else cmd += "\"$1\"";
+			continue;
+		}
+		if (*p == '\\' && !in_single && p[1])
+		{
+			cmd += *p++;
+			cmd += *p;
+			continue;
+		}
+		if (*p == '\'' && !in_double) in_single = !in_single;
+		else if (*p == '"' && !in_single) in_double = !in_double;
+		cmd += *p;
+	}
+	cmd += " &";
+
+	dprintf ("[ht] url action: %s (url %s)\n", cmd.c_str(), url);
+
+	char *const argv[] = {
+		(char *) "sh", (char *) "-c", (char *) cmd.c_str(),
+		(char *) "sh", (char *) url, NULL
+	};
+	pid_t pid;
+	if (posix_spawn (&pid, "/bin/sh", NULL, NULL, argv, environ) == 0)
+		waitpid (pid, NULL, 0); // returns quickly: the command runs in the background
+}
+
 void HTWord::HandlePush (void)
 {
 	const char 	*action_config;
-	WordList   	 W;
 	const char 	*action = GetSProperty ("action");
 	char 		*subtext;
 	char		*t;
 	int			 ln;
-	char		*cmd;
-	
+
 	if (action)
 	{
 		if (strlen (action))
@@ -716,25 +764,18 @@ void HTWord::HandlePush (void)
 			if (strstr (text, "http://"))
 			{
 				action_config = PREFERENCES.Get_char_tree ("postoffice/gui/action/http");
-				if (strlen (action_config) < 1) action_config = "netscape -remote 'openURL($)'";
-				W.MakeGeneric ((char *) action_config, '$');
-				
+				if (strlen (action_config) < 1) action_config = "xdg-open $";
+
 				subtext = strdupp (text);
 				t = subtext;
 				while (strncmp(t,"http://",6)) ++t;
-				
+
 				ln = strlen (t);
 				while ( (ln>1) && ( (t[ln-1]=='.') || (t[ln-1]==' ') ) ) t[--ln] = 0;
-				
-				ln += strlen (action_config) + 8;
-				
-				cmd = new char[ln];
-				sprintf (cmd, "%s%s%s &", W.Get(0), t, W.Get(1));
-				printf ("exc: %s\n", cmd);
-				system (cmd);
-				
-				delete (cmd);
-				delete (subtext);
+
+				run_url_action (action_config, t);
+
+				delete[] subtext;
 			}
 		}
 	}

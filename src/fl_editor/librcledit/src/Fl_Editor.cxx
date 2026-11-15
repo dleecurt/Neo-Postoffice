@@ -471,7 +471,8 @@ FL_EXPORT int Fl_Editor::handle(int event)
 				if ( marking )
 				{
 					engine->Command(CLEAR_MARKS);
-					selectlines = marking = false;
+					marking = false;
+					selectlines = false;
 					damage(DAMAGE_EDITOR);
 				}
 				switch ( Fl::event_clicks() % 3 )  // clicking four, five or six times is the same as one, two, or three...

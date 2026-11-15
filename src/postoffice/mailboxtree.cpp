@@ -42,7 +42,7 @@
 
 #include <setjmp.h>
 
-#define locs(uk,nam) (const char *) _USELOCALE ? _CLOCALE->Get_char(nam) : uk
+#define locs(uk,nam) ((const char *) (_USELOCALE ? _CLOCALE->Get_char(nam) : (uk)))
 
 extern time_t			 lastclick;
 extern int				 hdrwidths[3];
@@ -216,7 +216,7 @@ void cb_selectfolder (Fl_Widget *b, void *v)
 
 	dprintf ("callback %p\n", (void *) box);
 
-	if (box && currentfolder && strlen(currentfolder))
+	if (box && currentfolder[0])
 	{
 		dprintf ("click: cf=<%s> fn=<%s> cmb=<%p> mb=<%p>\n", currentfolder, box->foldername, (void *) currentmailbox, (void *) box->mailbox);
 		if ((strcmp (currentfolder, box->foldername) == 0) && (currentmailbox == box->mailbox))

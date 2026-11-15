@@ -99,7 +99,7 @@ void MBoxStorage::Synchronize (void)
 	{
 		buf[0] = 0;
 		curpos = ftell (DB);
-		fgets (buf, 1023, DB);
+		if (!fgets (buf, 1023, DB)) buf[0] = 0;
 		
 		JOBQ.Progress (jid, ((curpos-stp)*100)/(tsz-stp));
 		if (JOBQ.Changed (jid)) PIPE->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
@@ -191,7 +191,7 @@ void MBoxStorage::CheckSync (void)
 	}
 	else
 	{
-		fgets (buffer, 1023, DB);
+		if (!fgets (buffer, 1023, DB)) buffer[0] = 0;
 		if (strncmp (buffer, "From ", 5) == 0) // Record is still valid
 		{
 			fseek (DB, end_from + end_size, SEEK_SET); // Only check for new records
@@ -287,7 +287,7 @@ bool MBoxStorage::Retrieve (MailMessage *M)
 		if (fseek (DB, Nod->ExtraKey, SEEK_SET) == 0) // The start of the record is accessible
 		{
 			buffer[0] = 0;
-			fgets (buffer, 1023, DB);
+			if (!fgets (buffer, 1023, DB)) buffer[0] = 0;
 			if (strncmp (buffer, "From ", 5) == 0) // The record is valid
 			{
 				dprintf ("[mboxstorage] valid from-line\n");
@@ -356,7 +356,7 @@ void MBoxStorage::LoadIndex (void)
 		while (!feof (IF))
 		{
 			buffer[0] = 0;
-			fgets (buffer, 511, IF);
+			if (!fgets (buffer, 511, IF)) buffer[0] = 0;
 			choplf (buffer);
 			W.MakeDB (buffer);
 			if (W.Count == 3)
@@ -382,7 +382,7 @@ void MBoxStorage::LoadIndex (void)
 		while (!feof (IF))
 		{
 			buffer[0] = 0;
-			fgets (buffer, 511, IF);
+			if (!fgets (buffer, 511, IF)) buffer[0] = 0;
 			choplf (buffer);
 			if (!FreeList.Find (buffer)) FreeList.Add (buffer);
 		}
@@ -408,7 +408,7 @@ void MBoxStorage::StoreIndex (bool x)
 		
 		while ((N) && (N != Root))
 		{
-			fprintf (IF, "%s|%ld|%ld\n", N->BKey, N->Size, N->ExtraKey);
+			fprintf (IF, "%s|%zu|%u\n", N->BKey, N->Size, N->ExtraKey);
 			N = (StorageNode *) N->BNext;
 		}
 		fclose (IF);

@@ -64,9 +64,10 @@ void *Base64 (unsigned char *Source, unsigned long SourceLen, unsigned long *Des
 			case 2:
 				if (*Source == '=')
 					break;
+				[[fallthrough]];
 
 			default:
-				delete[] (result);
+				delete[] (char *) result;
 				return NULL;
 			}
 			continue;
