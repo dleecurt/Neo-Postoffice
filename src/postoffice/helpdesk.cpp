@@ -12,7 +12,7 @@ extern Var PREFERENCES;
 Fl_Window *win_main=(Fl_Window *)0;
 
 static void cb_Configure(Fl_Menu_*, void*) {
-  (Fl_Callback *) cb_configure;
+  cb_configure (NULL, NULL);
 }
 
 Fl_Menu_Item menu_[] = {
@@ -1036,14 +1036,14 @@ Fl_Window* make_window() {
                     bt_mdi_0->shortcut(FL_ALT|'1');
                     bt_mdi_0->color((Fl_Color)48);
                     bt_mdi_0->labelsize(10);
-                    bt_mdi_0->callback((Fl_Callback*)cb_mdi_window, (void*)(0));
+                    bt_mdi_0->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)0));
                     bt_mdi_0->align(Fl_Align(68|FL_ALIGN_INSIDE));
                   } // Fl_Button* bt_mdi_0
                   { bt_mdi_1 = new Fl_Button(113, 177, 99, 17, "Message 2");
                     bt_mdi_1->shortcut(FL_ALT|'2');
                     bt_mdi_1->color((Fl_Color)48);
                     bt_mdi_1->labelsize(10);
-                    bt_mdi_1->callback((Fl_Callback*)cb_mdi_window, (void*)(1));
+                    bt_mdi_1->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)1));
                     bt_mdi_1->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_1->hide();
                   } // Fl_Button* bt_mdi_1
@@ -1051,7 +1051,7 @@ Fl_Window* make_window() {
                     bt_mdi_2->shortcut(FL_ALT|'3');
                     bt_mdi_2->color((Fl_Color)48);
                     bt_mdi_2->labelsize(10);
-                    bt_mdi_2->callback((Fl_Callback*)cb_mdi_window, (void*)(2));
+                    bt_mdi_2->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)2));
                     bt_mdi_2->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_2->hide();
                   } // Fl_Button* bt_mdi_2
@@ -1059,7 +1059,7 @@ Fl_Window* make_window() {
                     bt_mdi_3->shortcut(FL_ALT|'4');
                     bt_mdi_3->color((Fl_Color)48);
                     bt_mdi_3->labelsize(10);
-                    bt_mdi_3->callback((Fl_Callback*)cb_mdi_window, (void*)(3));
+                    bt_mdi_3->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)3));
                     bt_mdi_3->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_3->hide();
                   } // Fl_Button* bt_mdi_3
@@ -1067,7 +1067,7 @@ Fl_Window* make_window() {
                     bt_mdi_4->shortcut(FL_ALT|'5');
                     bt_mdi_4->color((Fl_Color)48);
                     bt_mdi_4->labelsize(10);
-                    bt_mdi_4->callback((Fl_Callback*)cb_mdi_window, (void*)(4));
+                    bt_mdi_4->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)4));
                     bt_mdi_4->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_4->hide();
                   } // Fl_Button* bt_mdi_4
@@ -1075,7 +1075,7 @@ Fl_Window* make_window() {
                     bt_mdi_5->shortcut(FL_ALT|'6');
                     bt_mdi_5->color((Fl_Color)48);
                     bt_mdi_5->labelsize(10);
-                    bt_mdi_5->callback((Fl_Callback*)cb_mdi_window, (void*)(5));
+                    bt_mdi_5->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)5));
                     bt_mdi_5->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_5->hide();
                   } // Fl_Button* bt_mdi_5
@@ -1083,7 +1083,7 @@ Fl_Window* make_window() {
                     bt_mdi_6->shortcut(FL_ALT|'7');
                     bt_mdi_6->color((Fl_Color)48);
                     bt_mdi_6->labelsize(10);
-                    bt_mdi_6->callback((Fl_Callback*)cb_mdi_window, (void*)(6));
+                    bt_mdi_6->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)6));
                     bt_mdi_6->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_6->hide();
                   } // Fl_Button* bt_mdi_6
@@ -1091,7 +1091,7 @@ Fl_Window* make_window() {
                     bt_mdi_7->shortcut(FL_ALT|'8');
                     bt_mdi_7->color((Fl_Color)48);
                     bt_mdi_7->labelsize(10);
-                    bt_mdi_7->callback((Fl_Callback*)cb_mdi_window, (void*)(7));
+                    bt_mdi_7->callback((Fl_Callback*)cb_mdi_window, (void*)((void*)7));
                     bt_mdi_7->align(Fl_Align(68|FL_ALIGN_INSIDE));
                     bt_mdi_7->hide();
                   } // Fl_Button* bt_mdi_7

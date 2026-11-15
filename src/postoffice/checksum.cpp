@@ -26,18 +26,21 @@ const unsigned char obox[32] = {1,27,5,17,3,19,12,4,18,11,4,25,22,2,20,6,24,
 
 unsigned int checksum (const char *string)
 {
-	register int len,pos;
-	register char c;
+	int len,pos;
+	char c;
 	len = strlen (string);
 	
-	register unsigned int  result = (((len&0xff)^0x88) << 24) + (((len&0xff)^0x24) << 16) +
-							 (((len&0xff)^0x41) << 8) + ((len&0xff)^0x12);
+	// Shifts are done on unsigned values: shifting a signed int into the sign
+	// bit is undefined behavior. The resulting values are unchanged (they are
+	// used in on-disk index file names).
+	unsigned int  result = (((unsigned) (len&0xff)^0x88) << 24) + (((unsigned) (len&0xff)^0x24) << 16) +
+							 (((unsigned) (len&0xff)^0x41) << 8) + ((unsigned) (len&0xff)^0x12);
 	
 	for (pos=0;pos<len;++pos)
 	{
 		c = string[pos];
-		if (c & 0xc0) result ^= (((c^obox[(pos+7) & 0x1f]) & 0x3f) << obox[pos & 0x1f]);
-		else result ^= (((c^obox[(pos+17) & 0x1f]) & 0x3f) << obox[(pos^c) & 0x1f]);
+		if (c & 0xc0) result ^= ((unsigned) ((c^obox[(pos+7) & 0x1f]) & 0x3f) << obox[pos & 0x1f]);
+		else result ^= ((unsigned) ((c^obox[(pos+17) & 0x1f]) & 0x3f) << obox[(pos^c) & 0x1f]);
 	}
 	return result;
 }
@@ -47,9 +50,9 @@ unsigned int checksum (const char *string)
 
 u_long old_checksum (const char *string)
 {
-	register char   c;
-	register int    len, pos;
-	register u_long result, max,mult;
+	char   c;
+	int    len, pos;
+	u_long result, max,mult;
 
 	result = 0;
 	len = strlen (string);

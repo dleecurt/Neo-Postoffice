@@ -255,7 +255,7 @@ void Fl_MultiEditor::SaveCurrent(const char *fn)
 void Fl_MultiEditor::NextSession()
 {
 	struct GenericListNode *node = FindSessionNode(CurrentSession->SessionNumber);
-	if(node)
+	if(node) {
 		if(node->Next)
 		{
 			struct fledit_SessionInfo *sinf = (struct fledit_SessionInfo *)node->Next->UserData;
@@ -266,12 +266,13 @@ void Fl_MultiEditor::NextSession()
 			struct fledit_SessionInfo *sinf = (struct fledit_SessionInfo *)Sessions->UserData;
 			Session(sinf);
 		}
+	}
 }
 
 void Fl_MultiEditor::PreviousSession()
 {
 	struct GenericListNode *node = FindSessionNode(CurrentSession->SessionNumber);
-	if(node)
+	if(node) {
 		if(node->Previous)
 		{
 			struct fledit_SessionInfo *sinf = (struct fledit_SessionInfo *)node->Previous->UserData;
@@ -286,6 +287,7 @@ void Fl_MultiEditor::PreviousSession()
 				Session(sinf);
 			}
 		}
+	}
 }
 
 #if (FL_MAJOR_VERSION > 1)

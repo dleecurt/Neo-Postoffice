@@ -40,9 +40,7 @@ char *send_message_smtp (WordList *HdrNames, WordList *HdrValues, char *mailfrom
 	int			 successfully_sent;
 	int			 i;
 	int			 errors = 0;
-	time_t		 ti;
 	char		*error = NULL;
-	char		*ct;
 	WordList	 WD;
 
 	// Initialize timezone stuff
@@ -170,8 +168,6 @@ char *send_message_smtp (WordList *HdrNames, WordList *HdrValues, char *mailfrom
 				// error out.
 				//-----------------------------------------------
 				
-					ti = time (NULL);
-					ct = ctime (&ti);
 				
 				   if (strncmp(buffer,"354",3) == 0) 
 					{

@@ -81,7 +81,7 @@ class HTHeader : public HTElement
 class HTWord : public HTElement
 {
 	public:
-						 HTWord (HTElement *p, char *txt);
+						 HTWord (HTElement *p, const char *txt);
 						~HTWord (void);
 
 		void			 Layout (int);
@@ -128,7 +128,7 @@ class Fl_View : public Fl_Group
 	void			 show_();
 	void			 hide_();
 	int				 handle (int);
-	void			 add_textline (char *, int _color=FL_BLACK, int _font=FL_COURIER, int _size=12);
+	void			 add_textline (const char *, int _color=FL_BLACK, int _font=FL_COURIER, int _size=12);
 	void			 add_bitmap (unsigned char *, int, int);
 	void			 add_header (const char *, const char *);
 	HTGroup			*Pane;

@@ -157,13 +157,13 @@ void WordList::Make (char *theLine)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void WordList::MakeDB (char *theLine)
+void WordList::MakeDB (const char *theLine)
 {
 	char           *myWord;
 	int             SourcePosition = 0;
 	int             DestPosition = 0;
 	int				wsz;
-	char		   *tmp;
+	const char	   *tmp;
 
 	Clear ();
 
@@ -212,14 +212,14 @@ void WordList::MakeDB (char *theLine)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void WordList::MakeGeneric (char *theLine, char Seperator, char Escape)
+void WordList::MakeGeneric (const char *theLine, char Seperator, char Escape)
 {
 	char           *myWord;
 	int             SourcePosition = 0;
 	int             DestPosition = 0;
 //	int				i;
 	int				wsz;
-	char		   *tmp;
+	const char	   *tmp;
 
 	if (theLine)
 	{
@@ -279,15 +279,15 @@ void WordList::MakeGeneric (char *theLine, char Seperator, char Escape)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void WordList::MakeGenericQuoted (char *theLine, char Seperator, char Escape)
+void WordList::MakeGenericQuoted (const char *theLine, char Seperator, char Escape)
 {
 	char           *myWord;
 	int             SourcePosition = 0;
 	int             DestPosition = 0;
 //	int				i;
 	int				wsz;
-	char		   *tmp;
-	char		   *qp, *sqp;
+	const char	   *tmp;
+	const char	   *qp, *sqp;
 	int				cpos;
 
 	if (theLine)
@@ -374,7 +374,7 @@ void WordList::MakeGenericQuoted (char *theLine, char Seperator, char Escape)
 // RETURNS		index value. -2 for error
 //===============================================================================
 
-int WordList::Find (char *theMatch)
+int WordList::Find (const char *theMatch)
 {
 	Word           *myWord;
 
@@ -409,7 +409,7 @@ int WordList::Find (char *theMatch)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void WordList::Add (char *theWord)
+void WordList::Add (const char *theWord)
 {
 	int             len;
 
@@ -511,7 +511,6 @@ void WordList::Trim (int theNumber)
 
 char *WordList::Get (int theNumber)
 {
-	int             i = 0;
 	Word           *myWord;
 
 	if (theNumber<0) return (char *) "";
@@ -559,7 +558,6 @@ void WordList::Delete (int theNumber)
 
 void WordList::Set (int theNumber, char *theContents)
 {
-	int             i = 0;
 	Word           *myWord;
 
 
@@ -600,7 +598,6 @@ void WordList::Set (int theNumber, char *theContents)
 
 void WordList::SetInt (int theNumber, int I)
 {
-	int             i = 0;
 	Word           *myWord;
 
 	if (theNumber >= Count)
@@ -720,7 +717,6 @@ void WordList::AddWordList_ (WordList *W)
 
 int WordList::GetInt (int theNumber)
 {
-	int		  i=0;
 	Word		*myWord;
 	
 	if (theNumber>=Count) return 0;
@@ -744,7 +740,6 @@ int WordList::GetInt (int theNumber)
 
 WordList *WordList::GetWordList (int theNumber)
 {
-	int             i = 0;
 	Word           *myWord;
 
 	if (theNumber>=Count) return 0;
@@ -766,7 +761,6 @@ WordList *WordList::GetWordList (int theNumber)
 
 int WordList::IsWordList (int theNumber)
 {
-	int             i = 0;
 	Word           *myWord;
 
 	if (theNumber>=Count) return 0;

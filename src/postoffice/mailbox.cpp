@@ -100,7 +100,8 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     if (strlen (dp)) DirectoryPrefix = strdupp (dp);
     else
     {
-        char *HOME = (char *) getenv ("HOME");
+        const char *HOME = getenv ("HOME");
+        if (!HOME) HOME = "/tmp";
         DirectoryPrefix = new char [strlen (HOME) + strlen ("/.postoffice/.box") + strlen (Name) + 3];
         sprintf (DirectoryPrefix, "%s/.postoffice/%s.box", HOME, Name);
         PREFROOT->Set_char ("prefix", DirectoryPrefix);
@@ -199,7 +200,8 @@ MailBox::MailBox (ITCPipe *ui)
     NewCount = 0;
     Open = 0;
 
-    char *HOME = (char *) getenv ("HOME");
+    const char *HOME = getenv ("HOME");
+    if (!HOME) HOME = "/tmp";
     DirectoryPrefix = new char [strlen (HOME) + strlen ("/.postoffice/.box") + strlen (Name) + 3];
     sprintf (DirectoryPrefix, "%s/.postoffice/%s.box", HOME, Name);
 
@@ -262,7 +264,6 @@ void MailBox::LoadMailBox (void)
     WordList *Subs = new WordList;
     int i;
     MailView *V;
-    int delivered;
 //    struct stat mystat;
 //	int mbcount=0;
 
@@ -305,7 +306,6 @@ void MailBox::LoadMailBox (void)
                 M->ReceiveDate = atol (Line->Get (10));
                 if (!M->ReceiveDate) M->ReceiveDate = time (NULL) - 864000;
 
-                delivered = 0;
 
                 for (i=0;i<Subs->Count;++i)
                 {
@@ -317,7 +317,6 @@ void MailBox::LoadMailBox (void)
                         UnTie (M); // Undo direct deliveries
                         Deliver (M); // And fall back to filter rules
                         i = Subs->Count; // Exit direct delivery cycle
-                        delivered = 1;
                     }
                     else // But of course it exists
                     {
@@ -542,7 +541,7 @@ int MailBox::Have (char *msgid)
     return (result);
 }
 
-void MailBox::CreateMailView (char *name)
+void MailBox::CreateMailView (const char *name)
 {
     MailView *V = new MailView (this, name);
     VLock->LockRW();
@@ -609,7 +608,7 @@ void MailBox::DestroyMailView (char *name)
     }
 }
 
-MailView *MailBox::GetView (char *Name)
+MailView *MailBox::GetView (const char *Name)
 {
     MailView *V;
 

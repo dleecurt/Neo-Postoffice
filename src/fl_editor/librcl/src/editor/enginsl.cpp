@@ -32,7 +32,7 @@ rclError _export EditorEngine::InsertLine(const wString& str, long atline, bool 
 		LastResult = NOMEMORY;      // assume the worst...
 		HasChanged = TRUE;
 		wString *s = new wString;
-		if(s)
+		if(s) {
 		  if(s->Capacity())       // make sure allocation of buffer went OK
 		  {
 			(*s) = str;
@@ -63,6 +63,7 @@ rclError _export EditorEngine::InsertLine(const wString& str, long atline, bool 
 		  }
 		  else
 			delete s;
+		}
 	}
   return LastResult;
 }

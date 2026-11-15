@@ -261,7 +261,7 @@ void cb_prefs_trash_local (Fl_Button *b, void *d)
 	rd_prefs_trash_server->redraw();
 }
 */
-void cb_configure (Fl_Button *b, void *d)
+void cb_configure (Fl_Button */*b*/, void */*d*/)
 {
 	WordList		*W;
 	int			  i;
@@ -327,7 +327,7 @@ void cb_configure (Fl_Button *b, void *d)
 	win_prefs->show();
 }
 
-void cb_prefs_tab (Fl_Tabs *t, void *v)
+void cb_prefs_tab (Fl_Tabs */*t*/, void */*v*/)
 {
 	Fl_Group *current = (Fl_Group *) tb_prefs->value();
 	gr_prefs_mailboxes->color (47);
@@ -339,7 +339,7 @@ void cb_prefs_tab (Fl_Tabs *t, void *v)
 	current->color (51);
 }
 
-void cb_prefs_mboxfiles (Fl_Iconbrowser *b, void *v)
+void cb_prefs_mboxfiles (Fl_Iconbrowser */*b*/, void */*v*/)
 {
 	int val;
 
@@ -357,7 +357,7 @@ void cb_prefs_mboxfiles (Fl_Iconbrowser *b, void *v)
 	}
 }
 
-void cb_prefs_mailboxes (Fl_Iconbrowser *b, void *v)
+void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 {
 	int val;
 	char *proto;
@@ -399,7 +399,7 @@ void cb_prefs_mailboxes (Fl_Iconbrowser *b, void *v)
 	else gr_mailboxes_set->deactivate();
 }
 
-void cb_prefs_mailfolders_mailboxes (Fl_Iconbrowser *b, void *v)
+void cb_prefs_mailfolders_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 {
 	int imailbox;
 	char *mailbox;
@@ -439,7 +439,7 @@ void cb_prefs_mailfolders_mailboxes (Fl_Iconbrowser *b, void *v)
 
 int filwidths[2] = {125,0};
 
-void cb_prefs_mailfolders_folders (Fl_Iconbrowser *b, void *v)
+void cb_prefs_mailfolders_folders (Fl_Iconbrowser */*b*/, void */*v*/)
 {
 	int ifolder;
 	char *folder;
@@ -483,7 +483,7 @@ void cb_prefs_mailfolders_folders (Fl_Iconbrowser *b, void *v)
 			WordList *WW = PREFS_FCURRENTBOX->Get_collection ("folders")->Get_collection (folder)->Get_wordlist ("filters");
 			for (i=0; i+4 < WW->Count; i+=5)
 			{
-				char *xxx = WW->Get(i);
+				const char *xxx = WW->Get(i);
 				if (atoi (xxx)==7) xxx = "Envelope Folder";
 				if (atoi (xxx)==2) xxx = "Envelope From";
 				sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
@@ -494,7 +494,7 @@ void cb_prefs_mailfolders_folders (Fl_Iconbrowser *b, void *v)
 	}
 }
 
-void cb_prefs_br_filters (Fl_Browser *b, void *v)
+void cb_prefs_br_filters (Fl_Browser */*b*/, void */*v*/)
 {
 	int ifolder;
 	char *folder;
@@ -547,7 +547,7 @@ void cb_prefs_br_filters (Fl_Browser *b, void *v)
 	}
 }
 
-void cb_prefs_delfilter (Fl_Button *b, void *v)
+void cb_prefs_delfilter (Fl_Button */*b*/, void */*v*/)
 {
 	int ifolder;
 	char *folder;
@@ -572,7 +572,7 @@ void cb_prefs_delfilter (Fl_Button *b, void *v)
 			WordList *WW = PREFS_FCURRENTBOX->Get_collection ("folders")->Get_collection (folder)->Get_wordlist ("filters");
 			for (i=0; i+4 < WW->Count; i+=5)
 			{
-				char *xxx = WW->Get(i);
+				const char *xxx = WW->Get(i);
 				if (atoi (xxx)==7) xxx = "Envelope Folder";
 				if (atoi (xxx)==2) xxx = "Envelope From";
 				sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
@@ -590,7 +590,7 @@ void cb_prefs_delfilter (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_addfilter (Fl_Button *b, void *v)
+void cb_prefs_addfilter (Fl_Button */*b*/, void */*v*/)
 {
 	int ifolder;
 	char *folder;
@@ -641,7 +641,7 @@ void cb_prefs_addfilter (Fl_Button *b, void *v)
 		WordList *WW = PREFS_FCURRENTBOX->Get_collection ("folders")->Get_collection (folder)->Get_wordlist ("filters");
 		for (i=0; i+4 < WW->Count; i+=5)
 		{
-			char *xxx = WW->Get(i);
+			const char *xxx = WW->Get(i);
 			if (atoi (xxx)==7) xxx = "Envelope Folder";
 			if (atoi (xxx)==2) xxx = "Envelope From";
 			sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
@@ -659,7 +659,7 @@ void cb_prefs_addfilter (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailfolders_newsub (Fl_Button *b, void *v)
+void cb_prefs_mailfolders_newsub (Fl_Button */*b*/, void */*v*/)
 {
 	if (PREFS_FCURRENTBOX)
 	{
@@ -684,7 +684,7 @@ void cb_prefs_mailfolders_newsub (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailfolders_sub_add (Fl_Button *b, void *v)
+void cb_prefs_mailfolders_sub_add (Fl_Button */*b*/, void */*v*/)
 {
 	char buf[256];
 	int ifolder;
@@ -721,7 +721,7 @@ void cb_prefs_mailfolders_sub_add (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailfolders_sub_del (Fl_Button *b, void *v)
+void cb_prefs_mailfolders_sub_del (Fl_Button */*b*/, void */*v*/)
 {
 	char buf[256];
 	int ifolder;
@@ -757,7 +757,7 @@ void cb_prefs_mailfolders_sub_del (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailfolders_subname (Fl_Input *in, void *v)
+void cb_prefs_mailfolders_subname (Fl_Input *in, void */*v*/)
 {
 //	char *newval;
 	int ifolder;
@@ -794,14 +794,14 @@ void cb_prefs_mailfolders_subname (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_mailfolders_sub (Fl_Iconbrowser *b, void *v)
+void cb_prefs_mailfolders_sub (Fl_Iconbrowser *b, void */*v*/)
 {
 	in_prefs_mailfolders_subname->value (b->text (b->value()));
 			gr_prefs_mailfolders_subset->activate();
 			gr_prefs_filters->activate();
 }
 
-void cb_prefs_mailfolders_foldername (Fl_Input *in, void *v)
+void cb_prefs_mailfolders_foldername (Fl_Input *in, void */*v*/)
 {
 //	char *newval;
 	int ifolder;
@@ -838,7 +838,7 @@ void cb_prefs_mailfolders_foldername (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_mailfolder_folder_add (Fl_Button *b, void *v)
+void cb_prefs_mailfolder_folder_add (Fl_Button */*b*/, void */*v*/)
 {
 	if (PREFS_FCURRENTBOX)
 	{
@@ -868,7 +868,7 @@ void cb_prefs_mailfolder_folder_add (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailfolder_folder_del (Fl_Button *b, void *v)
+void cb_prefs_mailfolder_folder_del (Fl_Button */*b*/, void */*v*/)
 {
 //	char *newval;
 	int ifolder;
@@ -896,7 +896,7 @@ void cb_prefs_mailfolder_folder_del (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_protocol_mysql (Fl_Input *i, void *v)
+void cb_prefs_protocol_mysql (Fl_Input */*i*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -910,7 +910,7 @@ void cb_prefs_protocol_mysql (Fl_Input *i, void *v)
 	}
 }
 
-void cb_prefs_protocol_pop3 (Fl_Input *i, void *v)
+void cb_prefs_protocol_pop3 (Fl_Input */*i*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -922,7 +922,7 @@ void cb_prefs_protocol_pop3 (Fl_Input *i, void *v)
 	}
 }
 
-void cb_prefs_protocol_imap4 (Fl_Input *i, void *v)
+void cb_prefs_protocol_imap4 (Fl_Input */*i*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -934,7 +934,7 @@ void cb_prefs_protocol_imap4 (Fl_Input *i, void *v)
 	}
 }
 
-void cb_prefs_protocol_nntp (Fl_Input *i, void *v)
+void cb_prefs_protocol_nntp (Fl_Input */*i*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -946,7 +946,7 @@ void cb_prefs_protocol_nntp (Fl_Input *i, void *v)
 	}
 }
 
-void cb_prefs_interval (Fl_Int_Input *i, void *v)
+void cb_prefs_interval (Fl_Int_Input *i, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -956,7 +956,7 @@ void cb_prefs_interval (Fl_Int_Input *i, void *v)
 	}
 }
 
-void cb_prefs_mailbox_delete (Fl_Button *b, void *v)
+void cb_prefs_mailbox_delete (Fl_Button */*b*/, void */*v*/)
 {
 	int val;
 	char *nam;
@@ -973,14 +973,12 @@ void cb_prefs_mailbox_delete (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mboxfile_delete (Fl_Button *b, void *v)
+void cb_prefs_mboxfile_delete (Fl_Button */*b*/, void */*v*/)
 {
 	int val;
-	char *nam;
 
 	if ((val = (int) br_prefs_mboxfiles->value()))
 	{
-		nam = (char *) br_prefs_mboxfiles->text(val);
 		WordList *X = PREFS_CURRENTBOX->Get_wordlist ("files");
 		X->Delete (val-1);
 		br_prefs_mboxfiles->remove(val);
@@ -990,7 +988,7 @@ void cb_prefs_mboxfile_delete (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mboxfile_add (Fl_Button *b, void *v)
+void cb_prefs_mboxfile_add (Fl_Button */*b*/, void */*v*/)
 {
 	int i;
 	char *newbox = (char *) single_file_request();
@@ -1009,7 +1007,7 @@ void cb_prefs_mboxfile_add (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_mailbox_add (Fl_Button *b, void *v)
+void cb_prefs_mailbox_add (Fl_Button */*b*/, void */*v*/)
 {
 	int i;
 	
@@ -1026,7 +1024,7 @@ void cb_prefs_mailbox_add (Fl_Button *b, void *v)
 	cb_prefs_mailboxes(br_prefs_mailboxes, (void *) NULL);
 }
 
-void cb_prefs_mboxfile_name (Fl_Input *in, void *v)
+void cb_prefs_mboxfile_name (Fl_Input */*in*/, void */*v*/)
 {
 	int val, i, ln;
 	char *vl;
@@ -1046,7 +1044,7 @@ void cb_prefs_mboxfile_name (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_mailboxname (Fl_Input *in, void *v)
+void cb_prefs_mailboxname (Fl_Input */*in*/, void */*v*/)
 {
 	int val;
 	int i;
@@ -1074,12 +1072,12 @@ void cb_prefs_mailboxname (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_mailbox_flags_b (Fl_Int_Input *b, void *v)
+void cb_prefs_mailbox_flags_b (Fl_Int_Input */*b*/, void */*v*/)
 {
 	cb_prefs_mailbox_flags (NULL, NULL);
 }
 
-void cb_prefs_mailbox_flags (Fl_Choice *b, void *v)
+void cb_prefs_mailbox_flags (Fl_Choice */*b*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -1092,17 +1090,17 @@ void cb_prefs_mailbox_flags (Fl_Choice *b, void *v)
 	}
 }
 
-void cb_prefs_protocol (Fl_Choice *c, void *v)
+void cb_prefs_protocol (Fl_Choice */*c*/, void */*v*/)
 {
 	func_view_protocol();
 }
 
-void cb_prefs_window (Fl_Window *w, void *v)
+void cb_prefs_window (Fl_Window */*w*/, void */*v*/)
 {
 	win_prefs->hide();
 }
 
-void cb_prefs_identities (Fl_Iconbrowser *b, void *v)
+void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 {
 	WordList	*X;
 	int		  val, i;
@@ -1143,7 +1141,7 @@ void cb_prefs_identities (Fl_Iconbrowser *b, void *v)
 	else gr_identities_set->deactivate();
 }
 
-void cb_prefs_identity_add (Fl_Button *b, void *v)
+void cb_prefs_identity_add (Fl_Button */*b*/, void */*v*/)
 {
 	int i;
 	char buf[24];
@@ -1163,7 +1161,7 @@ void cb_prefs_identity_add (Fl_Button *b, void *v)
 	cb_prefs_identities(br_prefs_identities, (void *) NULL);
 }
 
-void cb_prefs_identityname (Fl_Input *in, void *v)
+void cb_prefs_identityname (Fl_Input */*in*/, void */*v*/)
 {
 	int val;
 	int i;
@@ -1194,7 +1192,7 @@ void cb_prefs_identityname (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_identity_del (Fl_Button *b, void *v)
+void cb_prefs_identity_del (Fl_Button */*b*/, void */*v*/)
 {
 	int vl;
 	char *val;
@@ -1215,7 +1213,7 @@ void cb_prefs_identity_del (Fl_Button *b, void *v)
 	}
 }
 
-void cb_prefs_identity_fields (Fl_Input *b, void *v)
+void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 {
 	if (PREFS_CURRENTIDENT)
 	{
@@ -1232,7 +1230,7 @@ void cb_prefs_identity_fields (Fl_Input *b, void *v)
 	}
 }
 
-void cb_prefs_smtpserver (Fl_Input *w, void *v)
+void cb_prefs_smtpserver (Fl_Input */*w*/, void */*v*/)
 {
 	//in_prefs_smtpserver->value (LPREFERENCES.Get_char_tree ("postoffice/network/smtp"));
 	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ("smtp", (char *) in_prefs_smtpserver->value());
@@ -1244,12 +1242,12 @@ void cb_prefs_save (Fl_Button *b, void *v)
 	win_prefs->hide();
 }
 
-void cb_prefs_cancel (Fl_Button *b, void *v)
+void cb_prefs_cancel (Fl_Button */*b*/, void */*v*/)
 {
 		win_prefs->hide();
 }
 
-void cb_prefs_apply (Fl_Button *b, void *v)
+void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 {
 	char buf[256];
 	int i;
@@ -1381,7 +1379,7 @@ void prefs_style_render (void)
 	bx_prefs_style_curcol->color ((Fl_Color) PREFSTYLE.color);
 }
 
-void cb_prefs_style_element (Fl_Browser *b, void *d)
+void cb_prefs_style_element (Fl_Browser *b, void */*d*/)
 {
 	strcpy (PREFSTYLE.resource, b->text (b->value()));
 	Var *v = LPREFERENCES.Get_collection ("postoffice")->Get_collection ("gui")->
@@ -1403,7 +1401,7 @@ void cb_prefs_style_element (Fl_Browser *b, void *d)
 	prefs_style_render();
 }
 
-void cb_prefs_style_typeface (Fl_Choice *c, void *d)
+void cb_prefs_style_typeface (Fl_Choice *c, void */*d*/)
 {
 	PREFSTYLE.font = c->value();
 	prefs_style_render();
@@ -1411,25 +1409,25 @@ void cb_prefs_style_typeface (Fl_Choice *c, void *d)
 
 int _PSIZES[9] = {10,11,12,13,14,15,16,18,20};
 
-void cb_prefs_style_size (Fl_Choice *c, void *d)
+void cb_prefs_style_size (Fl_Choice *c, void */*d*/)
 {
 	PREFSTYLE.size = _PSIZES[c->value()];
 	prefs_style_render();
 }
 
-void cb_prefs_style_bold (Fl_MacCheck_Button *c, void *d)
+void cb_prefs_style_bold (Fl_MacCheck_Button *c, void */*d*/)
 {
 	PREFSTYLE.bold = c->value() ? true : false;
 	prefs_style_render();
 }
 
-void cb_prefs_style_italic (Fl_MacCheck_Button *c, void *d)
+void cb_prefs_style_italic (Fl_MacCheck_Button *c, void */*d*/)
 {
 	PREFSTYLE.italics = c->value() ? true : false;
 	prefs_style_render();
 }
 
-void cb_prefs_style_color (Fl_Button *b, void *d)
+void cb_prefs_style_color (Fl_Button *b, void */*d*/)
 {
 	Fl_Color col = b->color();
 	bx_prefs_style_curcol->color (col);
@@ -1439,7 +1437,7 @@ void cb_prefs_style_color (Fl_Button *b, void *d)
 
 Fl_Font __fonts[4] = {FL_COURIER, FL_HELVETICA, FL_TIMES, FL_COURIER};
 
-void cb_prefs_style_update (Fl_Button *b, void *d)
+void cb_prefs_style_update (Fl_Button */*b*/, void */*d*/)
 {
 	if (strlen (PREFSTYLE.resource))
 	{

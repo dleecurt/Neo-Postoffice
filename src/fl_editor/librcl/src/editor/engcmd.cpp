@@ -7,6 +7,8 @@ rclError _export EditorEngine::Command(EditorCommandTypes command, long argument
   LastResult = NOERROR;
   switch(command)
   {
+    default:            // string commands are handled below
+      break;
     case INSERT_CHARACTER:
 		last_wrapped = false;
       LastResult = InsertCharacter((char)argument);
@@ -118,6 +120,8 @@ rclError _export EditorEngine::Command(EditorCommandTypes command, const char *a
   LastResult = NOERROR;
   switch(command)
   {
+    default:            // numeric commands are handled above
+      break;
     case SET_REPLACEMENT_TEXT:
       ReplacementText = argument;
       break;

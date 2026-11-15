@@ -47,11 +47,11 @@ void OutBoxHandler::CloseConnection (void)
 {
 }
 
-void OutBoxHandler::GetBody (char *msgid)
+void OutBoxHandler::GetBody (char */*msgid*/)
 {
 }
 
-void OutBoxHandler::CheckGroup (char *groupname)
+void OutBoxHandler::CheckGroup (const char */*groupname*/)
 {
 	int			 i,j;
 	MailMessage *M;
@@ -192,14 +192,14 @@ void OutBoxHandler::CheckGroup (char *groupname)
 			delete (RCPT);
 			delete (HeaderNames);
 			delete (HeaderValues);
-			delete (mailfrom);
+			delete[] mailfrom;
 		}
 		JOBQ.EndJob (jid);
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 	}
 }
 
-void OutBoxHandler::DeleteMessage (char *msgid)
+void OutBoxHandler::DeleteMessage (char */*msgid*/)
 {
 }
 
@@ -208,7 +208,7 @@ void OutBoxHandler::Expire (void)
 {
 }
 
-int OutBoxHandler::PostMessage (WordList *rcpt, MailMessage *m)
+int OutBoxHandler::PostMessage (WordList */*rcpt*/, MailMessage */*m*/)
 {
 	return 0;
 }

@@ -223,7 +223,7 @@ void Fl_Toggle_Tree::draw_label(char* str, int indent, int x, int y, int w, int 
     //    if (((FL_BLINE*)v)->flags & SELECTED)
     //      lcol = contrast(lcol, selection_color());
     fl_color(lcol);
-    fl_draw(str, x + indent, y + 1, w1 - indent, h + 1, align);
+    fl_draw(str, x + indent, y + 1, w1 - indent, h + 1, align, NULL, 0); // no @symbols in item text
     if (!e) break;   // no more fields...
     *e = column_char();   // put the seperator back
     x += w1;

@@ -6,7 +6,7 @@
 #include "strdupp.h"
 #include "substr.h"
 
-char *gdbm_node2contenttype (const char *dat, int size)
+char *gdbm_node2contenttype (const char *dat, int /*size*/)
 {
 	char *eol = strchr ((char *) dat, '\n');
 	if (eol)
@@ -16,7 +16,7 @@ char *gdbm_node2contenttype (const char *dat, int size)
 	return strdupp ("");
 }
 
-char *gdbm_node2filename (const char *dat, int size)
+char *gdbm_node2filename (const char *dat, int /*size*/)
 {
 	char *bol, *eol;
 	bol = strchr ((char *) dat, '\n');
@@ -32,7 +32,7 @@ char *gdbm_node2filename (const char *dat, int size)
 	return strdupp ("");
 }
 
-char *gdbm_node2description (const char *dat, int size)
+char *gdbm_node2description (const char *dat, int /*size*/)
 {
 	char *bol, *eol;
 	bol = strchr ((char *) dat, '\n');
@@ -53,7 +53,7 @@ char *gdbm_node2description (const char *dat, int size)
 	return strdupp ("");
 }
 
-char *gdbm_nodecontents (const char *dat, int size)
+char *gdbm_nodecontents (const char *dat, int /*size*/)
 {
 	char *bol;//, *eol;
 	bol = strchr ((char *) dat, '\n');

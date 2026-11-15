@@ -20,7 +20,7 @@ WidgetList::~WidgetList (void)
 	{
 		NX = X->Next;
 		Scroll->remove (X->Group);
-		delete (X->Text);
+		delete[] X->Text;
 		delete (X->Group);
 		delete (X);
 		X = NX;
@@ -105,7 +105,7 @@ void WidgetList::Remove (int idx)
 			}
 		}
 		delete (N->Group);
-		delete (N->Text);
+		delete[] N->Text;
 		delete (N);
 		--Count;
 	}
@@ -172,7 +172,7 @@ void Fl_Iconbrowser::deactivate (void)
 
 #define MARGIN 8
 
-void Fl_Iconbrowser::add (char *_label, Fl_Pixmap *_icon, void *_userdata)
+void Fl_Iconbrowser::add (const char *_label, Fl_Pixmap *_icon, void *_userdata)
 {
 	int ypos = y() + 2 + (18 * Contents->Size()) - Scroll.yposition();
 	char *Text = new char[strlen(_label)+1];
@@ -274,7 +274,7 @@ void Fl_Iconbrowser::cb_click (Fl_Button *b, void *vd)
 	}
 }
 
-void Fl_Iconbrowser::textsize (int i)
+void Fl_Iconbrowser::textsize (int /*i*/)
 {
 	
 }
@@ -291,7 +291,7 @@ void Fl_Iconbrowser::text (int idx, const char *lbl)
 	WidgetNode *N = Contents->Get (idx);
 	if (N)
 	{
-		delete (N->Text);
+		delete[] N->Text;
 		N->Text = new char[strlen (lbl)+1];
 		strcpy (N->Text, lbl);
 		N->Label->label (N->Text);

@@ -10,7 +10,7 @@ class BTreeNode
 {
 	public:
 					     BTreeNode (const char *, BTreeNode *root=NULL);
-					    ~BTreeNode (void);
+					virtual ~BTreeNode (void);
 		
         void             LinkTo (BTreeNode *);
 		BTreeNode		*Find (const char *);

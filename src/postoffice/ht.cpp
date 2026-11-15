@@ -77,15 +77,15 @@ HTElement::~HTElement (void)
 	First = Last = NULL;
 }
 
-void HTElement::Layout (int wh)
+void HTElement::Layout (int /*wh*/)
 {
 }
 
-void HTElement::Draw (int offx, int offy, int x, int y, int w, int h, bool partial, bool *selected)
+void HTElement::Draw (int /*offx*/, int /*offy*/, int /*x*/, int /*y*/, int /*w*/, int /*h*/, bool /*partial*/, bool */*selected*/)
 {
 }
 
-void HTElement::Selection (WordList *wl, bool *s)
+void HTElement::Selection (WordList */*wl*/, bool */*s*/)
 {
 	//return 
 }
@@ -474,13 +474,13 @@ void HTHeader::Layout (int WidthHint)
 	if (Value->H > H) H = Value->H;
 }
 
-void HTHeader::Draw (int off_x, int off_y, int x, int y, int w, int h, bool partial, bool *selected)
+void HTHeader::Draw (int off_x, int off_y, int /*x*/, int /*y*/, int w, int h, bool partial, bool *selected)
 {
 	Name->Draw (off_x, off_y, 0, 0, 128, h, partial, selected);
 	Value->Draw (off_x + 128, off_y, 0, 0, w - 128, h, partial, selected);
 }
 
-HTWord::HTWord (HTElement *p, char *txt) : HTElement (p)
+HTWord::HTWord (HTElement *p, const char *txt) : HTElement (p)
 {
 	First = Last = NULL;
 	Prev = Next = NULL;
@@ -497,13 +497,13 @@ HTWord::~HTWord (void)
 	delete[] text;
 }
 
-void HTWord::Layout (int WidthHint)
+void HTWord::Layout (int /*WidthHint*/)
 {
 	int sz = GetIProperty ("fontsize");	
 	int fn = GetIProperty ("font");
 	fl_font (fn, sz ? sz : 12);
 	W = 0;
-	fl_measure (text, W, H);
+	fl_measure (text, W, H, 0); // 0: no @symbols in message text
 	H += fl_descent();
 }
 
@@ -579,7 +579,7 @@ int HTWord::StringPos (int val)
 		oldval = curval;
 		str[0] = text[crsr];
 		w = 0;
-		fl_measure (str, w, h);
+		fl_measure (str, w, h, 0);
 		curval = oldval + w;
 		++crsr;
 	}
@@ -609,14 +609,14 @@ int HTWord::Snap (int val)
 		oldval = curval;
 		str[0] = text[crsr];
 		w = 0;
-		fl_measure (str, w, h);
+		fl_measure (str, w, h, 0);
 		curval = oldval + w;
 		++crsr;
 	}
 	return curval;
 }
 
-void HTWord::Draw (int off_x, int off_y, int x, int y, int w, int h, bool partial, bool *selected)
+void HTWord::Draw (int off_x, int off_y, int x, int y, [[maybe_unused]] int w, [[maybe_unused]] int h, bool partial, bool *selected)
 {
 	int sz = GetIProperty ("fontsize");
 	int fn = GetIProperty ("font");
@@ -700,7 +700,7 @@ void HTWord::Draw (int off_x, int off_y, int x, int y, int w, int h, bool partia
 	if (EMark >= 0) *selected = !(*selected);
 	
 	fl_color (GetIProperty ("fontcolor"));
-	fl_draw (text, off_x+x, off_y+y, W, H, FL_ALIGN_LEFT);
+	fl_draw (text, off_x+x, off_y+y, W, H, FL_ALIGN_LEFT, NULL, 0); // 0: no @symbols
 }
 
 // Runs the user's URL action (a shell command template in which '$' stands
@@ -800,13 +800,13 @@ void HTBitmap::Selection (WordList *wl, bool *selected)
 	if (*selected) wl->Add ("\n[Image]\n");
 }
 
-void HTBitmap::Layout (int WidthHint)
+void HTBitmap::Layout (int /*WidthHint*/)
 {
 	W = Width;
 	H = Height;
 }
 
-void HTBitmap::Draw (int off_x, int off_y, int x, int y, int w, int h, bool partial, bool *selected)
+void HTBitmap::Draw (int off_x, int off_y, int x, int y, int /*w*/, int /*h*/, bool partial, bool */*selected*/)
 {
 	if (partial) return;
 	fl_draw_image (Bitmap, off_x+x, off_y+y, Width, Height);
@@ -915,7 +915,6 @@ void Fl_View::draw_clip (int xx, int yy, int ww, int hh)
 int Fl_View::handle (int event)
 {
 	int ox, oy;
-	bool select = false;
 	WordList *W;
 	int cnt;
 	
@@ -1031,7 +1030,7 @@ void Fl_View::add_bitmap (unsigned char *bmp, int _w, int _h)
 	B->LF = true;
 }
 
-void Fl_View::add_textline (char *line, int _color, int _font, int _size)
+void Fl_View::add_textline (const char *line, int _color, int _font, int _size)
 {
 	WordList W;
 	HTGroup *G = new HTGroup (Pane);

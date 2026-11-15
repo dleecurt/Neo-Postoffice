@@ -1,5 +1,5 @@
 /* XPM */
-static char * envelope_ghost_xpm[] = {
+static const char * envelope_ghost_xpm[] = {
 "16 16 10 1",
 " 	c None",
 ".	c #929292",

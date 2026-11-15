@@ -42,7 +42,7 @@ struct MailViewMutation
 class MailView
 {
 	public:
-							 MailView (class MailBox *, char *);
+							 MailView (class MailBox *, const char *);
 							~MailView (void);
 		
 		MailView			*Next, *Prev;

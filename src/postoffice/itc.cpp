@@ -206,14 +206,14 @@ void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, WordList
 	Lock->UnlockOnce();
 }
 
-void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, char *msg1)
+void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, const char *msg1)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);
 	PostMessage (_Class, _Subclass, W);
 }
 
-void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, char *msg1, char *msg2)
+void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, const char *msg1, const char *msg2)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);
@@ -221,7 +221,7 @@ void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, char *ms
 	PostMessage (_Class, _Subclass, W);
 }
 
-void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, char *msg1, char *msg2, char *msg3)
+void ITCPipe::PostMessage (unsigned int _Class, unsigned int _Subclass, const char *msg1, const char *msg2, const char *msg3)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);

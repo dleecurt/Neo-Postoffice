@@ -42,15 +42,12 @@
 #include "style.h"
 #include "folderdata.h"
 
-#include <setjmp.h>
 
 StorageList STORAGE;
 
 int VERBOSE;
 
-extern "C" {
-  #include <jpeglib.h>
-}
+#include <FL/Fl_JPEG_Image.H>
 
 #define locs(uk,nam) ((const char *) (_USELOCALE ? _CLOCALE->Get_char(nam) : (uk)))
 
@@ -105,18 +102,6 @@ int					 _SORTMETHOD=0;
 // Which field to sort by
 int SORTFIELD = -1;
 
-struct my_error_mgr
-{
-	struct jpeg_error_mgr pub;
-	jmp_buf setjmp_buffer;
-};
-
-void my_error_exit (j_common_ptr cinfo)
-{
-	my_error_mgr *myerr = (my_error_mgr *) cinfo->err;
-	(*cinfo->err->output_message)(cinfo);
-	longjmp(myerr->setjmp_buffer, 1);
-}
 
 void addheader (const char *, const char *);
 void cb_flipfolder (Fl_Widget *, void *);
@@ -167,7 +152,7 @@ int				  adr_widths[2] = {120,0};
 // SYNOPSIS		Sets the display filter to show all messages in the view
 //===============================================================================
 
-void cb_viewall (Fl_Menu_ *w, void *b)
+void cb_viewall (Fl_Menu_ */*w*/, void */*b*/)
 {
 	unreadonly = 0;
 	update_folder();
@@ -179,7 +164,7 @@ void cb_viewall (Fl_Menu_ *w, void *b)
 // SYNOPSIS		Sets the display filter to only show unread messages
 //===============================================================================
 
-void cb_viewunread (Fl_Menu_ *w, void *b)
+void cb_viewunread (Fl_Menu_ */*w*/, void */*b*/)
 {
 	unreadonly = 1;
 	update_folder();
@@ -191,7 +176,7 @@ void cb_viewunread (Fl_Menu_ *w, void *b)
 // SYNOPSIS		Opts for displaying all headers in the Fl_View
 //===============================================================================
 
-void cb_hdrfull (Fl_Menu_ *w, void *b)
+void cb_hdrfull (Fl_Menu_ */*w*/, void */*b*/)
 {
 	PREFERENCES.Set_char_tree ("postoffice/state/main/fullheaders", "1");
 }
@@ -202,7 +187,7 @@ void cb_hdrfull (Fl_Menu_ *w, void *b)
 // SYNOPSIS		Opts for only displaying relevant headers in the Fl_View
 //===============================================================================
 
-void cb_hdrpart (Fl_Menu_ *w, void *b)
+void cb_hdrpart (Fl_Menu_ */*w*/, void */*b*/)
 {
 	PREFERENCES.Set_char_tree ("postoffice/state/main/fullheaders", "0");
 }
@@ -225,7 +210,7 @@ void cb_delete_m (Fl_Menu_*w, void *d)
 // 				and possibly the remote database.
 //===============================================================================
 
-void cb_delete (Fl_Button *w, void *d)
+void cb_delete (Fl_Button */*w*/, void */*d*/)
 {
 	FolderData *D;
 	Fl_Toggle_Node *S;
@@ -258,7 +243,7 @@ void cb_delete (Fl_Button *w, void *d)
 // SYNOPSIS		stub (FIXME)
 //===============================================================================
 
-void cb_refilter (Fl_Menu_ *w, void *d)
+void cb_refilter (Fl_Menu_ */*w*/, void */*d*/)
 {
 //	FolderData *D;
 //	MailMessage *M;3
@@ -271,7 +256,7 @@ void cb_refilter (Fl_Menu_ *w, void *d)
 // SYNOPSIS		stub (FIXME)
 //===============================================================================
 
-void cb_select_all (Fl_Menu_ *w, void *d)
+void cb_select_all (Fl_Menu_ */*w*/, void */*d*/)
 {
 	/*
 	int i;
@@ -290,7 +275,7 @@ void cb_select_all (Fl_Menu_ *w, void *d)
 // SYNOPSIS		moves the toolbar into its own window
 //===============================================================================
 
-void cb_menu_tearoff (Fl_Button *b, void *d)
+void cb_menu_tearoff (Fl_Button */*b*/, void */*d*/)
 {
 	gr_buttonbar->hide();
 	tile_all->resize (tile_all->x(),20,tile_all->w(),tile_all->h()+20);
@@ -304,7 +289,7 @@ void cb_menu_tearoff (Fl_Button *b, void *d)
 // SENDER		toolbar window closebox
 // SYNOPSIS		moves the toolbar back into the main window
 //===============================================================================
-void cb_menu_untear (Fl_Widget *w, void *d)
+void cb_menu_untear (Fl_Widget */*w*/, void */*d*/)
 {
 	tile_all->resize (tile_all->x(),40,tile_all->w(), tile_all->h()-20);
 	gr_buttonbar->show();
@@ -325,7 +310,7 @@ Fl_Window *wfolders = (Fl_Window *) NULL;
 // SYNOPSIS		moves the folderlist into its own window
 //===============================================================================
 
-void cb_folders_tearoff (Fl_Button *b, void *d)
+void cb_folders_tearoff (Fl_Button */*b*/, void */*d*/)
 {
 	owidth = gr_folderlist->w();
 	oheight = gr_folderlist->h();
@@ -358,7 +343,7 @@ void cb_folders_tearoff (Fl_Button *b, void *d)
 // SYNOPSIS		moves the folderlist back into the main window
 //===============================================================================
 
-void cb_folders_untear (Fl_Widget *w, void *d)
+void cb_folders_untear (Fl_Widget */*w*/, void */*d*/)
 {
 	if (!folderlist_fullsize)
 	{
@@ -383,11 +368,11 @@ void cb_folders_untear (Fl_Widget *w, void *d)
 int lwidth = 0;
 int lwidth2 = 0;
 
-void cb_updatewidth (Fl_Tile *t, void *d)
+void cb_updatewidth (Fl_Tile */*t*/, void */*d*/)
 {
 }
 
-void ti_widthcheck (void *x)
+void ti_widthcheck (void */*x*/)
 {
 	xwidths[0] = bt_from->x() - bt_thread->x();
 	xwidths[1] = bt_date->x() - bt_from->x();
@@ -413,12 +398,6 @@ void ti_widthcheck (void *x)
 	{
 		Fl::add_timeout(0.5,ti_widthcheck);
 	}
-}
-
-static int my_handler (int event)
-{
-	cb_updatewidth ((Fl_Tile *) NULL, (void *) NULL);
-	return 0;
 }
 
 ITCPipe *PIPE;
@@ -728,7 +707,7 @@ void cb_check_mail_m (Fl_Menu_ *m, void *blah)
 //				messages, possibly within the context of the selected folder.
 //===============================================================================
 
-void cb_check_mail (Fl_Button *m, void *blah)
+void cb_check_mail (Fl_Button */*m*/, void */*blah*/)
 {
 	if (currentmailbox) 
 	{
@@ -744,7 +723,7 @@ void cb_check_mail (Fl_Button *m, void *blah)
 // SYNOPSIS		attempts to expire messages in the current mailbox
 //===============================================================================
 
-void cb_expire (Fl_Menu_ *m, void *blah)
+void cb_expire (Fl_Menu_ */*m*/, void */*blah*/)
 {
 	if (currentmailbox)
 	{
@@ -759,7 +738,7 @@ void cb_expire (Fl_Menu_ *m, void *blah)
 // SYNOPSIS		opens all leafs in the toggletree that makes up the folder index
 //===============================================================================
 
-void cb_thr_open (Fl_Menu_ *b, void *v)
+void cb_thr_open (Fl_Menu_ */*b*/, void */*v*/)
 {
 	Fl_Toggle_Node_Base *x;
 	x = br_folderindex->traverse_start();
@@ -778,7 +757,7 @@ void cb_thr_open (Fl_Menu_ *b, void *v)
 // SYNOPSIS		closes all leafs in the toggletree that makes up the folder index
 //===============================================================================
 
-void cb_thr_close (Fl_Menu_ *b, void *v)
+void cb_thr_close (Fl_Menu_ */*b*/, void */*v*/)
 {
 	Fl_Toggle_Node_Base *x;
 	x = br_folderindex->traverse_start();
@@ -800,7 +779,7 @@ void cb_thr_close (Fl_Menu_ *b, void *v)
 //				is instructed to go fetch it.
 //===============================================================================
 
-void cb_selectmessage (Fl_Widget *w, void *v)
+void cb_selectmessage (Fl_Widget */*w*/, void */*v*/)
 {
 	if (!br_folderindex->selected()) return;
 	
@@ -1129,7 +1108,7 @@ void displaymessage (MailMessage *M)
 			else
 			{
 				bool uuencoded = false;
-				char *mimetype = CTH.Get(0);
+				const char *mimetype = CTH.Get(0);
 				if (strcasecmp (mimetype, "text/uuencoded") == 0) // remap by file extension
 				{
 					uuencoded = true;
@@ -1145,11 +1124,9 @@ void displaymessage (MailMessage *M)
 				}
 				if (strcasecmp (mimetype, "image/jpeg") == 0)
 				{
-					unsigned long size;
-					char tmpfile[128];
+					unsigned long size = 0;
 					unsigned char *jpeg_data = NULL;
-					sprintf (tmpfile, "%s/.postoffice/%s.box/jpeg_attch_XXXXXX", getenv ("HOME"), currentmailbox->Name);
-					
+
 					int jid = JOBQ.NewJob ("Decode");
 					JOBQ.Stat (jid, "Decoding attachments");
 					update_status(); Fl::wait (0.05);
@@ -1166,71 +1143,41 @@ void displaymessage (MailMessage *M)
 						}
 					}
 					else jpeg_data = (unsigned char *) Base64 ((unsigned char *) P->Contents, P->ContentSize, &size);
-					if (mktemp (tmpfile))
+					// Decode in memory with FLTK's JPEG support (no temporary file).
+					if (jpeg_data && size > 0 && size < 0x7fffffffUL)
 					{
-						FILE *F = fopen (tmpfile, "w");
-						if (F)
+						Fl_JPEG_Image img (NULL, jpeg_data, (int) size);
+						int iw = img.data_w(), ih = img.data_h(), id = img.d(), ild = img.ld();
+						if (img.fail() || iw <= 0 || ih <= 0 || !img.count() || (id != 1 && id != 3))
 						{
-							fwrite (jpeg_data, 1, size, F);
-							fclose (F);
-							F = fopen (tmpfile, "r");
-							if (F)
+							mdi_views[mdi_current]->add_textline ((char *) "[Mangled image]");
+						}
+						else
+						{
+							// Fl_View wants packed 8-bit RGB and takes ownership of it.
+							const unsigned char *src = (const unsigned char *) img.data()[0];
+							unsigned char *bitmap = new unsigned char[3 * (size_t) iw * ih + 1];
+							if (ild == 0) ild = iw * id;
+							for (int y = 0; y < ih; ++y)
 							{
-								struct jpeg_decompress_struct	 cinfo;
-								struct my_error_mgr				 jerr;
-								unsigned char					*bitmap;
-								unsigned long					 crsr;
-								unsigned long					 total;
-								int								 strobe = 0;
-								bool							 haderr = false;
-								
-								strobe = 0;
-								
-								cinfo.err = jpeg_std_error (&jerr.pub);
-								jerr.pub.error_exit = my_error_exit;
-								
-								if (setjmp (jerr.setjmp_buffer))
+								const unsigned char *in = src + (size_t) y * ild;
+								unsigned char *out = bitmap + (size_t) y * iw * 3;
+								for (int x = 0; x < iw; ++x)
 								{
-									jpeg_destroy_decompress (&cinfo);
-									fclose (F);
-									mdi_views[mdi_current]->add_textline ("[Mangled image]");
-									unlink (tmpfile);
-									haderr = true;
+									if (id == 3) { out[0] = in[0]; out[1] = in[1]; out[2] = in[2]; }
+									else { out[0] = out[1] = out[2] = in[0]; }
+									in += id; out += 3;
 								}
-								if (!haderr)
+								if (!(y & 0x0f))
 								{
-									jpeg_create_decompress (&cinfo);
-									jpeg_stdio_src (&cinfo, F);
-									jpeg_read_header (&cinfo, TRUE);
-									jpeg_start_decompress (&cinfo);
-									if (cinfo.output_components == 3)
-									{
-										total = 3 * cinfo.output_width * cinfo.output_height;
-										bitmap = new unsigned char[ total + 1];
-										for (crsr = 0; crsr < total; crsr += (3 * cinfo.output_width))
-										{
-											strobe++;
-											strobe = strobe & 0x0f;
-											if (!strobe)
-											{
-												JOBQ.Progress (jid, (int) ((100 * crsr)/total));
-												update_status(); Fl::wait (0.01);
-											}
-											JSAMPLE *row = (JSAMPLE *) bitmap+crsr;
-
-											if (cinfo.output_scanline < cinfo.output_height)
-												jpeg_read_scanlines (&cinfo, &row, 1);
-										}
-										jpeg_finish_decompress (&cinfo);
-										jpeg_destroy_decompress (&cinfo);
-										mdi_views[mdi_current]->add_bitmap (bitmap, cinfo.output_width, cinfo.output_height);
-										fclose (F);
-										unlink (tmpfile);
-									}
+									JOBQ.Progress (jid, (100 * y) / ih);
+									update_status(); Fl::wait (0.01);
 								}
 							}
+							mdi_views[mdi_current]->add_bitmap (bitmap, iw, ih);
 						}
 					}
+					if (jpeg_data) delete[] (char *) jpeg_data;
 					JOBQ.EndJob (jid);
 					update_status();
 				}
@@ -1251,11 +1198,11 @@ void displaymessage (MailMessage *M)
 	if (totalsize > 8192) M->Flush();
 }
 
-void cb_folders_dropdown (Fl_Button *b, void *v)
+void cb_folders_dropdown (Fl_Button */*b*/, void */*v*/)
 {
 	int mb_x, mb_y, mb_w, mb_h;
-	int ml_x, ml_y, ml_w, ml_h;
-	int ms_x, ms_y, ms_w, ms_h;
+	[[maybe_unused]] int ml_x, ml_y, ml_w, ml_h;
+	[[maybe_unused]] int ms_x, ms_y, ms_w, ms_h;
 
 	PREFERENCES.Set_char_tree ("postoffice/state/main/mailboxtile","full");
 
@@ -1311,11 +1258,11 @@ void cb_folders_dropdown (Fl_Button *b, void *v)
 	folderlist_fullsize = 1;
 };
 
-void cb_folders_undrop (Fl_Button *b, void *v)
+void cb_folders_undrop (Fl_Button */*b*/, void */*v*/)
 {
 	int mb_x, mb_y, mb_w, mb_h;
-	int ml_x, ml_y, ml_w, ml_h;
-	int ms_x, ms_y, ms_w, ms_h;
+	[[maybe_unused]] int ml_x, ml_y, ml_w, ml_h;
+	[[maybe_unused]] int ms_x, ms_y, ms_w, ms_h;
 
 	PREFERENCES.Set_char_tree ("postoffice/state/main/mailboxtile","compact");
 
@@ -1359,7 +1306,7 @@ void cb_folders_undrop (Fl_Button *b, void *v)
 	folderlist_fullsize = 0;
 }
 
-void cb_menu_shrink (Fl_Button *b, void *v)
+void cb_menu_shrink (Fl_Button */*b*/, void */*v*/)
 {
 	PREFERENCES.Set_char_tree ("postoffice/state/main/toolbar","small");
 
@@ -1372,7 +1319,7 @@ void cb_menu_shrink (Fl_Button *b, void *v)
 	gr_tiles->redraw();
 }
 
-void cb_menu_expand (Fl_Button *b, void *v)
+void cb_menu_expand (Fl_Button */*b*/, void */*v*/)
 {
 	PREFERENCES.Set_char_tree ("postoffice/state/main/toolbar","big");
 
@@ -1508,7 +1455,7 @@ void extract_recipients (WordList *list, char *rcpt)
 
 void cb_quit (Fl_Window *, void *);
 
-void cb_quit_m (Fl_Menu_ *w, void *v)
+void cb_quit_m (Fl_Menu_ */*w*/, void */*v*/)
 {
 	cb_exit (NULL, NULL);
 }
@@ -1527,7 +1474,7 @@ void cb_exit (Fl_Window *w, void *v)
 }
 
 
-void cb_quit (Fl_Window *b, void *v)
+void cb_quit (Fl_Window */*b*/, void */*v*/)
 {
 	char buf[256];
 	char tag[256];
@@ -1604,7 +1551,7 @@ void cb_quit (Fl_Window *b, void *v)
 	exit(0);
 }
 
-void cb_stop (Fl_Button *b,void *v)
+void cb_stop (Fl_Button */*b*/,void */*v*/)
 {
 	for (int i=0;i<16;++i)
 	{
@@ -1612,18 +1559,18 @@ void cb_stop (Fl_Button *b,void *v)
 	}
 }
 
-void cb_aboot (Fl_Menu_ *m, void *v)
+void cb_aboot (Fl_Menu_ */*m*/, void */*v*/)
 {
 	if (!win_aboot) make_aboot();
 	win_aboot->show();
 }
 
-void cb_close_aboot (Fl_Button *b, void *v)
+void cb_close_aboot (Fl_Button */*b*/, void */*v*/)
 {
 	win_aboot->hide();
 }
 
-void cb_show_build (Fl_Menu_ *m, void *v)
+void cb_show_build (Fl_Menu_ */*m*/, void */*v*/)
 {
 	if (!win_buildinfo) make_buildinfo();
 	win_buildinfo->show();

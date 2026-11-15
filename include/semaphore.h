@@ -6,7 +6,7 @@ class ASemaphore
 {
 	public:
 							 ASemaphore (void);
-							 ASemaphore (char *);
+							 ASemaphore (const char *);
 							~ASemaphore (void);
 		
 		void				 LockOnce (void);
@@ -23,12 +23,12 @@ class ASemaphore
 	private:
 		pthread_mutexattr_t	*attr;
 		pthread_mutex_t		*mutex;
-		char				*debugname;
+		const char			*debugname;
 		
 		int					 Status;
 		int					 Numlocks;
 		int					 timewait;
-		char				*lockers[16];
+		const char			*lockers[16];
 
 	#ifdef THREADTRAP
 		time_t				 lastcollision;
@@ -38,8 +38,8 @@ class ASemaphore
 };
 
 #define LOCK_NONE			0x00
-#define LOCK_READ			0x01
-#define LOCK_WRITE			0x02
+#define PO_LOCK_READ			0x01
+#define PO_LOCK_WRITE			0x02
 #define LOCK_PREWRITE		0x03
 #define LOCK_READYWRITE		0x04
 #define LOCK_WRITEPREWRITE	0x05

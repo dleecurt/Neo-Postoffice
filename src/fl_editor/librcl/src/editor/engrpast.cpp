@@ -4,7 +4,7 @@
 
 // This is now handled by descendant classes
 
-rclError _export EditorEngine::PasteRegion(bool replace)
+rclError _export EditorEngine::PasteRegion(bool /*replace*/)
 {
 	last_wrapped = false;
 	LastResult = NOERROR;

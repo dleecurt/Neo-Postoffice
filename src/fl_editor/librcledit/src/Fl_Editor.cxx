@@ -18,7 +18,7 @@ static void dragtimer(void *o)
 		ed->handle(FL_DRAG);
 }
 
-static void cb_EditScroller(Fl_Scrollbar* o, void *udata) 
+static void cb_EditScroller(Fl_Scrollbar* /*o*/, void *udata) 
 {
 	Fl_Editor *ed = (Fl_Editor *)udata;
 	if ( ed )
@@ -47,7 +47,7 @@ FL_EXPORT short Fl_EditorEngine::MeasureTextWidth(const char *t)
 	return(lwide);
 }
 
-FL_EXPORT short Fl_EditorEngine::MeasureTextHeight(const char *t)
+FL_EXPORT short Fl_EditorEngine::MeasureTextHeight([[maybe_unused]] const char *t)
 {
 	int maxheight = this->textsize() + fl_descent();
 #if (FL_MAJOR_VERSION > 1)
@@ -73,7 +73,8 @@ FL_EXPORT short Fl_EditorEngine::MeasureTextHeight(const char *t)
 FL_EXPORT Fl_Editor::Fl_Editor(int x, int y, int w, int h, const char *cap)
 : Fl_Group(x, y, w, h, cap)
 {
-	int bdx, bdy, bdh, bdw, ebdx, ebdy;
+	int bdx, bdy, bdh, bdw;
+	[[maybe_unused]] int ebdx, ebdy;
 	myHideCursor = false;
 	clear_output();
 	StartLine = 0;
@@ -248,7 +249,6 @@ FL_EXPORT void Fl_Editor::ShowCursor(CursorStyles show)
 		SafeStart = scroller->value();
 	else 
 		SafeStart = SafeStart * 10;
-	long curscroll = scroller->value();
 	scroller->value(SafeStart, SafeSize * 10, 0, SafeTotal * 10);
 }
 
@@ -312,13 +312,14 @@ FL_EXPORT void Fl_Editor::draw()
 }
 
 
-FL_EXPORT void Fl_Editor::draw_clip(void *v, int X, int Y, int W, int H)
+FL_EXPORT void Fl_Editor::draw_clip(void *v, int /*X*/, int Y, int /*W*/, int /*H*/)
 {
 	Fl_Editor *S = (Fl_Editor *) v;
 
 	// now figure out the text area dimensions, 
 	// leaving some room for the bounding box.
-	short left, top, wide, high, lineheight;
+	short left, top, high, lineheight;
+	[[maybe_unused]] short wide;
 	left = S->editbox->x() + LEFTMARGIN;
 	top = S->editbox->y() + TOPMARGIN;
 	wide = S->editbox->w() - LEFTMARGIN;
@@ -539,7 +540,7 @@ FL_EXPORT int Fl_Editor::handle(int event)
 				DrawFrom = engine->GetPosition();	// try to optimize the draw a little...
 //				ShowCursor(CURSOR_HIDE);
 				FindCursor(Fl::event_x(), Fl::event_y());
-				if ( marking && selectlines )
+				if ( marking && selectlines ) {
 					if ( Mark.Row > engine->CursorRow() )
 					{	// mark and drag upward
 						if ( !Mark.Column )
@@ -564,6 +565,7 @@ FL_EXPORT int Fl_Editor::handle(int event)
 						}
 						engine->Command(MOVE_EOL);
 					}
+				}
 				if ( marking )
 				{
 					if ( (Fl::event_y() > y()+h()) && (StartLine + VisibleLines < engine->GetLineCount()) )
@@ -744,7 +746,7 @@ FL_EXPORT int Fl_Editor::HandleKey(int key, const char *text, int len, int state
 				damage(DAMAGE_PARTIAL);
 				break;
 			case FL_BackSpace:
-				if(!Readonly)
+				if(!Readonly) {
 					if ( marking )
 					{
 						engine->DeleteRegion();
@@ -756,9 +758,10 @@ FL_EXPORT int Fl_Editor::HandleKey(int key, const char *text, int len, int state
 						engine->BackSpaceCharacter();
 						damage(DAMAGE_LINE);
 					}
+				}
 				break;
 			case FL_Delete:
-				if(!Readonly)
+				if(!Readonly) {
 					if ( state & FL_SHIFT )
 					{
 						Cut();
@@ -775,6 +778,7 @@ FL_EXPORT int Fl_Editor::HandleKey(int key, const char *text, int len, int state
 						engine->DeleteCharacter();
 						damage(DAMAGE_LINE);
 					}
+				}
 				unmark = marking;
 				break;
 			case FL_Tab:
@@ -894,7 +898,7 @@ FL_EXPORT void Fl_Editor::resize(int nx, int ny, int nw, int nh)
 	ShowCursor(CURSOR_UNHIDE);
 }
 
-FL_EXPORT int Fl_Editor::HandleCursorKey(int key, const char *text, int len, int state)
+FL_EXPORT int Fl_Editor::HandleCursorKey(int key, const char */*text*/, int /*len*/, int state)
 {
 	int handled = 0;
 	int ismarking = 0;
@@ -1077,7 +1081,7 @@ FL_EXPORT void Fl_Editor::textsize(uchar s)
 }
 
 
-FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int starttop, wString& current, fleditor_DrawState& state)
+FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int starttop, wString& current, fleditor_DrawState& /*state*/)
 {
 		// starttop is where the BASELINE of the text is drawn.  
 		// That's why "boxtop" is set back by the height of the line

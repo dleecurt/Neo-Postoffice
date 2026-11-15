@@ -13,7 +13,7 @@
 #include <string.h>
 #include <stdio.h>
 
-char *substr (char *start, char *end)
+char *substr (const char *start, const char *end)
 {
 	int ln = (end - start);
 	char *result = new char [ln +2];
@@ -22,7 +22,7 @@ char *substr (char *start, char *end)
 	return result;
 }
 
-char *substr (char *str, int start, int len)
+char *substr (const char *str, int start, int len)
 {
 	int ln;
 	char *result = new char[len+2];

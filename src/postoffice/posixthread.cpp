@@ -35,7 +35,7 @@ void PosixThread::Kill (void)
 	}
 }
 
-void PosixThread::Run (void *data)
+void PosixThread::Run (void */*data*/)
 {
 }
 

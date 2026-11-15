@@ -33,7 +33,6 @@ TextMessage::TextMessage (WordList *W)
 	P->Prev = P->Next = NULL;
 	int		  i, j;
 	int		  ind,quo;
-	int		  didnewline = 0;
 	int		  numsamelevel = 0;
 	char		*tmp;
 	char		*nxt;
@@ -188,14 +187,12 @@ TextMessage::TextMessage (WordList *W)
 			}
 			P = new Paragraph (quo, ind);
 				//P->Text->Add ("");
-				didnewline = 1;
 				P->Next = NULL;
 				P->Prev = NULL;
 				Last->Next = P;
 				Last = P;
 				P = new Paragraph (quo, ind);
 		}
-		else didnewline = 0;
 		if ((curlen < 30 && oldlen < 30)||(curlen<2))
 		{
 			if (Last)

@@ -16,7 +16,7 @@ public:
 	virtual void			 OpenConnection (void);
 	virtual void			 CloseConnection (void);
 	virtual void			 GetBody (char *);
-	virtual void			 CheckGroup (char *);
+	virtual void			 CheckGroup (const char *);
 	virtual void			 DeleteMessage (char *);
 	virtual void			 Expire (void);
 	virtual int				 PostMessage (WordList *, MailMessage *);
@@ -39,7 +39,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
@@ -66,7 +66,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
@@ -86,7 +86,7 @@ private:
 	int						 CheckReply (char *, int);
 	int						CmdNum;
 	char					CmdPrefix;
-	void					SendCmd(char*);
+	void					SendCmd(const char*);
 	
 };
 class MySQLHandler : public MailHandler
@@ -98,7 +98,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
@@ -120,7 +120,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
@@ -136,7 +136,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
@@ -158,7 +158,7 @@ public:
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
 	void					 GetBody (char *);
-	void					 CheckGroup (char *);
+	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);

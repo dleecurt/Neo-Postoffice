@@ -9,7 +9,7 @@ ASemaphore DBLOCK ("debug_buffer");
 
 #ifdef DEBUG
 
-void dprintf (char *fmt, ...)
+void dprintf (const char *fmt, ...)
 {
 	va_list argptr;
 	DBLOCK.LockOnce();
@@ -20,7 +20,7 @@ void dprintf (char *fmt, ...)
 	DBLOCK.UnlockOnce();
 }
 
-void eprintf (char *fmt, ...)
+void eprintf (const char *fmt, ...)
 {
 	va_list argptr;
 	DBLOCK.LockOnce();
@@ -31,7 +31,7 @@ void eprintf (char *fmt, ...)
 	DBLOCK.UnlockOnce();
 }
 
-void iprintf (char *fmt, ...)
+void iprintf (const char *fmt, ...)
 {
 	va_list argptr;
 	DBLOCK.LockOnce();
@@ -44,11 +44,11 @@ void iprintf (char *fmt, ...)
 
 #else
 
-void dprintf (char *fmt, ...)
+void dprintf (const char */*fmt*/, ...)
 {
 }
 
-void eprintf (char *fmt, ...)
+void eprintf (const char *fmt, ...)
 {
 	va_list argptr;
 	DBLOCK.LockOnce();
@@ -59,7 +59,7 @@ void eprintf (char *fmt, ...)
 	DBLOCK.UnlockOnce();
 }
 
-void iprintf (char *fmt, ...)
+void iprintf (const char *fmt, ...)
 {
 	if (VERBOSE)
 	{

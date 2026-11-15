@@ -38,15 +38,7 @@ struct fleditor_FindDialogData
 	bool Cancelled;		// the OK button will set this to false, otherwise it's true
 };
 
-static void cb_EditScroller(Fl_Scrollbar* o, void *udata) 
-{
-	Fl_Editor *ed = (Fl_Editor *)udata;
-	if ( ed )
-		ed->HandleScroll();
-}
-
-
-static void cb_FindOptionsOK(Fl_Return_Button* o, void *udata) 
+static void cb_FindOptionsOK(Fl_Return_Button* o, void */*udata*/) 
 {
 	// reads dialog options for either a search or a replace dialog
 	fleditor_FindDialogData *dlgdata = (fleditor_FindDialogData *)o->window()->user_data();
@@ -110,7 +102,6 @@ FL_EXPORT Fl_FancyEditor::~Fl_FancyEditor()
 
 FL_EXPORT int Fl_FancyEditor::handle(int event)
 {
-	long curstart = StartLine;
 	int handled = Fl_Editor::handle(event);
 
 	if(lights)
@@ -138,7 +129,7 @@ FL_EXPORT int Fl_FancyEditor::handle(int event)
 
 FL_EXPORT void Fl_FancyEditor::ShowPanel(bool showit)
 {
-	if(lights)
+	if(lights) {
 		if ( showit )
 		{
 			if ( !lights->visible() )
@@ -155,6 +146,7 @@ FL_EXPORT void Fl_FancyEditor::ShowPanel(bool showit)
 				resize(x(), y(), w(), h() + lights->h());
 			}
 		}
+	}
 }
 
 

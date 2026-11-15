@@ -14,7 +14,7 @@
 class CLASSEXPORT wString
 	{
 	protected:
-		char dummy[2];   // dummy string for if allocation fails...
+		mutable char dummy[2];   // dummy string for if allocation fails...
 		char *buffer;           // the buffer where the string is stored
 		long BufferCapacity;     // how much it can hold without growing, one less than allocated byte count
 		long BufferLength;       // length of the string currently in the buffer
@@ -50,7 +50,7 @@ class CLASSEXPORT wString
 		void   RecalculateLength()  { BufferLength = strlen(buffer); }
 		void   Set(const char *value);
 		void Shrink();                 // trim unused allocation space
-		char&   LastCharacter() const       { return buffer[BufferLength-1]; };
+		char&   LastCharacter() const       { return BufferLength > 0 ? buffer[BufferLength-1] : (dummy[0] = '\0', dummy[0]); };
 		friend wString operator+(const wString& str1, const wString& str2)	{ return str1 + str2.Get(); }; 
 		RCLDLL friend wString operator+(const char * str1, const wString& str2);
 		RCLDLL friend wString operator+(const wString& str1, const char * str2);

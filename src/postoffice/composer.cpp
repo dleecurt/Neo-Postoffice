@@ -155,7 +155,7 @@ Composer_Window *create_composer_window (void)
 	return W;
 }
 
-void cb_compose (Fl_Menu_ *m, void *d)
+void cb_compose (Fl_Menu_ */*m*/, void */*d*/)
 {
 	Composer_Window *W = create_composer_window();
 	
@@ -163,7 +163,7 @@ void cb_compose (Fl_Menu_ *m, void *d)
 	W->references		= strdupp ("");
 }
 
-void cb_bugreport (Fl_Button *b, void *v)
+void cb_bugreport (Fl_Button */*b*/, void */*v*/)
 {
 	WordList WT;
 	AsyncBuffer *Msg = new AsyncBuffer (4096);
@@ -201,7 +201,7 @@ void cb_reply_m (Fl_Menu_ *w, void *d)
 	cb_reply ((Fl_Button *) w, d);
 }
 
-void cb_reply (Fl_Button *w, void *d)
+void cb_reply (Fl_Button */*w*/, void */*d*/)
 {
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
@@ -259,17 +259,17 @@ void cb_reply (Fl_Button *w, void *d)
 	delete (quoted_body);
 }
 
-void cb_forward_m (Fl_Menu_ *w, void *d)
+void cb_forward_m (Fl_Menu_ */*w*/, void */*d*/)
 {
 	doforward (false);
 }
 
-void cb_forward (Fl_Button *w, void *d)
+void cb_forward (Fl_Button */*w*/, void */*d*/)
 {
 	doforward (false);
 }
 
-void cb_forwardfull_m (Fl_Menu_ *w, void *d)
+void cb_forwardfull_m (Fl_Menu_ */*w*/, void */*d*/)
 {
 	doforward (true);
 }
@@ -279,7 +279,6 @@ void doforward (bool fullhdr)
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
 	char buf[256];
-	WordList *quoted_lines;
 	AsyncBuffer *quoted_body;
 
 	Composer_Window *W = create_composer_window();
@@ -334,7 +333,7 @@ void doforward (bool fullhdr)
 	delete (quoted_body);
 }
 
-void cb_discardmessage (Fl_Window *b, Composer_Window *W)
+void cb_discardmessage (Fl_Window */*b*/, Composer_Window *W)
 {
 	W->comp->hide();
 	delete[] (W->references);
@@ -345,7 +344,7 @@ char *make_msgid (void);
 char *make_msgid (void)
 {
 	unsigned long x,y;
-	char *hostname = getenv ("HOSTNAME");
+	const char *hostname = getenv ("HOSTNAME");
 	if (!hostname) hostname = "localhost";
 	if (strlen (hostname) < 2) hostname = "localhost";
 	char *result = new char[32+strlen (hostname)];
@@ -355,10 +354,9 @@ char *make_msgid (void)
 	return result;
 }
 
-void cb_sendmessage (Fl_Window *win, Composer_Window *W)
+void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 {
 	int i;
-	char *to;
 	WordList *HdrNames;
 	WordList *HdrValues;
 	WordList *RCPT = new WordList;
@@ -390,10 +388,9 @@ void cb_sendmessage (Fl_Window *win, Composer_Window *W)
 //	int crsrpos = 0;
 //	char *tmp;
 	
-	to = (char *) W->in_to->value(); // To field;
 
-	char *pers_from = NULL;
-	char *pers_email = NULL;
+	const char *pers_from = NULL;
+	const char *pers_email = NULL;
 	char *pers_replyto = NULL;
 	char *pers_org = NULL;
 	char *sig = NULL;
@@ -568,7 +565,7 @@ void cb_sendmessage (Fl_Window *win, Composer_Window *W)
 	delete (RCPT);
 }
 
-void cb_compose_menu_shrink (Fl_Button *b, void *v)
+void cb_compose_menu_shrink (Fl_Button */*b*/, void *v)
 {
 	Composer_Window *W = (Composer_Window *) v;
 
@@ -578,7 +575,7 @@ void cb_compose_menu_shrink (Fl_Button *b, void *v)
 	PREFERENCES.Set_char_tree ("postoffice/state/composer/toolbar","small");
 }
 
-void cb_compose_menu_expand (Fl_Button *b, void *v)
+void cb_compose_menu_expand (Fl_Button */*b*/, void *v)
 {
 	Composer_Window *W = (Composer_Window *) v;
 	
@@ -588,7 +585,7 @@ void cb_compose_menu_expand (Fl_Button *b, void *v)
 	PREFERENCES.Set_char_tree ("postoffice/state/composer/toolbar","big");
 }
 
-void cb_compose_header_expand (Fl_Widget *x, Composer_Window *W)
+void cb_compose_header_expand (Fl_Widget */*x*/, Composer_Window *W)
 {
 	int base_x, base_y, base_inc, top_inc;
 	
@@ -621,7 +618,7 @@ void cb_compose_header_expand (Fl_Widget *x, Composer_Window *W)
 	W->in_message->redraw();
 }
 
-void cb_compose_header_shrink (Fl_Widget *x, Composer_Window *W)
+void cb_compose_header_shrink (Fl_Widget */*x*/, Composer_Window *W)
 {
 	int base_x, base_y, base_inc, top_inc;
 
@@ -651,7 +648,7 @@ void cb_compose_header_shrink (Fl_Widget *x, Composer_Window *W)
 	W->in_message->redraw();
 }
 
-void cb_address (Fl_Button *b, void *d)
+void cb_address (Fl_Button */*b*/, void *d)
 {
 	int i;
 	char buf[256];
@@ -674,7 +671,7 @@ void cb_address (Fl_Button *b, void *d)
 	address->show();
 }
 
-void cb_address_new (Fl_Button *b, void *d)
+void cb_address_new (Fl_Button */*b*/, void */*d*/)
 {
 	char buf[256];
 
@@ -694,7 +691,7 @@ void cb_address_new (Fl_Button *b, void *d)
 	bt_address_delete->deactivate();
 }
 
-void cb_address_delete (Fl_Button *b, void *d)
+void cb_address_delete (Fl_Button */*b*/, void */*d*/)
 {
 	if (br_addresses->value()<0) return;
 
@@ -717,7 +714,7 @@ void cb_address_delete (Fl_Button *b, void *d)
 	bt_address_delete->deactivate();
 }
 
-void cb_selectaddress (Fl_Browser *b, void *d)
+void cb_selectaddress (Fl_Browser *b, void */*d*/)
 {
 	if (b->value() < 0)
 	{
@@ -734,7 +731,7 @@ void cb_selectaddress (Fl_Browser *b, void *d)
 	in_address_email->value (W->Get(1));
 }
 
-void cb_pasteaddress (Fl_Button *b, void *d)
+void cb_pasteaddress (Fl_Button */*b*/, void *d)
 {
 	Fl_Input *I = (Fl_Input *) d;
 	dprintf ("[addressbook] callback window: %p\n", (void *) d);

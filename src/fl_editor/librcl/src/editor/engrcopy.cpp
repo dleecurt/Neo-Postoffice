@@ -11,7 +11,7 @@
 //  file-based clipboard, but it was yanked since it's not so useful anymore.
 //
 
-rclError _export EditorEngine::CopyRegion(bool cut)
+rclError _export EditorEngine::CopyRegion(bool /*cut*/)
 {
 	LastResult = NOERROR;
 	if(LastResult == NOERROR || LastResult == NO_REGION)

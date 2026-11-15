@@ -37,15 +37,15 @@ void MailHandler::CloseConnection (void)
 {
 }
 
-void MailHandler::GetBody (char *x)
+void MailHandler::GetBody (char */*x*/)
 {
 }
 
-void MailHandler::CheckGroup (char *x)
+void MailHandler::CheckGroup (const char */*x*/)
 {
 }
 
-void MailHandler::DeleteMessage (char *x)
+void MailHandler::DeleteMessage (char */*x*/)
 {
 }
 
@@ -58,7 +58,7 @@ void MailHandler::Expire (void)
 //	return (WordList *) NULL;
 //}
 
-int MailHandler::PostMessage (WordList *x, MailMessage *m)
+int MailHandler::PostMessage (WordList */*x*/, MailMessage */*m*/)
 {
 	return 0;
 }
@@ -280,7 +280,7 @@ int POP3Handler::CheckReply (char *buf, int len)
 // ids, so that between sessions the first table can be reliably rebuilt.
 //====================================================================================================
 
-void POP3Handler::CheckGroup (char *groupname)
+void POP3Handler::CheckGroup (const char *groupname)
 {
 	char 		 msg[64];
 	int  		 numberofmessages;
@@ -850,7 +850,7 @@ void POP3Handler::Expire (void)
 	}
 }
 
-int POP3Handler::PostMessage (WordList *r, MailMessage *m)
+int POP3Handler::PostMessage (WordList */*r*/, MailMessage */*m*/)
 {
 	dprintf ("[pop3handler] postmessage not implemented\n");
 	return 0;

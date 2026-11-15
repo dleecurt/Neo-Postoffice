@@ -58,7 +58,7 @@ AsyncBuffer::~AsyncBuffer (void)
 // RETURNS		method returns no data
 //===============================================================================
 
-void AsyncBuffer::Add (char *C)
+void AsyncBuffer::Add (const char *C)
 {
 	Add ((u_char *) C, (int) strlen (C));
 }
@@ -73,7 +73,7 @@ void AsyncBuffer::Add (char *C)
 // RETURNS		method returns no data
 //===============================================================================
 
-void AsyncBuffer::AddF (char *C, ...)
+void AsyncBuffer::AddF (const char *C, ...)
 {
 	char	OutString[4096];
 	va_list argptr;

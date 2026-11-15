@@ -82,7 +82,7 @@ PrefJournal::~PrefJournal (void)
 // RETURNS		Method returns no data
 //===============================================================================
 
-void PrefJournal::Add (unsigned char _Type, const char *_Argument, const char *_Second)
+void PrefJournal::Add (unsigned char _Type, const char *_Argument, const char */*_Second*/)
 {
 	PrefJournalEntry *E = new PrefJournalEntry (_Type, _Argument);
 	if (Last)

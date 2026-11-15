@@ -48,7 +48,7 @@ class Fl_Iconbrowser : public Fl_Group
 		
 		FL_EXPORT void		  draw (void);
 		static FL_EXPORT void	  cb_click (Fl_Button *, void *);
-		void					  add (char *, Fl_Pixmap *, void *);
+		void					  add (const char *, Fl_Pixmap *, void *);
 		int					  size (void);
 		void					  show (void);
 		void					  hide (void);

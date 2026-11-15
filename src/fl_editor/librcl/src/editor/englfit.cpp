@@ -7,14 +7,13 @@ short _export EditorEngine::MeasureTextWidth(const char *t)
     return (strlen(t));		// default is width in characters
 }
 
-short _export EditorEngine::MeasureTextHeight(const char *t)
+short _export EditorEngine::MeasureTextHeight(const char */*t*/)
 {
     return (1);		// default is just 1 (line)
 }
 
 void _export EditorEngine::CheckLineFit()
 {
-	bool unwrap = FALSE;
 
 	if(CanUnwrap(Cursor.Row))
 	{

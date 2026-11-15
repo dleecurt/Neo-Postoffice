@@ -102,7 +102,7 @@ BoxData::~BoxData (void)
 // SYNOPSIS		deprecated (FIXME)
 //===============================================================================
 
-void cb_flipfolder (Fl_Widget *w, void *d)
+void cb_flipfolder (Fl_Widget */*w*/, void *d)
 {
 	long idx = (long) d;
 	int state = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (MailBoxList[idx]->Name)->Get_int ("open");
@@ -127,8 +127,7 @@ void cb_flipfolder (Fl_Widget *w, void *d)
 void update_tree (Fl_Scroll *scr)
 {
 	int i;
-	int x,y;
-	int isselected = 0;
+	int x;
 //	Fl_Button *bt;
 //	Fl_ToggleNode *node;
 	char buf[512];
@@ -141,7 +140,6 @@ void update_tree (Fl_Scroll *scr)
 		i--;
 	}
 
-	y = scr->y()+5;
 	x = 0;
 
 	scr->begin();
@@ -159,11 +157,6 @@ void update_tree (Fl_Scroll *scr)
 	while (MailBoxList[x])
 	{
 		
-		isselected = 0;
-		if (currentmailbox)
-		{
-			if (currentmailbox == MailBoxList[x]) isselected = 1;
-		}
 		if (MailBoxList[x+1]) MailBoxList[x]->Open = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (MailBoxList[x]->Name)->Get_int ("open");
 		{
 			Fl_Toggle_Node *nod;
@@ -206,7 +199,7 @@ void update_tree (Fl_Scroll *scr)
 // SYNOPSIS		Makes a new folder/view the current one, redraws the indexview.
 //===============================================================================
 
-void cb_selectfolder (Fl_Widget *b, void *v)
+void cb_selectfolder (Fl_Widget */*b*/, void */*v*/)
 {
 	if (!TREE->selected()) return;
 	BoxData *box = (BoxData *) TREE->selected()->data();
@@ -240,7 +233,7 @@ void cb_selectfolder (Fl_Widget *b, void *v)
 	}
 }
 
-void cb_selectfolder2 (Fl_Button *b, void *v)
+void cb_selectfolder2 (Fl_Button */*b*/, void */*v*/)
 {
 	//cb_selectfolder ((Fl_Button *)v, NULL);
 }

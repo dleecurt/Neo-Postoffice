@@ -46,7 +46,7 @@ class MailPart
 		
 		MailPart		*Next, *Prev;
 		
-		void			 Set (char *, char *, char *, unsigned long, char *);
+		void			 Set (const char *, const char *, const char *, unsigned long, const char *);
 		
 		char			*ContentType;
 		char			*FileName;
@@ -77,15 +77,15 @@ class MailMessage : public BTreeNode
 		
 		FILE			*OpenFile (int, char *);
 	
-		char			*Header (char *);
+		char			*Header (const char *);
 			
 		void			 ProcessMessage (char *);
 		void			 ProcessHeaders (char *);
 		void			 ProcessBody (char *);
 		
 		MailPart		*GetPart (int);
-		void			 AddPart (char *, char *, char *, char *); // content-type, content-description, filename
-		void			 AddPart (char *);
+		void			 AddPart (const char *, const char *, const char *, const char *); // content-type, content-description, filename
+		void			 AddPart (const char *);
 																											
 		char			*MsgID;
 		//unsigned long	 cMsgID;

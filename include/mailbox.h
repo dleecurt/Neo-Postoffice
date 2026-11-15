@@ -32,13 +32,13 @@ class MailBox
 		void				 UnTie (MailMessage *);
 		int					 Have (char *);
 
-		void				 CreateMailView (char *);
+		void				 CreateMailView (const char *);
 		void				 DestroyMailView (char *);
 		void				 RenameMailView (char *, char *);
 		
 		void				 ClearBiff (void);
 		
-		MailView			*GetView (char *);
+		MailView			*GetView (const char *);
 		MailMessage			*Find (char *);
 		void				 LoadMailBox();
 		void				 SaveMailBox();

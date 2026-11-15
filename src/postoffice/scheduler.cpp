@@ -56,14 +56,14 @@ void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned
 	Lock->UnlockOnce();
 }
 
-void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, char *msg1)
+void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, const char *msg1)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);
 	Schedule (Delay, Interval, Class, Subclass, W);
 }
 
-void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, char *msg1, char *msg2)
+void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, const char *msg1, const char *msg2)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);
@@ -71,7 +71,7 @@ void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned
 	Schedule (Delay, Interval, Class, Subclass, W);
 }
 
-void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, char *msg1, char *msg2, char *msg3)
+void Scheduler::Schedule (int Delay, int Interval, unsigned long Class, unsigned long Subclass, const char *msg1, const char *msg2, const char *msg3)
 {
 	WordList *W = new WordList;
 	W->Add (msg1);

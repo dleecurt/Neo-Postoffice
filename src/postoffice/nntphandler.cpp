@@ -126,7 +126,6 @@ void NNTPHandler::GetBody (char *msgid)
 	MailMessage 	*X = Parent->Find (msgid);
 	char			 msg[512];
 	int				 done;
-	int				 headersdone;
 	int				 result;
 	int				 xfer = 0;
 	int				 oldxfer = 0;
@@ -174,7 +173,6 @@ void NNTPHandler::GetBody (char *msgid)
 													   "nntphandler",
 													   "Server disconnected during body retrieval. That bastard.");
 							done = 1;
-							headersdone = 0;
 						}
 						if (result > 0) // Runes were scribed by the server
 						{
@@ -228,13 +226,12 @@ void NNTPHandler::GetBody (char *msgid)
 	}
 }
 
-void NNTPHandler::CheckGroup (char *groupname)
+void NNTPHandler::CheckGroup (const char *groupname)
 {
 //	char 		 msg[128];
 	int  		 numberofmessages;
 	AsyncBuffer	 msgbuffer(4096);
 	char		 buf[1024];
-	char		 msgid[256];
 	int			 done = 0;
 	int			 /*i,*/j,k,art;
 	int			 fetchbodies = 0;
@@ -255,7 +252,6 @@ void NNTPHandler::CheckGroup (char *groupname)
 //	int			start;
 	ITCMessage *M;
 	
-	msgid[0] = 0;
 
 	if (Parameters->Get_int ("collection") > 0) fetchbodies = 1;
 	//if (Parameters->Get_int ("collection") > 1) deletemail = 1;
@@ -455,7 +451,7 @@ void NNTPHandler::CheckGroup (char *groupname)
 	//Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
-void NNTPHandler::DeleteMessage (char *msgid)
+void NNTPHandler::DeleteMessage (char */*msgid*/)
 {
 }
 
@@ -463,7 +459,7 @@ void NNTPHandler::Expire (void)
 {
 }
 
-int NNTPHandler::CheckReply (int ecode, char *buf, int bsize, int alternative)
+int NNTPHandler::CheckReply (int ecode, char *buf, int /*bsize*/, int alternative)
 {
 	int j;
 	int res;
@@ -511,7 +507,7 @@ int NNTPHandler::CheckReply (int ecode, int alternative)
 	return CheckReply (ecode, buf, 255, alternative);
 }
 
-int NNTPHandler::PostMessage (WordList *groups, MailMessage *M)
+int NNTPHandler::PostMessage (WordList */*groups*/, MailMessage *M)
 {
 	char buf[255];
 	int i;

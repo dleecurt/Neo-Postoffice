@@ -63,7 +63,7 @@ MailStorage::~MailStorage (void)
 // RETURNS		method returns no data
 //===============================================================================
 
-void MailStorage::Store (MailMessage *M)
+void MailStorage::Store (MailMessage */*M*/)
 {
 	eprintf ("Unoverloaded MailStorage::Store called\n");
 }
@@ -79,7 +79,7 @@ void MailStorage::Store (MailMessage *M)
 // RETURNS		true on success, false on failure.
 //===============================================================================
 
-bool MailStorage::Retrieve (MailMessage *M)
+bool MailStorage::Retrieve (MailMessage */*M*/)
 {
 	eprintf ("Unoverloaded MailStorage::Retrieve called\n");
 	return false;
@@ -102,7 +102,7 @@ void MailStorage::Delete (const char *key)
 	Remove (key);
 }
 
-void MailStorage::Delete (StorageNode *key)
+void MailStorage::Delete (StorageNode */*key*/)
 {
 	eprintf ("Unoverloaded MailStorage::Delete called\n");
 	//Remove (key);
@@ -129,7 +129,7 @@ void MailStorage::LoadIndex (void)
 // RETURNS		method returns no data
 //===============================================================================
 
-void MailStorage::StoreIndex (bool foo)
+void MailStorage::StoreIndex (bool /*foo*/)
 {
 	eprintf ("Unoverloaded MailStorage::StoreIndex called\n");
 }

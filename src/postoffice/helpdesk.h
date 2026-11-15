@@ -57,7 +57,7 @@ extern void cb_updatewidth(Fl_Tile*, void*);
 extern Fl_Tile *tile_all;
 extern Fl_Group *gr_message;
 extern Fl_Button *bt_tearmessage;
-extern void cb_mdi_window(Fl_Button*, long);
+extern void cb_mdi_window(Fl_Button*, void*);
 extern Fl_Button *bt_mdi_0;
 extern Fl_Button *bt_mdi_1;
 extern Fl_Button *bt_mdi_2;

@@ -24,6 +24,8 @@ rclError _export EditorEngine::MoveCursor(EditorCommandTypes command, long argum
 	LastResult = NOERROR;
 	switch(command)
 		{
+			default:            // other commands are not cursor moves
+				break;
 			case MOVE_LEFT:
 				if(argument == 0)
 					argument = 1;

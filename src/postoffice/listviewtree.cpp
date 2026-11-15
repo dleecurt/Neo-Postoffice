@@ -106,7 +106,7 @@ FolderData::~FolderData (void)
 	delete[] (msgid);
 }
 
-void cb_sort_thread (Fl_Button *b, void *v)
+void cb_sort_thread (Fl_Button */*b*/, void */*v*/)
 {
 	if (_SORTMETHOD == SORT_THREAD) _SORTMETHOD = 1;
 	else _SORTMETHOD = SORT_THREAD;
@@ -240,7 +240,6 @@ void update_folder (void)
 {
 	int i;
 	int flip = 0;
-	int xx = 0;
 	
 	MailMessage *M;
     if (currentmailbox == NULL) return;
@@ -330,21 +329,21 @@ int mysort (Fl_Toggle_Node_Base *A, Fl_Toggle_Node_Base *B)
 	return strcmp (a,b);
 }
 
-void cb_sortby_subject (Fl_Button *b, void *v)
+void cb_sortby_subject (Fl_Button */*b*/, void */*v*/)
 {
 	SORTFIELD = 0;
 	br_folderindex->sort_tree (mysort);
 	br_folderindex->redraw();
 }
 
-void cb_sortby_from (Fl_Button *b, void *v)
+void cb_sortby_from (Fl_Button */*b*/, void */*v*/)
 {
 	SORTFIELD = 1;
 	br_folderindex->sort_tree (mysort);
 	br_folderindex->redraw();
 }
 
-void cb_sortby_date (Fl_Button *b, void *v)
+void cb_sortby_date (Fl_Button */*b*/, void */*v*/)
 {
 	SORTFIELD = -1;
 	update_folder();

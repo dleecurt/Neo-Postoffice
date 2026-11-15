@@ -61,7 +61,7 @@ extern          "C" int shutdown (int, int);
 
 void switch_blocking (int);
 void switch_nonblocking (int);
-char *xstrstr (char *, char *, int);
+char *xstrstr (const char *, const char *, int);
 
 void switch_blocking (int Socket)
 {
@@ -565,7 +565,7 @@ int Connection::Read (char *Buffer, int size)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void Connection::Send (char *TheLine, int Priority)
+void Connection::Send (const char *TheLine, int Priority)
 {
 	//int             test;
 	int             len;
@@ -640,7 +640,7 @@ void Connection::Send (char *TheLine, int Priority)
 // RETURNS		method returns no data.
 //===============================================================================
 
-void Connection::SendF (int Priority, char *theLine,...)
+void Connection::SendF (int Priority, const char *theLine,...)
 {
 	char            OutString[16384];
 	va_list         argptr;
@@ -663,7 +663,7 @@ void Connection::SendF (int Priority, char *theLine,...)
 // RETURNS		Method returns no data.
 //===============================================================================
 
-void Connection::SendB (int Priority, u_char *theLine, int theSize)
+void Connection::SendB ([[maybe_unused]] int Priority, u_char *theLine, int theSize)
 {
 	int             len, xblocksize;
 
@@ -992,7 +992,7 @@ int Connection::Handle (char *Buffer, int Size, int TOsec, int TOusec, int fd)
 	return result;
 }
 
-char *xstrstr (char *haystack, char *needle, int len_haystack)
+char *xstrstr (const char *haystack, const char *needle, int len_haystack)
 {
 	int len_needle = strlen (needle);
 	int success, i, j;
@@ -1003,7 +1003,7 @@ char *xstrstr (char *haystack, char *needle, int len_haystack)
 	{
 		for (i=0;i<=(len_haystack - len_needle);++i)
 		{
-			crsr = haystack+i;
+			crsr = (char *) haystack+i; // like strstr(), returns a pointer into the haystack
 			if ((*crsr) == 0) *crsr = '\n';
 			if ((*crsr) == (needle[0]))
 			{

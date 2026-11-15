@@ -185,13 +185,13 @@ void freq_update (void)
 	br_freq->redraw();
 }
 
-void cb_freq_home (Fl_Button *b, void *v)
+void cb_freq_home (Fl_Button */*b*/, void */*v*/)
 {
 	in_freq_dir->value (getenv ("HOME"));
 	freq_update();
 }
 
-void cb_freq_desktop (Fl_Button *b, void *v)
+void cb_freq_desktop (Fl_Button */*b*/, void */*v*/)
 {
 	char *hm = getenv ("HOME");
 	if (hm)
@@ -204,16 +204,16 @@ void cb_freq_desktop (Fl_Button *b, void *v)
 	}
 }
 
-void cb_freq_reload (Fl_Button *b, void *v)
+void cb_freq_reload (Fl_Button */*b*/, void */*v*/)
 {
 	freq_update();
 }
 
-void cb_freq_back (Fl_Button *b, void *v)
+void cb_freq_back (Fl_Button */*b*/, void */*v*/)
 {
 }
 
-void cb_freq_up (Fl_Button *b, void *v)
+void cb_freq_up (Fl_Button */*b*/, void */*v*/)
 {
 	WordList TR;
 	char     buf[256];
@@ -232,16 +232,16 @@ void cb_freq_up (Fl_Button *b, void *v)
 	}
 }
 
-void cb_freq_list (Fl_Button *b, void *v)
+void cb_freq_list (Fl_Button */*b*/, void */*v*/)
 {
 }
 
-void cb_freq_cd (Fl_Input *b, void *v)
+void cb_freq_cd (Fl_Input */*b*/, void */*v*/)
 {
 	freq_update();
 }
 
-void cb_freq_select (Fl_Iconbrowser *br, void *v)
+void cb_freq_select (Fl_Iconbrowser */*br*/, void */*v*/)
 {
 	char bf[512];
 	struct stat xstat;
@@ -266,7 +266,7 @@ void cb_freq_select (Fl_Iconbrowser *br, void *v)
 	else in_freq_filename->value ("");
 }
 
-void cb_freq_ok (Fl_Button *b, void *v)
+void cb_freq_ok (Fl_Button */*b*/, void */*v*/)
 {
 	if (strlen (in_freq_filename->value()))
 	{
@@ -277,13 +277,13 @@ void cb_freq_ok (Fl_Button *b, void *v)
 	FREQ_OPEN = 0;
 }
 
-void cb_freq_cancel (Fl_Button *b, void *v)
+void cb_freq_cancel (Fl_Button */*b*/, void */*v*/)
 {
 	FREQ_FILENAME[0] = 0;
 	FREQ->hide();
 	FREQ_OPEN = 0;
 }
 
-void cb_freq_filename (Fl_Input *b, void *v)
+void cb_freq_filename (Fl_Input */*b*/, void */*v*/)
 {
 }

@@ -61,7 +61,7 @@ void Var::Set_char_tree (const char *path, const char *value)
 	delete (W);
 }
 
-void Var::Set_char_tree (const char *value, int amount, const char *node, ...)
+void Var::Set_char_tree (const char */*value*/, int /*amount*/, const char */*node*/, ...)
 {
 //	int pos = 0;
 //	Var *X = this;

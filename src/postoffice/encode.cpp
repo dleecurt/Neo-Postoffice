@@ -142,7 +142,6 @@ char *escape_db (const char *src)
 {
 	int len = 0;
 	int crsr = 0;
-	bool done = false;
 	int destlen = 0;
 	
 	len = strlen (src);

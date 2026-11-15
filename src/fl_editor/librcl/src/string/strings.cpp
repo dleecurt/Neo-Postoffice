@@ -12,11 +12,12 @@
 RCLDLL void wString::Initialize(const char *init, long  size)
 {
     dummy[0] = '\0';
-	if(size < 1)
+	if(size < 1) {
 		if(init)
 			size = strlen(init);
 		else
 			size = 1;
+	}
 	BufferCapacity = 0;
 	BufferLength = 0;
 	buffer = (char *)calloc(1,size+4);
@@ -284,7 +285,7 @@ RCLDLL wString& wString::DeleteAt(long  where,long  howmany)
 		{
 			if(howmany < (BufferLength-where))
 				{
-					strcpy(&buffer[where],&buffer[where+howmany]);
+					memmove(&buffer[where],&buffer[where+howmany],strlen(&buffer[where+howmany])+1);
 					BufferLength -= howmany;
 				}
 			else
@@ -393,7 +394,7 @@ RCLDLL wString operator-(const wString& str1, const char *str2)
 				{
 					temp = strstr(s.buffer,str2);           // find substring
 					if(temp)                                // knock it out
-						strcpy(temp,&temp[strlen(str2)]);
+						memmove(temp,&temp[strlen(str2)],strlen(&temp[strlen(str2)])+1);
 				}
 			while(temp);
 			s.BufferLength = strlen(s.buffer);
@@ -485,7 +486,7 @@ RCLDLL wString operator+(const wString& str, long num)
 	return temp;
 }
 
-RCLDLL wString operator+(const wString& str, double num)
+RCLDLL wString operator+(const wString& /*str*/, double num)
 {
 	wString numstring;
 

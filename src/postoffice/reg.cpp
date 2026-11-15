@@ -20,7 +20,7 @@
 int
 _wild_match (u_char * mask, u_char * string)
 {
-	register u_char *m = mask, *n = string, *ma = NULL, *na = NULL;//, temp;
+	u_char *m = mask, *n = string, *ma = NULL, *na = NULL;//, temp;
 	int             just = 0;
 	u_char         *pm = NULL, *pn = NULL;
 	int             lp_c = 0, count = 0, last_count = 0;
@@ -137,13 +137,13 @@ match (char *pattern, char *string)
 }
 
 int
-wild_match (char *pattern, char *str)
+wild_match (const char *pattern, const char *str)
 {
 	/* assuming a -1 return of false */
 	return _wild_match ((unsigned char *) pattern, (unsigned char *) str) + 1;
 }
 
-int wild_match_end (char *pattern, char *str)
+int wild_match_end (const char *pattern, const char *str)
 {
 	if ((pattern)&&(str))
 	{

@@ -65,17 +65,16 @@ void MBoxHandler::CloseConnection (void)
 	//unlink( lock_filename );
 }
 
-void MBoxHandler::GetBody (char *msgid)
+void MBoxHandler::GetBody (char */*msgid*/)
 {
 }
 
 // The groupname is irrelevant. All mbox-files will be queried when this method is called.
 
-void MBoxHandler::CheckGroup (char *groupname)
+void MBoxHandler::CheckGroup (const char */*groupname*/)
 {
 	WordList	*MBFiles = Parameters->Get_wordlist ("files");
 	
-	struct stat xstat;
 	MailMessage *M;
 	char		 msg[256];
 	
@@ -126,7 +125,7 @@ void MBoxHandler::Expire (void)
 {
 }
 
-int MBoxHandler::PostMessage (WordList *groups, MailMessage *M)
+int MBoxHandler::PostMessage (WordList */*groups*/, MailMessage */*M*/)
 {
 	return 0;
 }

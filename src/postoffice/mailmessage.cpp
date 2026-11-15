@@ -53,7 +53,7 @@ MailPart::~MailPart (void)
 	if (Contents) delete[] (Contents);
 }
 
-void MailPart::Set (char *contenttype, char *filename, char *description, unsigned long contentsize, char *contents)
+void MailPart::Set (const char *contenttype, const char *filename, const char *description, unsigned long contentsize, const char *contents)
 {
 	if (ContentType ) delete[] (ContentType);
 	if (FileName) delete[] (FileName);
@@ -299,7 +299,7 @@ void MailMessage::ProcessMessage (char *Message)
 	}
 }
 
-inline char *MailMessage::Header (char *name)
+inline char *MailMessage::Header (const char *name)
 {
 	int x = HeaderNames->Find (name);
 	if (x>=0) return (HeaderValues->Get (x));
@@ -536,7 +536,7 @@ void MailMessage::ProcessBody (char *body)
 	StoreFile();
 }
 
-void MailMessage::AddPart (char *contenttype, char *description, char *filename, char *body)
+void MailMessage::AddPart (const char *contenttype, const char *description, const char *filename, const char *body)
 {
 	MailPart *M = new MailPart;
     int ln;
@@ -572,12 +572,12 @@ MailPart *MailMessage::GetPart (int cnt)
 	return P;
 }
 
-void MailMessage::AddPart (char *part)
+void MailMessage::AddPart (const char *part)
 {
 	WordList W;
 	char *ln;
-	char *end;
-	char *body;
+	const char *end;
+	const char *body;
 	int     i;
 	char contenttype[256];
 	char description[256];
@@ -596,7 +596,7 @@ void MailMessage::AddPart (char *part)
 			char *colonpos;
 			char *hdrname;
 			char *hdrvalue;
-			char *crsr = ln;
+			const char *crsr = ln;
 
 			if ( ((ln[0] == ' ') || (ln[0] == '\t')) && HValues.Count)
 			{

@@ -18,9 +18,9 @@ class Scheduler
 							~Scheduler (void);
 		
 		void				 Schedule (int, int, unsigned long, unsigned long, WordList *);
-		void				 Schedule (int, int, unsigned long, unsigned long, char *);
-		void				 Schedule (int, int, unsigned long, unsigned long, char *, char *);
-		void				 Schedule (int, int, unsigned long, unsigned long, char *, char *, char *);
+		void				 Schedule (int, int, unsigned long, unsigned long, const char *);
+		void				 Schedule (int, int, unsigned long, unsigned long, const char *, const char *);
+		void				 Schedule (int, int, unsigned long, unsigned long, const char *, const char *, const char *);
 		ITCMessage			*CheckSchedule (void);
 		
 		int				 	 Queue (void);

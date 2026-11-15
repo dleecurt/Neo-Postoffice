@@ -39,7 +39,7 @@ MailViewNode::~MailViewNode (void)
 	}
 };
 
-MailView::MailView (class MailBox *P, char *N)
+MailView::MailView (class MailBox *P, const char *N)
 {
 	Name = new char[strlen(N)+1];
 	strcpy (Name, N);
@@ -104,7 +104,6 @@ int MailView::ProcessRules (MailMessage *M)
 			const char *fieldvalue;
 			char *matchtype;
 			char *action;
-			int   score;
 			int   validmatch;
 			char *ourvalue;
 			
@@ -116,7 +115,6 @@ int MailView::ProcessRules (MailMessage *M)
 				matchtype = Rules->Get (i+1);
 				action = Rules->Get (i+2);
 				ourvalue = Rules->Get (i+4);
-				score = Rules->GetInt (i+3);
 
 				if ((efield == 0) && (*(Rules->Get(i)) != '0'))
 				{
@@ -128,7 +126,6 @@ int MailView::ProcessRules (MailMessage *M)
 				
 				matchtype = Rules->Get (i+1);
 				action    = Rules->Get (i+2);
-				score     = Rules->GetInt (i+3);
 
 				if (!ourvalue[0]) validmatch = 0;
 				else if (strcasecmp (matchtype, "glob") == 0) validmatch = wild_match (ourvalue, (char *) fieldvalue);

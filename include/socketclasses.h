@@ -56,8 +56,8 @@ class Connection
 		void				 AwaitInput (int);
 		int					 Handle (char *, int);
 		int					 Handle (char *, int, int, int, int);
-		void				 Send (char *, int);
-		void				 SendF (int, char *, ...);
+		void				 Send (const char *, int);
+		void				 SendF (int, const char *, ...);
 		void				 SendB (int, u_char *, int);
 		void				 StopInput (void);
 		void				 RestartInput (void);

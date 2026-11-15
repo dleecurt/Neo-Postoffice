@@ -568,7 +568,7 @@ void GDBMStorage::StoreIndex (bool force)
 	
 	// Create datum for key and data
 	
-	keydat.dptr = "index";
+	keydat.dptr = (char *) "index"; // gdbm does not modify keys
 	keydat.dsize = 5;
 	mydat.dptr = (char *) BF->Data;
 	mydat.dsize = BF->Pos;
@@ -608,7 +608,7 @@ void GDBMStorage::LoadIndex (void)
 	
 	// Create datum for key
 	
-	keydat.dptr = "index";
+	keydat.dptr = (char *) "index"; // gdbm does not modify keys
 	keydat.dsize = 5;
 	
 	// Lock resources

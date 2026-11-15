@@ -77,7 +77,7 @@ rclError _export EditorEngine::DeleteRegion()
       }
       else
         Clear();
-      if(Cursor.Row >= BlockStart.Row)    // need to move cursor?
+      if(Cursor.Row >= BlockStart.Row) {    // need to move cursor?
         if(Cursor.Row < BlockEnd.Row || (Cursor.Row == BlockEnd.Row && Cursor.Column <= BlockEnd.Column))
         {           // cursor was inside block?
           MoveTo(BlockStart.Row,BlockStart.Column);
@@ -87,6 +87,7 @@ rclError _export EditorEngine::DeleteRegion()
           Cursor.Row -= (BlockEnd.Row - BlockStart.Row - 1);
           Cursor.Column -= BlockEnd.Column;
         }
+      }
     }
     ConstrainCursor();
   }

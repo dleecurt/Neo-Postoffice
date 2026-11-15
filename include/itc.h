@@ -73,9 +73,9 @@ class ITCPipe
 		ITCMessage		*GetNextMessage (void);
 		ITCMessage		*GetNextMessage (unsigned int);
 		void			 PostMessage (unsigned int, unsigned int, WordList *);
-		void			 PostMessage (unsigned int, unsigned int, char *);
-		void			 PostMessage (unsigned int, unsigned int, char *, char *);
-		void			 PostMessage (unsigned int, unsigned int, char *, char *, char *);
+		void			 PostMessage (unsigned int, unsigned int, const char *);
+		void			 PostMessage (unsigned int, unsigned int, const char *, const char *);
+		void			 PostMessage (unsigned int, unsigned int, const char *, const char *, const char *);
 		int				 Queue (void);
 
 		void			 AddPriorityClass (unsigned int);

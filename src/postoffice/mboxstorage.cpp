@@ -390,7 +390,7 @@ void MBoxStorage::LoadIndex (void)
 	}
 }
 
-void MBoxStorage::StoreIndex (bool x)
+void MBoxStorage::StoreIndex (bool /*x*/)
 {
 	char indexfilename[256];
 	char oldindexfilename[256];

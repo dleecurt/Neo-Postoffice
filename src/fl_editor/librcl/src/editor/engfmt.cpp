@@ -48,7 +48,7 @@ rclError _export EditorEngine::ReformatParagraph(bool fromfirst,bool all)
 						if(InsertLine(s,row + 1) != NOERROR)
 							break;
 						if(row == Cursor.Row)   // keep cursor position where it is, even if string splits
-							if(Cursor.Column >= Lines[row]->Length())
+							if(Cursor.Column >= Lines[row]->Length()) {
 								if(LastResult == NOERROR)
 									{
 										Cursor.Column -= Lines[row]->Length();
@@ -56,6 +56,7 @@ rclError _export EditorEngine::ReformatParagraph(bool fromfirst,bool all)
 									}
 								else
 									ConstrainCursor();
+							}
 						last_wrapped = true;
 					}
 				else if(Lines[row]->LastCharacter() == HARD_RETURN)

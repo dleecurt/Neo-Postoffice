@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "wordlist.h"
 #include "helpdesk.h"
 
@@ -90,18 +91,24 @@ void mdi_move (int oldid, int newid)
 {
 	char tmp[256];
 	
-	strcpy (currentfrom[newid],currentfrom[oldid]);
-	strcpy (currentsubject[newid],currentsubject[oldid]);
-	strcpy (currentreplyto[newid],currentreplyto[oldid]);
-	strcpy (currentfollowup[newid],currentfollowup[oldid]);
-	strcpy (currentmsgid[newid],currentmsgid[oldid]);
-	strcpy (currentreferences[newid],currentreferences[oldid]);
+	if (oldid != newid) // the buffers would overlap
+	{
+		memmove (currentfrom[newid], currentfrom[oldid], strlen (currentfrom[oldid]) + 1);
+		memmove (currentsubject[newid], currentsubject[oldid], strlen (currentsubject[oldid]) + 1);
+		memmove (currentreplyto[newid], currentreplyto[oldid], strlen (currentreplyto[oldid]) + 1);
+		memmove (currentfollowup[newid], currentfollowup[oldid], strlen (currentfollowup[oldid]) + 1);
+		memmove (currentmsgid[newid], currentmsgid[oldid], strlen (currentmsgid[oldid]) + 1);
+		memmove (currentreferences[newid], currentreferences[oldid], strlen (currentreferences[oldid]) + 1);
+	}
 	mdi_views[newid] = mdi_views[oldid];
 	currentmessage[newid].Clear();
 	
-	strcpy (tmp, currentlabel[oldid]);
-	strcpy (currentlabel[oldid], currentlabel[newid]);
-	strcpy (currentlabel[newid], tmp);
+	if (oldid != newid)
+	{
+		memmove (tmp, currentlabel[oldid], strlen (currentlabel[oldid]) + 1);
+		memmove (currentlabel[oldid], currentlabel[newid], strlen (currentlabel[newid]) + 1);
+		memmove (currentlabel[newid], tmp, strlen (tmp) + 1);
+	}
 	
 	for (int i=0; i<currentmessage[oldid].Count; ++i)
 	{
@@ -156,17 +163,17 @@ void mdi_set_window (int winid)
 	mdi_current = winid;
 }
 
-void cb_mdi_window (Fl_Button *b, long id)
+void cb_mdi_window (Fl_Button */*b*/, void *id)
 {
-	mdi_set_window (id);
+	mdi_set_window ((int) (intptr_t) id);
 }
 
-void cb_mdi_new (Fl_Button *b, void *id)
+void cb_mdi_new (Fl_Button */*b*/, void */*id*/)
 {
 	mdi_new_window();
 }
 
-void cb_mdi_close (Fl_Button *b, void *v)
+void cb_mdi_close (Fl_Button */*b*/, void */*v*/)
 {
 	mdi_close_window (mdi_current);
 }

@@ -3,8 +3,8 @@
 
 extern int VERBOSE;
 
-void dprintf (char *, ...);
-void eprintf (char *, ...);
-void iprintf (char *, ...);
+void dprintf (const char *, ...);
+void eprintf (const char *, ...);
+void iprintf (const char *, ...);
 
 #endif

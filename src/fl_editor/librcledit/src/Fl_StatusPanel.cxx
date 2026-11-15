@@ -92,7 +92,7 @@ FL_EXPORT void Fl_StatusPanel::updatestatus()
 	}
 }
 
-FL_EXPORT int Fl_StatusPanel::handle(int event)
+FL_EXPORT int Fl_StatusPanel::handle(int /*event*/)
 {
 	updatestatus();
 	return(0);

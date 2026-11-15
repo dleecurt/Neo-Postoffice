@@ -26,7 +26,7 @@
 
 extern JobList JOBQ;
 
-MySQLHandler::MySQLHandler (MailBox *_Parent, class Var *_Parameters)
+MySQLHandler::MySQLHandler ([[maybe_unused]] MailBox *_Parent, [[maybe_unused]] class Var *_Parameters)
 {
 #ifndef NO_MYSQL
 	SQL = NULL;
@@ -100,10 +100,10 @@ void MySQLHandler::CloseConnection (void)
 #endif
 }
 
-void MySQLHandler::CheckGroup (char *groupname)
+void MySQLHandler::CheckGroup ([[maybe_unused]] const char *groupname)
 {
 #ifndef NO_MYSQL
-	char 			*_groupname;
+	const char		*_groupname;
 	WordList		*res, *dbr, *dbc;
 	char			 qry[512];
 	char 			*pDB = Parameters->Get_char ("database");
@@ -115,7 +115,7 @@ void MySQLHandler::CheckGroup (char *groupname)
 	
 	// If no groupname is specified, override it with a wildcard (check all)
 	
-	if (strlen (groupname) < 2) _groupname = (char *) "%";
+	if (strlen (groupname) < 2) _groupname = "%";
 	else _groupname = groupname;
 	
 	if (!SQL) OpenConnection(); // Open connection on demand
@@ -202,7 +202,7 @@ void MySQLHandler::CheckGroup (char *groupname)
 #endif
 }
 
-void MySQLHandler::GetBody (char *x)
+void MySQLHandler::GetBody ([[maybe_unused]] char *x)
 {
 #ifndef NO_MYSQL
 	int			 idx = MsgToSQL (x); // We only need the numbers of the msgid
@@ -265,7 +265,7 @@ void MySQLHandler::GetBody (char *x)
 #endif
 }
 
-void MySQLHandler::DeleteMessage (char *msgid)
+void MySQLHandler::DeleteMessage ([[maybe_unused]] char *msgid)
 {
 #ifndef NO_MYSQL
 	int		 idx = MsgToSQL (msgid);
@@ -327,7 +327,7 @@ void MySQLHandler::Expire (void)
 {
 }
 
-int MySQLHandler::PostMessage (WordList *groups, MailMessage *M)
+int MySQLHandler::PostMessage (WordList */*groups*/, MailMessage */*M*/)
 {
 	return 0;
 }

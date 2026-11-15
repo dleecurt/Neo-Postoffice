@@ -187,7 +187,6 @@ IMAP4Handler::GetBody(char *msgid)
   MailMessage    *X = Parent->Find(msgid);
   char msg[ 512 ], check[ 64 ];
   int done;
-  int headersdone;
   int result;
   int xfer = 0;
   int oldxfer = 0;
@@ -229,7 +228,6 @@ IMAP4Handler::GetBody(char *msgid)
 					      "IMAP4Handler",
 					      "Server disconnected during message retrieval.");
 		    done = 1;
-		    headersdone = 0;
 		  }
 		if (result > 0) {
 
@@ -274,7 +272,7 @@ IMAP4Handler::GetBody(char *msgid)
 }
 
 void
-IMAP4Handler::CheckGroup(char *groupname)
+IMAP4Handler::CheckGroup(const char *groupname)
 {
 
   char
@@ -811,7 +809,7 @@ IMAP4Handler::CheckReply(char *buf, int len)
 
 
 void
-IMAP4Handler::SendCmd(char *cmd)
+IMAP4Handler::SendCmd(const char *cmd)
 {
   char           *
     msg = new char[255];

@@ -78,7 +78,7 @@ void show_field (Fl_Group *gr)
 	gr->show();
 }
 
-void cb_wiz_next (Fl_Button *b, void *d)
+void cb_wiz_next (Fl_Button */*b*/, void */*d*/)
 {
 	if (CURRENTGROUP < 6)
 	{
@@ -102,7 +102,7 @@ void cb_wiz_next (Fl_Button *b, void *d)
 	
 }
 
-void cb_wiz_prev (Fl_Button *b, void *d)
+void cb_wiz_prev (Fl_Button */*b*/, void */*d*/)
 {
 	if (CURRENTGROUP > 1)
 	{
@@ -126,7 +126,7 @@ void cb_wiz_prev (Fl_Button *b, void *d)
 	
 }
 
-void cb_wiz_finish (Fl_Button *b, void *d)
+void cb_wiz_finish (Fl_Button */*b*/, void */*d*/)
 {
 	WIZARDRUNNING = 0;
 	win_wizard->hide();

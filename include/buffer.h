@@ -10,10 +10,10 @@ class AsyncBuffer
 					 AsyncBuffer (int);
 					~AsyncBuffer (void);
 					
-		void		 Add (char *);
+		void		 Add (const char *);
 		void		 Add (u_char *, int);
 		void		 Add (unsigned char);
-		void		 AddF (char *, ...);
+		void		 AddF (const char *, ...);
 		void		 Add16 (u_long);
 		void		 Add32 (u_long);
 		void		 Shift (int);

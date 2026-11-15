@@ -25,7 +25,7 @@ ASemaphore::ASemaphore (void)
 	mutex = new pthread_mutex_t;
 	pthread_mutexattr_init (attr);
 	pthread_mutex_init (mutex, attr);
-	for (int i=0;i<16;++i) lockers[i] = (char *) "<empty slot>";
+	for (int i=0;i<16;++i) lockers[i] = "<empty slot>";
 
 #ifdef THREADTRAP
 	lastcollision = time (NULL);
@@ -39,7 +39,7 @@ ASemaphore::ASemaphore (void)
 	timewait = 20;
 }
 
-ASemaphore::ASemaphore (char *dname)
+ASemaphore::ASemaphore (const char *dname)
 {
 	attr = new pthread_mutexattr_t;
 	mutex = new pthread_mutex_t;
@@ -97,9 +97,9 @@ void ASemaphore::LockR (void)
 	while (!goahead)
 	{
 		pthread_mutex_lock (mutex);
-		if ((Status == LOCK_NONE) || (Status == LOCK_READ))
+		if ((Status == LOCK_NONE) || (Status == PO_LOCK_READ))
 		{
-			Status = LOCK_READ;
+			Status = PO_LOCK_READ;
 			lockers[Numlocks] = "<unknown>";
 			++Numlocks;
 			goahead = 1;
@@ -131,10 +131,10 @@ void ASemaphore::LockR (const char *locker)
 	while (!goahead)
 	{
 		pthread_mutex_lock (mutex);
-		if ((Status == LOCK_NONE) || (Status == LOCK_READ))
+		if ((Status == LOCK_NONE) || (Status == PO_LOCK_READ))
 		{
-			Status = LOCK_READ;
-			lockers[Numlocks] = (char *) locker;
+			Status = PO_LOCK_READ;
+			lockers[Numlocks] = locker;
 			++Numlocks;
 			goahead = 1;
 		}
@@ -167,10 +167,10 @@ void ASemaphore::LockRW (void)
 		pthread_mutex_lock (mutex);
 		if ((Status == LOCK_NONE) || (Status == LOCK_READYWRITE))
 		{
-			Status = LOCK_WRITE;
+			Status = PO_LOCK_WRITE;
 			goahead = 1;
 		}
-		else if (Status == LOCK_READ)
+		else if (Status == PO_LOCK_READ)
 			Status = LOCK_PREWRITE;
 #ifdef THREADTRAP
 		if (!goahead)
@@ -193,7 +193,7 @@ void ASemaphore::LockRW (void)
 	// dprintf (5,"THREAD_LOCK_RW_SUCCESS %x\n", this);
 }
 
-void ASemaphore::RelockRW (void)					// From LOCK_READ or LOCK_PREWRITE
+void ASemaphore::RelockRW (void)					// From PO_LOCK_READ or LOCK_PREWRITE
 {
 	int             goahead = 0;
 	int             turns = 0;
@@ -211,10 +211,10 @@ void ASemaphore::RelockRW (void)					// From LOCK_READ or LOCK_PREWRITE
 	{
 		if ((Status == LOCK_NONE) || (Status == LOCK_READYWRITE))
 		{
-			Status = LOCK_WRITE;
+			Status = PO_LOCK_WRITE;
 			goahead = 1;
 		}
-		else if (Status == LOCK_READ)
+		else if (Status == PO_LOCK_READ)
 			Status = LOCK_PREWRITE;
 #ifdef THREADTRAP
 		if (!goahead)
@@ -233,11 +233,11 @@ void ASemaphore::RelockRW (void)					// From LOCK_READ or LOCK_PREWRITE
 	pthread_mutex_unlock (mutex);
 }
 
-void ASemaphore::RelockR (void)					// From LOCK_WRITE
+void ASemaphore::RelockR (void)					// From PO_LOCK_WRITE
 {
 	pthread_mutex_lock (mutex);
 	++Numlocks;
-	Status = LOCK_READ;
+	Status = PO_LOCK_READ;
 	pthread_mutex_unlock (mutex);
 }
 
