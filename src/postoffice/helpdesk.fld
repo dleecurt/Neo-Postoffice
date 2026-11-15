@@ -1,23 +1,27 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.00 
-header_name {.h} 
-code_name {.cpp} 
-gridx 5 
-gridy 5 
-snap 3
-decl {\#include <FL/Fl_FancyEditor.H>} {} 
+version 1.0405
+header_name {helpdesk.h}
+code_name {helpdesk.cpp}
+decl {\#include <FL/Fl_FancyEditor.H>} {private local
+}
 
-decl {\#include "iconbrowser.h"} {} 
+decl {\#include "iconbrowser.h"} {private local
+}
 
-decl {\#include "maccheck.h"} {} 
+decl {\#include "maccheck.h"} {private local
+}
 
-decl {\#include "ht.h"} {} 
+decl {\#include "ht.h"} {private local
+}
 
-decl {\#include "var.h"} {} 
+decl {\#include "var.h"} {private local
+}
 
-decl {extern Var PREFERENCES;} {} 
+decl {extern Var PREFERENCES;} {private local
+}
 
-decl {\#define xloc(arg) if (USELOCALE) o->label (strdup (CLOCALE->Get_char(arg)))} {} 
+decl {\#define xloc(w,arg) if (USELOCALE) (w)->label (strdup (CLOCALE->Get_char(arg)))} {private local
+}
 
 Function {make_window()} {open
 } {
@@ -27,185 +31,185 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
   Fl_Window win_main {
     label {Post Office 1.0}
     callback cb_exit open
-    xywh {388 132 854 570} hide resizable
+    xywh {388 132 854 570} type Single hide resizable
     code0 {\#include "version.h"}
     code1 {o->label (__VERSIONSTRING);}
   } {
     Fl_Menu_Bar {} {
       xywh {0 0 855 20} box THIN_UP_BOX selection_color 246 labelsize 12 textsize 12
     } {
-      submenu {} {
+      Submenu {} {
         label File open
         xywh {0 0 100 20} labelsize 12
-        code0 {xloc("file");}
+        code0 {xloc(o, "file");}
       } {
-        menuitem {} {
+        MenuItem {} {
           label {New Message}
           callback cb_compose
           xywh {0 0 100 20} shortcut 0x8006e labelsize 12
-          code0 {xloc("new_message");}
+          code0 {xloc(o, "new_message");}
         }
-        menuitem {} {
+        MenuItem {} {
           label {New Query}
           xywh {10 10 100 20} labelsize 12 deactivate
-          code0 {xloc("new_query");}
+          code0 {xloc(o, "new_query");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Expire
           callback cb_expire
           xywh {0 0 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label {Check Mail}
           callback cb_check_mail_m
           xywh {20 20 100 20} shortcut 0x8006c labelsize 12 divider
-          code0 {xloc("check_mail");}
+          code0 {xloc(o, "check_mail");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Configure
           callback {(Fl_Callback *) cb_configure}
           xywh {30 30 100 20} labelsize 12 divider
-          code0 {xloc("configure");}
+          code0 {xloc(o, "configure");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Quit
           callback cb_quit_m
           xywh {40 40 100 20} shortcut 0x80071 labelsize 12
-          code0 {xloc("quit");}
+          code0 {xloc(o, "quit");}
         }
       }
-      submenu {} {
+      Submenu {} {
         label Edit
         xywh {0 0 100 20} labelsize 12
-        code0 {xloc("edit");}
+        code0 {xloc(o, "edit");}
       } {
-        menuitem {} {
+        MenuItem {} {
           label Cut
           xywh {0 0 100 20} shortcut 0x80078 labelsize 12 deactivate
-          code0 {xloc("cut");}
+          code0 {xloc(o, "cut");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Copy
           xywh {0 0 100 20} shortcut 0x80063 labelsize 12 deactivate
-          code0 {xloc("copy");}
+          code0 {xloc(o, "copy");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Paste
           xywh {10 10 100 20} shortcut 0x80076 labelsize 12 deactivate divider
-          code0 {xloc("paste");}
+          code0 {xloc(o, "paste");}
         }
-        menuitem {} {
+        MenuItem {} {
           label {Select All}
           callback cb_select_all
           xywh {0 0 100 20} shortcut 0x80061 labelsize 12
         }
       }
-      submenu {} {
+      Submenu {} {
         label Message open
         xywh {10 10 100 20} labelsize 12
-        code0 {xloc("message");}
+        code0 {xloc(o, "message");}
       } {
-        menuitem {} {
+        MenuItem {} {
           label Reply
           callback cb_reply_m
           xywh {15 15 100 20} shortcut 0x80072 labelsize 12 divider
-          code0 {xloc("reply");}
+          code0 {xloc(o, "reply");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Forward
           callback cb_forward_m
           xywh {20 20 100 20} shortcut 0x80066 labelsize 12
-          code0 {xloc("forward");}
+          code0 {xloc(o, "forward");}
         }
-        menuitem {} {
+        MenuItem {} {
           label {Forward full headers}
           callback cb_forwardfull_m
           xywh {0 0 100 20} shortcut 0x80046 labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label Redirect
           xywh {30 30 100 20} labelsize 12 divider
-          code0 {xloc("redirect");}
+          code0 {xloc(o, "redirect");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Delete
           callback cb_delete_m
           xywh {40 40 100 20} shortcut 0xffff labelsize 12
-          code0 {xloc("delete");}
+          code0 {xloc(o, "delete");}
         }
-        menuitem {} {
+        MenuItem {} {
           label Refilter
           callback cb_refilter
           xywh {0 0 100 20} labelsize 12 deactivate
         }
       }
-      submenu {} {
+      Submenu {} {
         label View
         xywh {20 20 100 20} labelsize 12
-        code0 {xloc("view");}
+        code0 {xloc(o, "view");}
       } {
-        submenu {} {
+        Submenu {} {
           label Messages
           xywh {0 0 100 20} labelsize 12
         } {
-          menuitem rad_viewall {
+          MenuItem rad_viewall {
             label {All Messages}
             callback cb_viewall
             xywh {30 30 100 20} type Radio value 1 labelsize 12
-            code0 {xloc("all_messages");}
+            code0 {xloc(o, "all_messages");}
           }
-          menuitem rad_viewunread {
+          MenuItem rad_viewunread {
             label {Unread Messages}
             callback cb_viewunread
             xywh {35 35 100 20} type Radio labelsize 12
-            code0 {xloc("unread_messages");}
+            code0 {xloc(o, "unread_messages");}
           }
         }
-        submenu {} {
+        Submenu {} {
           label Headers
           xywh {10 10 100 20} labelsize 12
         } {
-          menuitem {} {
+          MenuItem {} {
             label {Full Headers}
             callback cb_hdrfull
             xywh {40 40 100 20} type Radio labelsize 12
-            code0 {xloc("all_messages");}
+            code0 {xloc(o, "all_messages");}
           }
-          menuitem {} {
+          MenuItem {} {
             label {Relevant Headers}
             callback cb_hdrpart
             xywh {45 45 100 20} type Radio value 1 labelsize 12
-            code0 {xloc("unread_messages");}
+            code0 {xloc(o, "unread_messages");}
           }
         }
-        submenu {} {
+        Submenu {} {
           label Threads
           xywh {20 20 100 20} labelsize 12
         } {
-          menuitem {} {
+          MenuItem {} {
             label {Open All}
             callback cb_thr_open
             xywh {50 50 100 20} type Radio value 1 labelsize 12
-            code0 {xloc("all_messages");}
+            code0 {xloc(o, "all_messages");}
           }
-          menuitem {} {
+          MenuItem {} {
             label {Close All}
             callback cb_thr_close
             xywh {55 55 100 20} type Radio labelsize 12
-            code0 {xloc("unread_messages");}
+            code0 {xloc(o, "unread_messages");}
           }
         }
       }
-      submenu {} {
+      Submenu {} {
         label Info open
         xywh {0 0 100 20} labelsize 12
       } {
-        menuitem {} {
+        MenuItem {} {
           label {About Postoffice}
           callback cb_aboot
           xywh {0 0 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label {Build Configuration}
           callback cb_show_build
           xywh {0 0 100 20} labelsize 12
@@ -216,9 +220,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       xywh {0 20 855 20} box FLAT_BOX
     } {
       Fl_Button bt_tear {
-        label {icons/bar2.xpm}
         callback cb_menu_tearoff
-        xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+        image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
       }
       Fl_Group gr_buttons {
         xywh {10 20 845 20} resizable
@@ -233,13 +236,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {85 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/search.xpm}
-              xywh {86 21 29 18} labeltype image align 20
+              image {icons/search.xpm} compress_image 1 xywh {86 21 29 18} align 20
             }
             Fl_Box {} {
               label Search
               xywh {111 21 48 18} labelsize 10 align 24
-              code0 {xloc("search");}
+              code0 {xloc(o, "search");}
             }
           }
           Fl_Group {} {open
@@ -250,13 +252,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {10 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/send.xpm}
-              xywh {11 21 28 18} labeltype image align 20
+              image {icons/send.xpm} compress_image 1 xywh {11 21 28 18} align 20
             }
             Fl_Box {} {
               label Check
               xywh {41 21 43 18} labelsize 10 align 24
-              code0 {xloc("check");}
+              code0 {xloc(o, "check");}
             }
           }
           Fl_Group {} {open
@@ -267,13 +268,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {235 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/forward.xpm}
-              xywh {236 21 29 18} labeltype image align 20
+              image {icons/forward.xpm} compress_image 1 xywh {236 21 29 18} align 20
             }
             Fl_Box {} {
               label Fwd
               xywh {261 21 48 18} labelsize 10 align 24
-              code0 {xloc("fwd");}
+              code0 {xloc(o, "fwd");}
             }
           }
           Fl_Group {} {open
@@ -284,13 +284,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {160 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/redo.xpm}
-              xywh {161 21 29 18} labeltype image align 20
+              image {icons/redo.xpm} compress_image 1 xywh {161 21 29 18} align 20
             }
             Fl_Box {} {
               label Reply
               xywh {181 21 53 18} labelsize 10 align 24
-              code0 {xloc("rply");}
+              code0 {xloc(o, "rply");}
             }
           }
           Fl_Group {} {open
@@ -301,13 +300,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {385 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/delete.xpm}
-              xywh {386 21 23 18} labeltype image align 20
+              image {icons/delete.xpm} compress_image 1 xywh {386 21 23 18} align 20
             }
             Fl_Box {} {
               label Delete
               xywh {411 21 48 18} labelsize 10 align 24
-              code0 {xloc("dlte");}
+              code0 {xloc(o, "dlte");}
             }
           }
           Fl_Group {} {open
@@ -317,13 +315,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {310 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/move.xpm}
-              xywh {311 21 23 18} labeltype image align 20
+              image {icons/move.xpm} compress_image 1 xywh {311 21 23 18} align 20
             }
             Fl_Box {} {
               label Redir
               xywh {331 21 53 18} labelsize 10 align 24
-              code0 {xloc("redir");}
+              code0 {xloc(o, "redir");}
             }
           }
           Fl_Group {} {open
@@ -333,13 +330,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {460 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/stamp.xpm}
-              xywh {461 21 29 18} labeltype image align 20
+              image {icons/stamp.xpm} compress_image 1 xywh {461 21 29 18} align 20
             }
             Fl_Box {} {
               label Mark
               xywh {486 21 48 18} labelsize 10 align 24
-              code0 {xloc("mark");}
+              code0 {xloc(o, "mark");}
             }
           }
           Fl_Group {} {open
@@ -349,13 +345,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {535 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/fileprint.xpm}
-              xywh {536 21 29 18} labeltype image align 20
+              image {icons/fileprint.xpm} compress_image 1 xywh {536 21 29 18} align 20
             }
             Fl_Box {} {
               label Print
               xywh {561 21 48 18} labelsize 10 align 24
-              code0 {xloc("print");}
+              code0 {xloc(o, "print");}
             }
           }
           Fl_Group {} {open
@@ -365,13 +360,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {610 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/openbook.xpm}
-              xywh {611 21 23 18} labeltype image align 20
+              image {icons/openbook.xpm} compress_image 1 xywh {611 21 23 18} align 20
             }
             Fl_Box {} {
               label Addr
               xywh {636 21 48 18} labelsize 10 align 24
-              code0 {xloc("addr");}
+              code0 {xloc(o, "addr");}
             }
           }
           Fl_Group {} {open
@@ -382,13 +376,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {685 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/configure.xpm}
-              xywh {686 21 28 18} labeltype image align 20
+              image {icons/configure.xpm} compress_image 1 xywh {686 21 28 18} align 20
             }
             Fl_Box {} {
               label Config
               xywh {711 21 48 18} labelsize 10 align 24
-              code0 {xloc("config");}
+              code0 {xloc(o, "config");}
             }
           }
           Fl_Group {} {open
@@ -399,8 +392,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {760 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              label {icons/stop.xpm}
-              xywh {761 21 28 18} labeltype image align 20
+              image {icons/stop.xpm} compress_image 1 xywh {761 21 28 18} align 20
             }
             Fl_Box {} {
               label Stop
@@ -410,61 +402,50 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Button bt_menu_shrink {
             label {@-2<}
             callback cb_menu_shrink
-            xywh {835 20 20 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype SYMBOL_LABEL
+            xywh {835 20 20 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
           }
         }
         Fl_Group gr_minibuttons {open
           xywh {10 20 845 20} hide
         } {
           Fl_Button {} {
-            label {icons/send.xpm}
             callback cb_check_mail
-            xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/send.xpm} compress_image 1 xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/search.xpm}
-            xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/search.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/redo.xpm}
             callback cb_reply
-            xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/redo.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/forward.xpm}
             callback cb_forward
-            xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/forward.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/move.xpm}
-            xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/move.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/delete.xpm}
             callback cb_delete
-            xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/delete.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/stamp.xpm}
-            xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/stamp.xpm} compress_image 1 xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/fileprint.xpm}
-            xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/fileprint.xpm} compress_image 1 xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/openbook.xpm}
-            xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/openbook.xpm} compress_image 1 xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/configure.xpm}
             callback cb_configure
-            xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/configure.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            label {icons/stop.xpm}
             callback cb_stop
-            xywh {310 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+            image {icons/stop.xpm} compress_image 1 xywh {310 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Output out_ministatus {
             xywh {360 20 495 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11 resizable
@@ -472,7 +453,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Button bt_menu_expand {
             label {@-2>}
             callback cb_menu_expand
-            xywh {340 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+            xywh {340 20 20 20} box THIN_UP_BOX
           }
         }
       }
@@ -505,8 +486,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {0 175 855 21}
             } {
               Fl_Button bt_tearmessage {
-                label {icons/bar2.xpm}
-                xywh {0 175 10 20} box THIN_UP_BOX labeltype image
+                image {icons/bar2.xpm} compress_image 1 xywh {0 175 10 20} box THIN_UP_BOX
               }
               Fl_Group {} {open
                 xywh {10 175 845 21} box THIN_UP_BOX resizable
@@ -566,12 +546,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 Fl_Button bt_mdi_new {
                   label {@\#>[]}
                   callback cb_mdi_new
-                  xywh {823 178 14 15} shortcut 0x80060 labeltype SYMBOL_LABEL labelsize 10 align 20
+                  xywh {823 178 14 15} shortcut 0x80060 labelsize 10 align 20
                 }
                 Fl_Button bt_mdi_close {
                   label {@\#1+}
                   callback cb_mdi_close
-                  xywh {838 178 14 15} labeltype SYMBOL_LABEL labelsize 10 align 20
+                  xywh {838 178 14 15} labelsize 10 align 20
                 }
               }
             }
@@ -582,22 +562,22 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 label Message open
                 xywh {0 195 855 355} type popup3 labelsize 12 textsize 12
               } {
-                menuitem {} {
+                MenuItem {} {
                   label Reply
                   callback cb_reply_m
                   xywh {0 0 100 20} labelsize 12
-                  code0 {xloc("reply");}
+                  code0 {xloc(o, "reply");}
                 }
-                menuitem {} {
+                MenuItem {} {
                   label Forward
                   xywh {0 0 100 20} labelsize 12
-                  code0 {xloc("forward");}
+                  code0 {xloc(o, "forward");}
                 }
-                menuitem {} {
+                MenuItem {} {
                   label Delete
                   callback cb_delete_m
                   xywh {0 0 100 20} labelsize 12
-                  code0 {xloc("delete");}
+                  code0 {xloc(o, "delete");}
                 }
               }
               Fl_Browser br_message {
@@ -619,17 +599,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 Fl_Button {} {
                   label Mailboxes
                   xywh {10 40 150 20} box THIN_UP_BOX labelsize 12 align 20 resizable
-                  code0 {xloc("mailboxes");}
+                  code0 {xloc(o, "mailboxes");}
                 }
                 Fl_Button bt_tearfolders {
-                  label {icons/bar2.xpm}
                   callback cb_folders_tearoff
-                  xywh {0 40 10 20} box THIN_UP_BOX labeltype image
+                  image {icons/bar2.xpm} compress_image 1 xywh {0 40 10 20} box THIN_UP_BOX
                 }
                 Fl_Button bt_dropfolders {
                   label {@-22>}
                   callback cb_folders_dropdown
-                  xywh {160 40 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+                  xywh {160 40 20 20} box THIN_UP_BOX
                 }
               }
               Fl_Scroll br_folderlist {
@@ -649,7 +628,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   label Thread
                   callback cb_sort_thread
                   xywh {180 40 70 20} box THIN_UP_BOX labelsize 12 align 20
-                  code0 {xloc("msgid");}
+                  code0 {xloc(o, "msgid");}
                 }
                 Fl_Tile tile_sortbutton {open
                   xywh {250 40 605 20} resizable
@@ -658,19 +637,19 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                     label Subject
                     callback cb_sortby_subject
                     xywh {250 40 345 20} box THIN_UP_BOX labelsize 12 align 20
-                    code0 {xloc("subject");}
+                    code0 {xloc(o, "subject");}
                   }
                   Fl_Button bt_from {
                     label From
                     callback cb_sortby_from
                     xywh {595 40 140 20} box THIN_UP_BOX labelsize 12 align 20
-                    code0 {xloc("from");}
+                    code0 {xloc(o, "from");}
                   }
                   Fl_Button bt_date {
                     label Date
                     callback cb_sortby_date
                     xywh {735 40 120 20} box THIN_UP_BOX labelsize 12 align 20
-                    code0 {xloc("date");}
+                    code0 {xloc(o, "date");}
                   }
                 }
               }
@@ -680,12 +659,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
     }
   }
-} 
+}
 
 Function {make_menuwindow()} {} {
   Fl_Window win_menu {
     label {Mail Menu}
-    xywh {244 305 114 218} hide resizable
+    xywh {244 305 114 218} type Single hide resizable
   } {
     Fl_Group {} {open
       xywh {0 0 115 220}
@@ -694,8 +673,7 @@ Function {make_menuwindow()} {} {
         xywh {0 20 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/search.xpm}
-          xywh {0 20 115 20} box NO_BOX labeltype image align 20
+          image {icons/search.xpm} compress_image 1 xywh {0 20 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Search
@@ -706,8 +684,7 @@ Function {make_menuwindow()} {} {
         xywh {0 0 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/send.xpm}
-          xywh {0 0 115 20} box NO_BOX labeltype image align 20
+          image {icons/send.xpm} compress_image 1 xywh {0 0 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Check
@@ -718,8 +695,7 @@ Function {make_menuwindow()} {} {
         xywh {0 60 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/forward.xpm}
-          xywh {0 60 115 20} box NO_BOX labeltype image align 20
+          image {icons/forward.xpm} compress_image 1 xywh {0 60 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Fwd
@@ -730,8 +706,7 @@ Function {make_menuwindow()} {} {
         xywh {0 40 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/redo.xpm}
-          xywh {0 40 115 20} box NO_BOX labeltype image align 20
+          image {icons/redo.xpm} compress_image 1 xywh {0 40 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Reply
@@ -742,8 +717,7 @@ Function {make_menuwindow()} {} {
         xywh {0 100 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/delete.xpm}
-          xywh {0 100 115 20} box NO_BOX labeltype image align 20
+          image {icons/delete.xpm} compress_image 1 xywh {0 100 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Delete
@@ -754,8 +728,7 @@ Function {make_menuwindow()} {} {
         xywh {0 80 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/move.xpm}
-          xywh {0 80 115 20} box NO_BOX labeltype image align 20
+          image {icons/move.xpm} compress_image 1 xywh {0 80 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Redir
@@ -766,8 +739,7 @@ Function {make_menuwindow()} {} {
         xywh {0 120 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/stamp.xpm}
-          xywh {0 120 115 20} box NO_BOX labeltype image align 20
+          image {icons/stamp.xpm} compress_image 1 xywh {0 120 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Mark
@@ -778,8 +750,7 @@ Function {make_menuwindow()} {} {
         xywh {0 140 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/fileprint.xpm}
-          xywh {0 140 115 20} box NO_BOX labeltype image align 20
+          image {icons/fileprint.xpm} compress_image 1 xywh {0 140 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Print
@@ -790,8 +761,7 @@ Function {make_menuwindow()} {} {
         xywh {0 160 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/openbook.xpm}
-          xywh {0 160 115 20} box NO_BOX labeltype image align 20
+          image {icons/openbook.xpm} compress_image 1 xywh {0 160 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Address
@@ -802,8 +772,7 @@ Function {make_menuwindow()} {} {
         xywh {0 180 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/configure.xpm}
-          xywh {0 180 115 20} box NO_BOX labeltype image align 20
+          image {icons/configure.xpm} compress_image 1 xywh {0 180 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Config
@@ -814,8 +783,7 @@ Function {make_menuwindow()} {} {
         xywh {0 200 115 20} box UP_BOX
       } {
         Fl_Button {} {
-          label {icons/contents.xpm}
-          xywh {0 200 115 20} box NO_BOX labeltype image align 20
+          image {icons/contents.xpm} compress_image 1 xywh {0 200 115 20} box NO_BOX align 20
         }
         Fl_Button {} {
           label Help
@@ -824,7 +792,7 @@ Function {make_menuwindow()} {} {
       }
     }
   }
-} 
+}
 
 Function {make_compose_window()} {} {
   code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
@@ -832,8 +800,8 @@ char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language")
 Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
   Fl_Window {} {
     label {Compose Message} open
-    xywh {245 438 570 545} hide resizable
-    code0 {xloc("win_compose");}
+    xywh {245 438 570 545} type Single hide resizable
+    code0 {xloc(o, "win_compose");}
   } {
     Fl_Group {} {open
       xywh {0 0 580 545}
@@ -841,55 +809,55 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Menu_Bar {} {
         xywh {0 0 580 20} selection_color 246
       } {
-        submenu {} {
+        Submenu {} {
           label Message open
           xywh {0 0 100 20} labelsize 12
-          code0 {xloc("message");}
+          code0 {xloc(o, "message");}
         } {
-          menuitem {} {
+          MenuItem {} {
             label Send
             xywh {0 0 100 20} labelsize 12
-            code0 {xloc("send");}
+            code0 {xloc(o, "send");}
           }
-          menuitem {} {
+          MenuItem {} {
             label Discard
             xywh {0 0 100 20} labelsize 12
-            code0 {xloc("discard");}
+            code0 {xloc(o, "discard");}
           }
         }
-        submenu {} {
+        Submenu {} {
           label Template open
           xywh {0 0 100 20} labelsize 12
-          code0 {xloc("template");}
+          code0 {xloc(o, "template");}
         } {
-          menuitem {} {
+          MenuItem {} {
             label {New Template}
             xywh {0 0 100 20} labelsize 12
-            code0 {xloc("new_template");}
+            code0 {xloc(o, "new_template");}
           }
-          submenu {} {
+          Submenu {} {
             label {Use Template} open
             xywh {0 0 100 20} labelsize 12
-            code0 {xloc("use_template");}
+            code0 {xloc(o, "use_template");}
           } {
-            submenu {} {
+            Submenu {} {
               label helpdesk open
               xywh {0 0 100 20} labelsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label {password vergeten}
                 xywh {0 0 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label {mailquota vol}
                 xywh {10 10 100 20} labelsize 12
               }
             }
-            submenu {} {
+            Submenu {} {
               label beheer open
               xywh {0 0 100 20} labelsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label {frontpage verhuizing}
                 xywh {25 25 100 20} labelsize 12
               }
@@ -904,45 +872,37 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {210 20 360 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11
         }
         Fl_Button compose_mbt_send {
-          label {icons/mailappt.xpm}
-          xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/mailappt.xpm} compress_image 1 xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/lock.xpm}
-          xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/lock.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/attach2.xpm}
-          xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/attach2.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/editcut.xpm}
-          xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/editcut.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/editcopy.xpm}
-          xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/editcopy.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/editpaste.xpm}
-          xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+          image {icons/editpaste.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          label {icons/bar2.xpm}
-          xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+          image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
         }
         Fl_Button bt_compose_menu_expand {
           label {@-2>}
           callback cb_compose_menu_expand
-          xywh {190 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+          xywh {190 20 20 20} box THIN_UP_BOX
         }
       }
       Fl_Group gr_compose_attachments {
         xywh {0 470 570 75}
       } {
         Fl_Button {} {
-          label {icons/bar5.xpm}
-          xywh {0 470 10 75} box THIN_UP_BOX labeltype image align 17 hide
+          image {icons/bar5.xpm} compress_image 1 xywh {0 470 10 75} box THIN_UP_BOX align 17 hide
         }
         Fl_Browser {} {
           xywh {10 470 560 75} textsize 12 hide
@@ -956,8 +916,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Choice compose_ch_personality {
             label Identity open
-            xywh {126 46 189 19} labelsize 12 textsize 12
-            code0 {xloc("identity");}
+            xywh {126 46 189 19} down_box BORDER_BOX labelsize 12 textsize 12
+            code0 {xloc(o, "identity");}
           } {}
         }
         Fl_Group gr_compose_to {open
@@ -966,15 +926,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Input compose_in_to {
             label To
             xywh {125 45 375 20} labelsize 12 textsize 12
-            code0 {xloc("to");}
+            code0 {xloc(o, "to");}
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
           } {
             Fl_Button compose_bt_address {
-              label {icons/openbook.xpm}
               callback cb_address
-              xywh {501 46 29 19} labeltype image align 20
+              image {icons/openbook.xpm} compress_image 1 xywh {501 46 29 19} align 20
             }
           }
         }
@@ -984,15 +943,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Input compose_in_cc {
             label CC
             xywh {125 45 375 20} labelsize 12 textsize 12
-            code0 {xloc("cc");}
+            code0 {xloc(o, "cc");}
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
           } {
             Fl_Button compose_bt_address2 {
-              label {icons/openbook.xpm}
               callback cb_address
-              xywh {501 46 29 19} labeltype image align 20
+              image {icons/openbook.xpm} compress_image 1 xywh {501 46 29 19} align 20
             }
           }
         }
@@ -1002,15 +960,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Input compose_in_bcc {
             label BCC
             xywh {125 45 375 20} labelsize 12 textsize 12
-            code0 {xloc("bcc");}
+            code0 {xloc(o, "bcc");}
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
           } {
             Fl_Button compose_bt_address4 {
-              label {icons/openbook.xpm}
               callback cb_address
-              xywh {501 46 29 19} labeltype image align 20
+              image {icons/openbook.xpm} compress_image 1 xywh {501 46 29 19} align 20
             }
           }
         }
@@ -1020,100 +977,91 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Input compose_in_groups {
             label Newsgroups
             xywh {125 45 265 20} labelsize 12 textsize 12
-            code0 {xloc("newsgroups");}
+            code0 {xloc(o, "newsgroups");}
           }
           Fl_Group {} {open
             xywh {395 45 30 20} box BORDER_BOX color 0
           } {
             Fl_Button compose_bt_address3 {
-              label {icons/leftjust.xpm}
               callback cb_address
-              xywh {396 46 29 19} labeltype image align 16
+              image {icons/leftjust.xpm} compress_image 1 xywh {396 46 29 19} align 16
             }
           }
           Fl_Group {} {open
             xywh {430 45 100 20} box BORDER_BOX color 0
           } {
             Fl_Choice {} {open
-              xywh {431 46 99 19} textsize 12
+              xywh {431 46 99 19} down_box BORDER_BOX textsize 12
             } {}
           }
         }
         Fl_Input compose_in_subject {
           label Subject
           xywh {125 70 405 20} labelsize 12 textsize 12
-          code0 {xloc("subject");}
+          code0 {xloc(o, "subject");}
         }
         Fl_Button compose_bt_resizeheader {
-          label {icons/bar5.xpm}
-          xywh {0 40 10 55} box THIN_UP_BOX labeltype image align 17 resizable
+          image {icons/bar5.xpm} compress_image 1 xywh {0 40 10 55} box THIN_UP_BOX align 17 resizable
         }
       }
       Fl_Group gr_compose_bigbuttons {
         xywh {0 20 575 20}
       } {
         Fl_Button compose_bt_send {
-          label {icons/mailappt.xpm}
-          xywh {10 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/mailappt.xpm} compress_image 1 xywh {10 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/lock.xpm}
-          xywh {100 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/lock.xpm} compress_image 1 xywh {100 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/attach2.xpm}
-          xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/attach2.xpm} compress_image 1 xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/editcut.xpm}
-          xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/editcut.xpm} compress_image 1 xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/editcopy.xpm}
-          xywh {370 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/editcopy.xpm} compress_image 1 xywh {370 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/editpaste.xpm}
-          xywh {460 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+          image {icons/editpaste.xpm} compress_image 1 xywh {460 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          label {icons/bar2.xpm}
-          xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+          image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
         }
         Fl_Button bt_compose_menu_shrink {
           label {@-2<}
           callback cb_compose_menu_shrink
-          xywh {550 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+          xywh {550 20 20 20} box THIN_UP_BOX
         }
         Fl_Box {} {
           label Send
           xywh {10 20 90 20} labelsize 10 align 24
-          code0 {xloc("send");}
+          code0 {xloc(o, "send");}
         }
         Fl_Box {} {
           label Crypt
           xywh {100 20 90 20} labelsize 10 align 24
-          code0 {xloc("crypt");}
+          code0 {xloc(o, "crypt");}
         }
         Fl_Box {} {
           label Attach
           xywh {190 20 90 20} labelsize 10 align 24
-          code0 {xloc("attach");}
+          code0 {xloc(o, "attach");}
         }
         Fl_Box {} {
           label Cut
           xywh {280 20 90 20} labelsize 10 align 24
-          code0 {xloc("cut");}
+          code0 {xloc(o, "cut");}
         }
         Fl_Box {} {
           label Copy
           xywh {370 20 90 20} labelsize 10 align 24
-          code0 {xloc("copy");}
+          code0 {xloc(o, "copy");}
         }
         Fl_Box {} {
           label Paste
           xywh {460 20 90 20} labelsize 10 align 24
-          code0 {xloc("paste");}
+          code0 {xloc(o, "paste");}
         }
       }
       Fl_Input compose_in_message {
@@ -1123,7 +1071,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
     }
   }
-} 
+}
 
 Function {make_address_window()} {open
 } {
@@ -1132,8 +1080,8 @@ char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language")
 Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
   Fl_Window {} {
     label {Address Book} open
-    xywh {78 150 480 193} hide resizable
-    code0 {xloc("win_address");} modal
+    xywh {78 150 480 193} type Single hide resizable
+    code0 {xloc(o, "win_address");} modal
   } {
     Fl_Group {} {open
       xywh {0 0 480 195}
@@ -1150,12 +1098,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button bt_address_nickname {
               label Nickname
               xywh {0 55 120 20} box THIN_UP_BOX labelsize 12 align 20
-              code0 {xloc("nickname");}
+              code0 {xloc(o, "nickname");}
             }
             Fl_Button bt_address_email {
               label {Email Address}
               xywh {120 55 360 20} box THIN_UP_BOX labelsize 12 align 20
-              code0 {xloc("email_address");}
+              code0 {xloc(o, "email_address");}
             }
           }
         }
@@ -1175,7 +1123,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Input in_address_nickname {
               label Nickname
               xywh {135 30 225 20} labelsize 12 textsize 12 resizable
-              code0 {xloc("nickname");}
+              code0 {xloc(o, "nickname");}
             }
             Fl_Group {} {open
               xywh {420 30 50 20} box FLAT_BOX color 0
@@ -1199,7 +1147,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Input in_address_email {
             label Email
             xywh {135 5 335 20} labelsize 12 when 1 textsize 12
-            code0 {xloc("email");}
+            code0 {xloc(o, "email");}
           }
         }
         Fl_Group {} {open
@@ -1209,15 +1157,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {5 5 45 45} box FLAT_BOX color 0
           } {
             Fl_Button bt_address_execute {
-              label {icons/filer.xpm}
-              xywh {6 6 43 43} box THIN_UP_BOX labeltype image
+              image {icons/filer.xpm} compress_image 1 xywh {6 6 43 43} box THIN_UP_BOX
             }
           }
         }
       }
     }
   }
-} 
+}
 
 Function {make_folderlist_window()} {} {
   code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
@@ -1225,28 +1172,27 @@ char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language")
 Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
   Fl_Window {} {
     label Mailboxes
-    xywh {145 801 174 223} hide resizable
-    code0 {xloc("mailboxes");}
+    xywh {145 801 174 223} type Single hide resizable
+    code0 {xloc(o, "mailboxes");}
   } {
     Fl_Button {} {
       label Mailboxes
       xywh {0 0 175 20} box THIN_UP_BOX labelsize 12 align 20
-      code0 {xloc("mailboxes");}
+      code0 {xloc(o, "mailboxes");}
     }
     Fl_Scroll br_winfolderlist {open
       xywh {0 20 175 205} type VERTICAL box DOWN_BOX color 55 labelsize 12 resizable
     } {}
   }
-} 
+}
 
 Function {make_splash_screen()} {} {
   Fl_Window win_splash {
     label {Starting Up...} open
-    xywh {796 216 240 325} box BORDER_BOX color 0 hide modal
+    xywh {796 216 240 325} type Single box BORDER_BOX color 0 hide modal
   } {
-    Fl_Group {} {
-      label {icons/xbanner.xpm} open
-      xywh {0 0 242 302} box THIN_DOWN_BOX labeltype image align 16
+    Fl_Group {} {open
+      image {icons/xbanner.xpm} compress_image 1 xywh {0 0 242 302} box THIN_DOWN_BOX align 16
     } {
       Fl_Group {} {open
         xywh {116 175 118 35}
@@ -1292,23 +1238,22 @@ Function {make_splash_screen()} {} {
       xywh {0 302 240 25} type {Horz Fill} box THIN_DOWN_BOX color 53 selection_color 51 labelfont 1 labelsize 10 align 16 maximum 100
     }
   }
-} 
+}
 
 Function {make_query_window()} {} {
   Fl_Window {} {
     label {Search Messages} open
-    xywh {173 326 339 100} selection_color 15 hide
+    xywh {173 326 339 100} type Single selection_color 15 hide
   } {
     Fl_Button bt_query_execute {
-      label {icons/kfind.xpm}
-      xywh {5 5 45 45} box NO_BOX labeltype image
+      image {icons/kfind.xpm} compress_image 1 xywh {5 5 45 45} box NO_BOX
     }
     Fl_Group {} {
       label Mailbox open
       xywh {130 5 200 20} box FLAT_BOX color 0 labelsize 12 align 4
     } {
       Fl_Choice {} {open
-        xywh {131 6 199 19} labelsize 12 textsize 12
+        xywh {131 6 199 19} down_box BORDER_BOX labelsize 12 textsize 12
       } {}
     }
     Fl_Input {} {
@@ -1328,21 +1273,21 @@ Function {make_query_window()} {} {
       xywh {130 55 125 20} box FLAT_BOX color 0 labelsize 12 align 4
     } {
       Fl_Choice {} {open
-        xywh {131 56 124 19} labelsize 12 textsize 12
+        xywh {131 56 124 19} down_box BORDER_BOX labelsize 12 textsize 12
       } {
-        menuitem {} {
+        MenuItem {} {
           label From
           xywh {0 0 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label To
           xywh {10 10 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label Subject
           xywh {20 20 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label Body
           xywh {30 30 100 20} labelsize 12
         }
@@ -1352,7 +1297,7 @@ Function {make_query_window()} {} {
       xywh {0 80 340 20} type {Horz Fill} color 48 maximum 100 value 20
     }
   }
-} 
+}
 
 Function {make_prefs_window()} {open
 } {
@@ -1362,8 +1307,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
   Fl_Window win_prefs {
     label {Post Office Preferences Panel}
     callback cb_prefs_window
-    xywh {44 41 650 461} hide
-    code0 {xloc("win_prefs");}
+    xywh {44 41 650 461} type Single hide
+    code0 {xloc(o, "win_prefs");}
   } {
     Fl_Tabs tb_prefs {
       callback cb_prefs_tab open
@@ -1372,7 +1317,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Group gr_prefs_mailboxes {
         label Mailboxes
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12
-        code0 {xloc("mailboxes");}
+        code0 {xloc(o, "mailboxes");}
       } {
         Fl_Browser br_prefs_mailboxes {
           callback cb_prefs_mailboxes
@@ -1381,9 +1326,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           class Fl_Iconbrowser
         }
         Fl_Button bt_prefs_mailbox_add {
-          label {icons/filenew2.xpm}
           callback cb_prefs_mailbox_add
-          xywh {155 215 20 20} labeltype image labelsize 12
+          image {icons/filenew2.xpm} compress_image 1 xywh {155 215 20 20} labelsize 12
         }
         Fl_Group gr_mailboxes_set {open
           xywh {20 42 610 363} color 51 selection_color 246
@@ -1399,29 +1343,29 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               } {
                 Fl_Choice ch_prefs_collection {
                   callback cb_prefs_mailbox_flags open
-                  xywh {317 256 283 19} selection_color 7 labelsize 12 when 1 textsize 12
+                  xywh {317 256 283 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
                 } {
-                  menuitem {} {
+                  MenuItem {} {
                     label {Fetch Headers seperately}
                     xywh {35 35 100 20} labelsize 12
-                    code0 {xloc("fetch_hdr_sep");}
+                    code0 {xloc(o, "fetch_hdr_sep");}
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {Fetch complete messages}
                     xywh {35 35 100 20} labelsize 12
-                    code0 {xloc("fetch_complete");}
+                    code0 {xloc(o, "fetch_complete");}
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {Fetch and Delete complete messages}
                     xywh {0 0 100 20} labelsize 12
-                    code0 {xloc("fetch_delete");}
+                    code0 {xloc(o, "fetch_delete");}
                   }
                 }
               }
               Fl_Button {} {
                 label {Collection Method}
                 xywh {35 255 220 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("collection_method");}
+                code0 {xloc(o, "collection_method");}
               }
             }
             Fl_Group {} {open
@@ -1430,13 +1374,13 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Expire received messages on server after}
                 xywh {35 300 270 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("expire_onserver_received");}
+                code0 {xloc(o, "expire_onserver_received");}
               }
               Fl_Input in_prefs_expire_onserver_received {
                 label days
                 callback cb_prefs_mailbox_flags_b
                 xywh {315 300 70 20} type Int labelsize 12 align 8 textsize 12
-                code0 {xloc("days");}
+                code0 {xloc(o, "days");}
               }
             }
             Fl_Group {} {open
@@ -1445,13 +1389,13 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Expire unread messages on server after}
                 xywh {35 325 270 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("expire_onserver_notreceived");}
+                code0 {xloc(o, "expire_onserver_notreceived");}
               }
               Fl_Input in_prefs_expire_onserver_notreceived {
                 label {days (also removing local reference)}
                 callback cb_prefs_mailbox_flags_b
                 xywh {315 325 70 20} type Int labelsize 12 align 8 textsize 12
-                code0 {xloc("days_also_local");}
+                code0 {xloc(o, "days_also_local");}
               }
             }
             Fl_Group {} {open
@@ -1460,13 +1404,13 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Expire orphaned local messages after}
                 xywh {35 350 270 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("expire_local_only");}
+                code0 {xloc(o, "expire_local_only");}
               }
               Fl_Input in_prefs_expire_local_only {
                 label days
                 callback cb_prefs_mailbox_flags_b
                 xywh {315 350 70 20} type Int labelsize 12 align 8 textsize 12
-                code0 {xloc("days");}
+                code0 {xloc(o, "days");}
               }
             }
             Fl_Group {} {open
@@ -1475,19 +1419,19 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Expire any local message after}
                 xywh {35 375 270 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("expire_local");}
+                code0 {xloc(o, "expire_local");}
               }
               Fl_Input in_prefs_expire_local {
                 label days
                 callback cb_prefs_mailbox_flags_b
                 xywh {315 375 70 20} type Int labelsize 12 align 8 textsize 12
-                code0 {xloc("days");}
+                code0 {xloc(o, "days");}
               }
             }
             Fl_Button {} {
               label {(To turn off any expiration option, set the time to 0 days)}
               xywh {315 280 270 20} box NO_BOX labelfont 2 labelsize 11 align 20
-              code0 {xloc("expiration_helpmsg");}
+              code0 {xloc(o, "expiration_helpmsg");}
             }
           }
           Fl_Input in_prefs_mailboxname {
@@ -1495,46 +1439,45 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {20 215 135 20} labelsize 12 when 1 textsize 12
           }
           Fl_Button {} {
-            label {icons/eraser.xpm}
             callback cb_prefs_mailbox_delete
-            xywh {175 215 20 20} labeltype image labelsize 12
+            image {icons/eraser.xpm} compress_image 1 xywh {175 215 20 20} labelsize 12
           }
           Fl_Button {} {
             label Protocol
             xywh {210 45 70 20} box NO_BOX color 48 labelsize 12 align 20
-            code0 {xloc("protocol");}
+            code0 {xloc(o, "protocol");}
           }
           Fl_Group {} {
             xywh {295 45 195 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_protocol {
               callback cb_prefs_protocol open
-              xywh {296 46 194 19} labelsize 12 textsize 12
+              xywh {296 46 194 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label {Post Office MySQL table}
                 xywh {0 0 100 20} labelsize 12
-                code0 {xloc ("proto_mysql");}
+                code0 {xloc(o, "proto_mysql");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {POP3 Account}
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("proto_pop3");}
+                code0 {xloc(o, "proto_pop3");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {NNTP/Usenet}
                 xywh {20 20 100 20} labelsize 12
-                code0 {xloc("proto_nntp");}
+                code0 {xloc(o, "proto_nntp");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {MBox File collection}
                 xywh {30 30 100 20} labelsize 12
-                code0 {xloc("proto_mbox");}
+                code0 {xloc(o, "proto_mbox");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {IMAP4 Account}
                 xywh {30 30 100 20} labelsize 12
-                code0 {xloc("proto_imap4");}
+                code0 {xloc(o, "proto_imap4");}
               }
             }
           }
@@ -1551,7 +1494,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {MySQL Host}
                 xywh {225 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("mysql_host");}
+                code0 {xloc(o, "mysql_host");}
               }
             }
             Fl_Group {} {open
@@ -1564,7 +1507,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Username
                 xywh {225 115 90 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc("username");}
+                code0 {xloc(o, "username");}
               }
             }
             Fl_Group {} {open
@@ -1577,7 +1520,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Password
                 xywh {225 145 90 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("password");}
+                code0 {xloc(o, "password");}
               }
             }
             Fl_Group {} {open
@@ -1590,7 +1533,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Database
                 xywh {225 175 90 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("database");}
+                code0 {xloc(o, "database");}
               }
             }
             Fl_Group {} {open
@@ -1603,7 +1546,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Table
                 xywh {225 205 90 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("table");}
+                code0 {xloc(o, "table");}
               }
             }
           }
@@ -1620,7 +1563,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {POP3 Host}
                 xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("pop3_host");}
+                code0 {xloc(o, "pop3_host");}
               }
             }
             Fl_Group {} {open
@@ -1633,7 +1576,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Username
                 xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc("username");}
+                code0 {xloc(o, "username");}
               }
             }
             Fl_Group {} {open
@@ -1646,7 +1589,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Password
                 xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("password");}
+                code0 {xloc(o, "password");}
               }
             }
           }
@@ -1663,7 +1606,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {IMAP4 Host}
                 xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("imap4_host");}
+                code0 {xloc(o, "imap4_host");}
               }
             }
             Fl_Group {} {open
@@ -1676,7 +1619,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Username
                 xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc("username");}
+                code0 {xloc(o, "username");}
               }
             }
             Fl_Group {} {open
@@ -1689,7 +1632,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Password
                 xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("password");}
+                code0 {xloc(o, "password");}
               }
             }
           }
@@ -1706,7 +1649,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {NNTP Host}
                 xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("nntp_host");}
+                code0 {xloc(o, "nntp_host");}
               }
             }
             Fl_Group {} {open
@@ -1719,7 +1662,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Username
                 xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc("username");}
+                code0 {xloc(o, "username");}
               }
             }
             Fl_Group {} {open
@@ -1732,7 +1675,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Password
                 xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("password");}
+                code0 {xloc(o, "password");}
               }
             }
           }
@@ -1746,32 +1689,30 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               class Fl_Iconbrowser
             }
             Fl_Button bt_prefs_mboxfile_add {
-              label {icons/filenew2.xpm}
               callback cb_prefs_mboxfile_add
-              xywh {550 210 20 20} labeltype image labelsize 12
+              image {icons/filenew2.xpm} compress_image 1 xywh {550 210 20 20} labelsize 12
             }
             Fl_Input in_prefs_mboxfile_name {
               callback cb_prefs_mboxfile_name
               xywh {235 210 315 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button bt_prefs_mboxfile_erase {
-              label {icons/eraser.xpm}
               callback cb_prefs_mboxfile_delete
-              xywh {570 210 20 20} labeltype image labelsize 12
+              image {icons/eraser.xpm} compress_image 1 xywh {570 210 20 20} labelsize 12
             }
           }
           Fl_Input in_prefs_interval {
             label Interval
             callback cb_prefs_interval
             xywh {561 46 57 18} type Int labelsize 12 when 1 textsize 12
-            code0 {xloc("interval");}
+            code0 {xloc(o, "interval");}
           }
         }
       }
       Fl_Group gr_prefs_mailfolders {
         label Mailfolders
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
-        code0 {xloc("mailfolders");}
+        code0 {xloc(o, "mailfolders");}
       } {
         Fl_Browser br_prefs_mailfolders_mailboxes {
           callback cb_prefs_mailfolders_mailboxes
@@ -1793,24 +1734,20 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {230 215 105 20} labelsize 12 when 1 textsize 12
           }
           Fl_Button bt_prefs_mailfolders_folderdel {
-            label {icons/eraser.xpm}
             callback cb_prefs_mailfolder_folder_del
-            xywh {375 215 20 20} labeltype image labelsize 12
+            image {icons/eraser.xpm} compress_image 1 xywh {375 215 20 20} labelsize 12
           }
           Fl_Button {} {
-            label {icons/centrejust.xpm}
-            xywh {335 215 20 20} labeltype image labelsize 12
+            image {icons/centrejust.xpm} compress_image 1 xywh {335 215 20 20} labelsize 12
           }
         }
         Fl_Button bt_prefs_mailfolders_folderadd {
-          label {icons/filenew2.xpm}
           callback cb_prefs_mailfolder_folder_add
-          xywh {355 215 20 20} labeltype image labelsize 12
+          image {icons/filenew2.xpm} compress_image 1 xywh {355 215 20 20} labelsize 12
         }
         Fl_Button bt_prefs_mailfolders_newsub {
-          label {icons/folder.xpm}
           callback cb_prefs_mailfolders_newsub
-          xywh {395 215 20 20} labeltype image labelsize 12
+          image {icons/folder.xpm} compress_image 1 xywh {395 215 20 20} labelsize 12
         }
         Fl_Browser br_prefs_mailfolders_subfolders {
           callback cb_prefs_mailfolders_sub
@@ -1826,19 +1763,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {445 215 115 20} labelsize 12 when 1 textsize 12
           }
           Fl_Button prefs_mailfolders_subdel {
-            label {icons/eraser.xpm}
             callback cb_prefs_mailfolders_sub_del
-            xywh {600 215 20 20} labeltype image labelsize 12
+            image {icons/eraser.xpm} compress_image 1 xywh {600 215 20 20} labelsize 12
           }
           Fl_Button {} {
-            label {icons/centrejust.xpm}
-            xywh {560 215 20 20} labeltype image
+            image {icons/centrejust.xpm} compress_image 1 xywh {560 215 20 20}
           }
         }
         Fl_Button bt_prefs_mailfolders_subadd {
-          label {icons/filenew2.xpm}
           callback cb_prefs_mailfolders_sub_add
-          xywh {580 215 20 20} labeltype image labelsize 12 deactivate
+          image {icons/filenew2.xpm} compress_image 1 xywh {580 215 20 20} labelsize 12 deactivate
         }
         Fl_Group gr_prefs_filters {
           xywh {20 240 600 165} box ENGRAVED_BOX color 51
@@ -1851,58 +1785,58 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {140 250 155 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_filt_match {open
-              xywh {142 252 153 18} labelsize 12 textsize 12
+              xywh {142 252 153 18} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label {Envelope From}
                 xywh {0 0 100 20} labelsize 12
-                code0 {xloc("envelope_from");}
+                code0 {xloc(o, "envelope_from");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Envelope Folder}
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("envelope_folder");}
+                code0 {xloc(o, "envelope_folder");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Message-ID}
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("message_id");}
+                code0 {xloc(o, "message_id");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Subject
                 xywh {20 20 100 20} labelsize 12
-                code0 {xloc("subject");}
+                code0 {xloc(o, "subject");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label From
                 xywh {30 30 100 20} labelsize 12
-                code0 {xloc("mailfrom");}
+                code0 {xloc(o, "mailfrom");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label To
                 xywh {40 40 100 20} labelsize 12
-                code0 {xloc("mailto");}
+                code0 {xloc(o, "mailto");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Groups
                 xywh {50 50 100 20} labelsize 12
-                code0 {xloc("groups");}
+                code0 {xloc(o, "groups");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Sender
                 xywh {60 60 100 20} labelsize 12
-                code0 {xloc("sender");}
+                code0 {xloc(o, "sender");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Reply-To}
                 xywh {70 70 100 20} labelsize 12
-                code0 {xloc("replyto");}
+                code0 {xloc(o, "replyto");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Received
                 xywh {80 80 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label Cc
                 xywh {0 0 100 20} labelsize 12
               }
@@ -1911,91 +1845,91 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Button {} {
             label Match
             xywh {35 250 100 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("filtermatch");}
+            code0 {xloc(o, "filtermatch");}
           }
           Fl_Group {} {open
             xywh {140 275 155 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_filt_type {
-              xywh {142 277 153 18} labelsize 12 textsize 12
+              xywh {142 277 153 18} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label Substring
                 xywh {0 0 100 20} labelsize 12
-                code0 {xloc("substring");}
+                code0 {xloc(o, "substring");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Substring (case)}
                 xywh {0 0 100 20} labelsize 12
-                code0 {xloc("case_substring");}
+                code0 {xloc(o, "case_substring");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label GLOB
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("glob");}
+                code0 {xloc(o, "glob");}
               }
             }
           }
           Fl_Button {} {
             label Type
             xywh {35 275 100 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("type");}
+            code0 {xloc(o, "type");}
           }
           Fl_Group {} {open
             xywh {140 300 155 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_filt_action {
-              xywh {142 302 153 18} labelsize 12 textsize 12
+              xywh {142 302 153 18} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label Accept
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("filter_accept");}
+                code0 {xloc(o, "filter_accept");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Deny
                 xywh {10 10 100 20} labelsize 12
-                code0 {xloc("filter_deny");}
+                code0 {xloc(o, "filter_deny");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Score
                 xywh {20 20 100 20} labelsize 12
-                code0 {xloc("filter_score");}
+                code0 {xloc(o, "filter_score");}
               }
             }
           }
           Fl_Button {} {
             label Action
             xywh {35 300 100 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("action");}
+            code0 {xloc(o, "action");}
           }
           Fl_Group {} {open
             xywh {140 325 95 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_filt_scoring {
-              xywh {142 327 93 18} labelsize 12 textsize 12
+              xywh {142 327 93 18} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label Positive
                 xywh {20 20 100 20} labelsize 12
-                code0 {xloc("score_positive");}
+                code0 {xloc(o, "score_positive");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Negative
                 xywh {20 20 100 20} labelsize 12
-                code0 {xloc("score_negative");}
+                code0 {xloc(o, "score_negative");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label Score
                 xywh {30 30 100 20} labelsize 12
-                code0 {xloc("score_score");}
+                code0 {xloc(o, "score_score");}
               }
             }
           }
           Fl_Button {} {
             label Scoring
             xywh {35 325 100 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("scoring");}
+            code0 {xloc(o, "scoring");}
           }
           Fl_Input in_prefs_filt_scoring {
             xywh {240 325 55 20} type Int labelsize 12 textsize 12
@@ -2006,7 +1940,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Button {} {
             label String
             xywh {35 350 100 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("string");}
+            code0 {xloc(o, "string");}
           }
           Fl_Group {} {open
             xywh {225 375 75 20} box BORDER_FRAME color 0
@@ -2015,18 +1949,18 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               label Delete
               callback cb_prefs_delfilter
               xywh {227 377 73 18} color 51 labelsize 12
-              code0 {xloc("delete");}
+              code0 {xloc(o, "delete");}
             }
           }
           Fl_Button {} {
             label Match
             xywh {305 250 130 20} box THIN_UP_BOX color 51 labelsize 12 align 20
-            code0 {xloc("filtermatch");}
+            code0 {xloc(o, "filtermatch");}
           }
           Fl_Button {} {
             label String
             xywh {435 250 173 20} box THIN_UP_BOX color 51 labelsize 12 align 20
-            code0 {xloc("string");}
+            code0 {xloc(o, "string");}
           }
           Fl_Group {} {open
             xywh {140 375 75 20} box BORDER_FRAME color 0
@@ -2035,7 +1969,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               label Add
               callback cb_prefs_addfilter
               xywh {142 377 73 18} color 51 labelsize 12
-              code0 {xloc("add");}
+              code0 {xloc(o, "add");}
             }
           }
         }
@@ -2043,7 +1977,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Group gr_prefs_identities {
         label Identities open
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
-        code0 {xloc("identities");}
+        code0 {xloc(o, "identities");}
       } {
         Fl_Browser br_prefs_identities {
           callback cb_prefs_identities
@@ -2051,9 +1985,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           class Fl_Iconbrowser
         }
         Fl_Button bt_prefs_identityadd {
-          label {icons/filenew2.xpm}
           callback cb_prefs_identity_add
-          xywh {155 185 20 20} labeltype image labelsize 12
+          image {icons/filenew2.xpm} compress_image 1 xywh {155 185 20 20} labelsize 12
         }
         Fl_Group gr_identities_set {
           xywh {20 45 600 355} selection_color 246
@@ -2063,9 +1996,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {20 185 135 20} labelsize 12 when 1 textsize 12
           }
           Fl_Button bt_prefs_identitydel {
-            label {icons/eraser.xpm}
             callback cb_prefs_identity_del
-            xywh {175 185 20 20} labeltype image labelsize 12
+            image {icons/eraser.xpm} compress_image 1 xywh {175 185 20 20} labelsize 12
           }
           Fl_Group {} {
             xywh {205 45 415 160} box ENGRAVED_BOX color 51 align 5
@@ -2080,7 +2012,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Real Name}
                 xywh {215 55 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("real_name");}
+                code0 {xloc(o, "real_name");}
               }
             }
             Fl_Group {} {open
@@ -2093,7 +2025,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Email From}
                 xywh {215 85 80 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc("email_from");}
+                code0 {xloc(o, "email_from");}
               }
             }
             Fl_Group {} {open
@@ -2106,7 +2038,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Reply To}
                 xywh {215 115 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("reply_to");}
+                code0 {xloc(o, "reply_to");}
               }
             }
             Fl_Group {} {open
@@ -2119,7 +2051,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label Organization
                 xywh {215 145 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("organization");}
+                code0 {xloc(o, "organization");}
               }
             }
             Fl_Group {} {open
@@ -2128,31 +2060,31 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               Fl_Button {} {
                 label {Primary Box}
                 xywh {215 175 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc("primary_box");}
+                code0 {xloc(o, "primary_box");}
               }
               Fl_Group {} {
                 xywh {325 175 135 20} box BORDER_FRAME color 0
               } {
                 Fl_Choice ch_prefs_id_box {open
-                  xywh {326 176 134 19} labelsize 12 textsize 12
+                  xywh {326 176 134 19} down_box BORDER_BOX labelsize 12 textsize 12
                 } {
-                  menuitem {} {
+                  MenuItem {} {
                     label Common
                     xywh {0 0 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label Personal
                     xywh {10 10 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label Usenet
                     xywh {10 10 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {(none)}
                     xywh {20 20 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {(default)}
                     xywh {30 30 100 20} labelsize 12
                   }
@@ -2162,25 +2094,25 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 xywh {470 175 135 20} box BORDER_FRAME color 0
               } {
                 Fl_Choice ch_prefs_id_box2 {open
-                  xywh {471 176 134 19} labelsize 12 textsize 12
+                  xywh {471 176 134 19} down_box BORDER_BOX labelsize 12 textsize 12
                 } {
-                  menuitem {} {
+                  MenuItem {} {
                     label Common
                     xywh {10 10 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label Personal
                     xywh {20 20 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label Usenet
                     xywh {20 20 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {(none)}
                     xywh {30 30 100 20} labelsize 12
                   }
-                  menuitem {} {
+                  MenuItem {} {
                     label {(default)}
                     xywh {40 40 100 20} labelsize 12
                   }
@@ -2196,17 +2128,17 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {20 220 175 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_edittext {
-              xywh {21 221 174 19} labelsize 12 textsize 12
+              xywh {21 221 174 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label Signature
                 xywh {15 15 100 20} labelsize 12
-                code0 {xloc("signature");}
+                code0 {xloc(o, "signature");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Message Header}
                 xywh {25 25 100 20} labelsize 12
-                code0 {xloc("msgheader");}
+                code0 {xloc(o, "msgheader");}
               }
             }
           }
@@ -2214,37 +2146,37 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {420 220 200 20} box BORDER_FRAME color 0
           } {
             Fl_Choice ch_prefs_inserttext {open
-              xywh {440 221 180 19} labelsize 12 textsize 12
+              xywh {440 221 180 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label {Date of Original Message}
                 xywh {25 25 100 20} labelsize 12
-                code0 {xloc("date_original");}
+                code0 {xloc(o, "date_original");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Name of Original Sender}
                 xywh {35 35 100 20} labelsize 12
-                code0 {xloc("name_original");}
+                code0 {xloc(o, "name_original");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Email of Original Sender}
                 xywh {45 45 100 20} labelsize 12
-                code0 {xloc("email_original");}
+                code0 {xloc(o, "email_original");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Original Mailfolder}
                 xywh {55 55 100 20} labelsize 12
-                code0 {xloc("folder_original");}
+                code0 {xloc(o, "folder_original");}
               }
-              menuitem {} {
+              MenuItem {} {
                 label {Message-ID}
                 xywh {65 65 100 20} labelsize 12
-                code0 {xloc("message_id");}
+                code0 {xloc(o, "message_id");}
               }
             }
             Fl_Button bt_prefs_inserttext {
               label {@-12>}
-              xywh {421 221 19 19} labeltype SYMBOL_LABEL
+              xywh {421 221 19 19}
             }
           }
         }
@@ -2252,7 +2184,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Group gr_prefs_network {
         label Network
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
-        code0 {xloc("network");}
+        code0 {xloc(o, "network");}
       } {
         Fl_Group {} {open
           xywh {20 45 600 210} box ENGRAVED_BOX color 51 align 5
@@ -2267,7 +2199,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button {} {
               label {SMTP Server}
               xywh {30 65 105 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("smtp_server");}
+              code0 {xloc(o, "smtp_server");}
             }
           }
           Fl_Group {} {open
@@ -2287,23 +2219,23 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button {} {
               label {Directory Service}
               xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("directory_service");}
+              code0 {xloc(o, "directory_service");}
             }
             Fl_Group {} {open
               xywh {230 125 235 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_directoryservice {open
-                xywh {231 126 234 19} labelsize 12 textsize 12
+                xywh {231 126 234 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
-                menuitem {} {
+                MenuItem {} {
                   label {User Homedir}
                   xywh {15 15 100 20} labelsize 12
-                  code0 {xloc("homedir");}
+                  code0 {xloc(o, "homedir");}
                 }
-                menuitem {} {
+                MenuItem {} {
                   label {Post Office MySQL directory}
                   xywh {25 25 100 20} labelsize 12 deactivate
-                  code0 {xloc("mysql_dir");}
+                  code0 {xloc(o, "mysql_dir");}
                 }
               }
             }
@@ -2324,7 +2256,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Group gr_prefs_language {
         label Language
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
-        code0 {xloc("language");}
+        code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
           xywh {20 65 600 210} box ENGRAVED_BOX color 51 align 5
@@ -2339,7 +2271,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button {} {
               label Language
               xywh {235 84 80 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("language");}
+              code0 {xloc(o, "language");}
             }
           }
           Fl_Group {} {open
@@ -2352,7 +2284,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button {} {
               label Author
               xywh {235 114 80 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("author");}
+              code0 {xloc(o, "author");}
             }
           }
           Fl_Button {} {
@@ -2369,32 +2301,30 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Button {} {
             label {Local language support}
             xywh {20 40 170 20} box NO_BOX labelsize 12 align 20
-            code0 {xloc("language_support");}
+            code0 {xloc(o, "language_support");}
           }
           Fl_Group {} {open
             xywh {215 40 120 20}
           } {
             Fl_Button rd_prefs_locale_off {
-              label {icons/radio_off.xpm}
-              xywh {215 40 15 20} box FLAT_BOX down_box FLAT_BOX color 51 selection_color 51 labeltype image
+              image {icons/radio_off.xpm} compress_image 1 xywh {215 40 15 20} box FLAT_BOX down_box FLAT_BOX color 51 selection_color 51
             }
             Fl_Button {} {
               label {Off (English)}
               xywh {235 40 100 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("off_english");}
+              code0 {xloc(o, "off_english");}
             }
           }
           Fl_Group {} {open
             xywh {390 40 140 20}
           } {
             Fl_Button rd_prefs_locale_on {
-              label {icons/radio_on.xpm}
-              xywh {390 40 15 20} box FLAT_BOX color 51 selection_color 51 labeltype image
+              image {icons/radio_on.xpm} compress_image 1 xywh {390 40 15 20} box FLAT_BOX color 51 selection_color 51
             }
             Fl_Button {} {
               label On
               xywh {410 40 110 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc("on");}
+              code0 {xloc(o, "on");}
             }
           }
         }
@@ -2408,7 +2338,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       Fl_Group gr_prefs_style {
         label Style open
         xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
-        code0 {xloc("language");}
+        code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
           xywh {20 40 600 330} box ENGRAVED_BOX color 51 align 5
@@ -2427,22 +2357,22 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Choice ch_prefs_style_typeface {
               label Typeface
               callback cb_prefs_style_typeface open
-              xywh {322 162 158 18} labelsize 12 textsize 12
-              code0 {xloc("typeface");}
+              xywh {322 162 158 18} down_box BORDER_BOX labelsize 12 textsize 12
+              code0 {xloc(o, "typeface");}
             } {
-              menuitem {} {
+              MenuItem {} {
                 label Courier
                 xywh {0 0 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label Helvetica
                 xywh {10 10 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label Times
                 xywh {20 20 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label Terminal
                 xywh {30 30 100 20} labelsize 12
               }
@@ -2455,38 +2385,38 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               label Size
               user_data 10
               callback cb_prefs_style_size open
-              xywh {522 161 83 19} labelsize 12 textsize 12
+              xywh {522 161 83 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
-              menuitem {} {
+              MenuItem {} {
                 label 10
                 xywh {0 0 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 11
                 user_data 11
                 xywh {10 10 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 12
                 user_data 12
                 xywh {20 20 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 13
                 user_data 13
                 xywh {30 30 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 14
                 user_data 14
                 xywh {40 40 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 16
                 user_data 16
                 xywh {50 50 100 20} labelsize 12
               }
-              menuitem {} {
+              MenuItem {} {
                 label 18
                 user_data 18
                 xywh {60 60 100 20} labelsize 12
@@ -2497,7 +2427,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             label Italic
             callback cb_prefs_style_italic
             xywh {320 190 130 20} down_box DIAMOND_DOWN_BOX labelfont 2 labelsize 12
-            code0 {xloc("italic");}
+            code0 {xloc(o, "italic");}
             code1 {\#include "maccheck.h"}
             class Fl_MacCheck_Button
           }
@@ -2506,7 +2436,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             callback cb_prefs_style_bold
             xywh {320 210 130 20} down_box DIAMOND_DOWN_BOX labelfont 1 labelsize 12
             code0 {\#include "maccheck.h"}
-            code1 {xloc("bold");}
+            code1 {xloc(o, "bold");}
             class Fl_MacCheck_Button
           }
           Fl_Group {} {open
@@ -2615,7 +2545,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Box {} {
             label {Font Color}
             xywh {320 245 45 20} color 97 labelsize 12 align 4
-            code0 {xloc("fontcolor");}
+            code0 {xloc(o, "fontcolor");}
           }
           Fl_Box bx_prefs_style_elementname {
             label {Message Body Text}
@@ -2634,7 +2564,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             label {Font Style}
             xywh {320 190 65 20} labelsize 12 align 4
             code0 {\#include "maccheck.h"}
-            code1 {xloc("fontstyle");}
+            code1 {xloc(o, "fontstyle");}
           }
         }
       }
@@ -2649,7 +2579,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           label Save
           callback cb_prefs_save
           xywh {12 432 88 17} down_box DOWN_BOX color 51 labelsize 12
-          code0 {xloc("save");}
+          code0 {xloc(o, "save");}
         }
       }
     }
@@ -2660,7 +2590,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         label Apply
         callback cb_prefs_apply
         xywh {116 431 89 19} down_box DOWN_BOX color 51 labelsize 12
-        code0 {xloc("apply");}
+        code0 {xloc(o, "apply");}
       }
     }
     Fl_Group {} {
@@ -2670,11 +2600,11 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         label Cancel
         callback cb_prefs_cancel
         xywh {546 431 89 19} down_box DOWN_BOX color 51 labelsize 12
-        code0 {xloc("cancel");}
+        code0 {xloc(o, "cancel");}
       }
     }
   }
-} 
+}
 
 Function {make_reply_options()} {} {
   code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
@@ -2682,8 +2612,8 @@ char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language")
 Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
   Fl_Window win_reply_options {
     label {Reply With Options}
-    xywh {118 191 610 112} hide
-    code0 {xloc("reply_with_options");} modal
+    xywh {118 191 610 112} type Single hide
+    code0 {xloc(o, "reply_with_options");} modal
   } {
     Fl_Group {} {open
       xywh {5 5 600 70} box ENGRAVED_BOX color 51
@@ -2696,29 +2626,29 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Choice ch_repopts_quoting {
             callback cb_prefs_mailbox_flags
-            xywh {216 46 164 19} selection_color 7 labelsize 12 when 1 textsize 12
+            xywh {216 46 164 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
           } {
-            menuitem {} {
+            MenuItem {} {
               label {Smart Quoting}
               xywh {40 40 100 20} labelsize 12
-              code0 {xloc("smart_quoting");}
+              code0 {xloc(o, "smart_quoting");}
             }
-            menuitem {} {
+            MenuItem {} {
               label {Literal Quoting}
               xywh {40 40 100 20} labelsize 12
-              code0 {xloc("literal_quoting");}
+              code0 {xloc(o, "literal_quoting");}
             }
-            menuitem {} {
+            MenuItem {} {
               label {Quote All}
               xywh {0 0 100 20} labelsize 12
-              code0 {xloc("quote_all");}
+              code0 {xloc(o, "quote_all");}
             }
           }
         }
         Fl_Button {} {
           label Quoting
           xywh {20 45 154 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc("quoting");}
+          code0 {xloc(o, "quoting");}
         }
         Fl_Input {} {
           xywh {500 45 85 20} type Int labelsize 12 textsize 12
@@ -2726,7 +2656,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         Fl_Button {} {
           label {Max Quote Depth}
           xywh {390 45 130 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc("message_policy");}
+          code0 {xloc(o, "message_policy");}
         }
       }
       Fl_Group {} {
@@ -2737,29 +2667,29 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Choice ch_repopts_replyto {
             callback cb_prefs_mailbox_flags
-            xywh {216 16 369 19} selection_color 7 labelsize 12 when 1 textsize 12
+            xywh {216 16 369 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
           } {
-            menuitem {} {
+            MenuItem {} {
               label {Sender or Reply-To header}
               xywh {50 50 100 20} labelsize 12
-              code0 {xloc("sender_or_reply_to");}
+              code0 {xloc(o, "sender_or_reply_to");}
             }
-            menuitem {} {
+            MenuItem {} {
               label {Sender and All Recipients}
               xywh {50 50 100 20} labelsize 12
-              code0 {xloc("sender_and_all_rcpt");}
+              code0 {xloc(o, "sender_and_all_rcpt");}
             }
-            menuitem {} {
+            MenuItem {} {
               label Sender
               xywh {15 15 100 20} labelsize 12
-              code0 {xloc("sender");}
+              code0 {xloc(o, "sender");}
             }
           }
         }
         Fl_Button {} {
           label {Email Reply}
           xywh {20 15 154 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc("reply_to");}
+          code0 {xloc(o, "reply_to");}
         }
       }
     }
@@ -2773,7 +2703,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           label Use
           callback cb_prefs_save
           xywh {513 85 88 17} down_box DOWN_BOX color 51 labelsize 12
-          code0 {xloc("save");}
+          code0 {xloc(o, "save");}
         }
       }
     }
@@ -2784,24 +2714,22 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         label Apply
         callback cb_prefs_apply
         xywh {9 85 89 19} down_box DOWN_BOX color 51 labelsize 12
-        code0 {xloc("apply");}
+        code0 {xloc(o, "apply");}
       }
     }
   }
-} 
+}
 
 Function {make_exitwindow()} {} {
   Fl_Window win_exit {
     label {Post Office Shutdown} open
-    xywh {914 262 279 100} hide modal
+    xywh {914 262 279 100} type Single hide modal
   } {
-    Fl_Group {} {
-      label {icons/bg.xpm} open
-      xywh {0 0 280 100} labeltype image align 16
+    Fl_Group {} {open
+      image {icons/bg.xpm} compress_image 1 xywh {0 0 280 100} align 16
     } {
       Fl_Button {} {
-        label {icons/shredder2.xpm}
-        xywh {18 10 50 50} box NO_BOX labeltype image
+        image {icons/shredder2.xpm} compress_image 1 xywh {18 10 50 50} box NO_BOX
       }
       Fl_Button {} {
         label {Taking 'special care' of your mission critical mail data.}
@@ -2812,19 +2740,18 @@ Function {make_exitwindow()} {} {
       }
     }
   }
-} 
+}
 
 Function {make_wizard()} {} {
   Fl_Window win_wizard {
     label {Post Office Installation Wizard} open
-    xywh {721 585 680 372} hide
+    xywh {721 585 680 372} type Single hide
   } {
     Fl_Group {} {open
       xywh {10 10 656 329} box UP_BOX color 51
     } {
       Fl_Button {} {
-        label {icons/xbanner.xpm}
-        xywh {20 20 244 307} down_box UP_BOX labeltype image
+        image {icons/xbanner.xpm} compress_image 1 xywh {20 20 244 307} down_box UP_BOX
       }
       Fl_Group {} {
         xywh {273 20 380 307}
@@ -3067,16 +2994,15 @@ Function {make_wizard()} {} {
       }
     }
   }
-} 
+}
 
 Function {make_aboot()} {} {
   Fl_Window win_aboot {
     label {About Post Office} open
-    xywh {891 716 239 299} hide modal
+    xywh {891 716 239 299} type Single hide modal
   } {
-    Fl_Group {} {
-      label {icons/ebanner.xpm} open
-      xywh {0 0 240 300} labeltype image align 16
+    Fl_Group {} {open
+      image {icons/ebanner.xpm} compress_image 1 xywh {0 0 240 300} align 16
     } {
       Fl_Group {} {open
         xywh {14 18 211 261}
@@ -3131,12 +3057,12 @@ Function {make_aboot()} {} {
       }
     }
   }
-} 
+}
 
 Function {make_buildinfo()} {} {
   Fl_Window win_buildinfo {
     label {Build Congiruration} open
-    xywh {469 281 498 207} hide
+    xywh {469 281 498 207} type Single hide
   } {
     Fl_Box {} {
       label {linux2.2-x86-glibc2.1-gnuegcs2.91}
@@ -3198,13 +3124,13 @@ Function {make_buildinfo()} {} {
       }
     }
   }
-} 
+}
 
 Function {make_activelist_window()} {open
 } {
   Fl_Window win_grouplist {
     label {Group Listing} open selected
-    xywh {48 530 494 209} hide
+    xywh {48 530 494 209} type Single hide
   } {
     Fl_Browser {} {
       xywh {0 55 495 155} type Select labelsize 12 textsize 12
@@ -3213,8 +3139,7 @@ Function {make_activelist_window()} {open
       xywh {10 5 45 45} box BORDER_BOX color 0
     } {
       Fl_Button {} {
-        label {icons/filer.xpm}
-        xywh {11 6 44 44} labeltype image
+        image {icons/filer.xpm} compress_image 1 xywh {11 6 44 44}
       }
     }
     Fl_Input {} {
@@ -3234,21 +3159,21 @@ Function {make_activelist_window()} {open
     } {
       Fl_Choice {} {
         label View open
-        xywh {116 31 119 19} labelsize 12 textsize 12
+        xywh {116 31 119 19} down_box BORDER_BOX labelsize 12 textsize 12
       } {
-        menuitem {} {
+        MenuItem {} {
           label All
           xywh {0 0 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label Unsubscribed
           xywh {0 0 100 20} labelsize 12
         }
-        menuitem {} {
+        MenuItem {} {
           label Subscribed
           xywh {0 0 100 20} labelsize 12
         }
       }
     }
   }
-} 
+}

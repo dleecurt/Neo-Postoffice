@@ -946,7 +946,7 @@ void cb_prefs_protocol_nntp (Fl_Input *i, void *v)
 	}
 }
 
-void cb_prefs_interval (Fl_Input *i, void *v)
+void cb_prefs_interval (Fl_Int_Input *i, void *v)
 {
 	if (PREFS_CURRENTBOX)
 	{
@@ -1074,7 +1074,7 @@ void cb_prefs_mailboxname (Fl_Input *in, void *v)
 	}
 }
 
-void cb_prefs_mailbox_flags_b (Fl_Input *b, void *v)
+void cb_prefs_mailbox_flags_b (Fl_Int_Input *b, void *v)
 {
 	cb_prefs_mailbox_flags (NULL, NULL);
 }

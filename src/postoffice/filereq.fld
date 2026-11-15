@@ -1,33 +1,28 @@
 # data file for the Fltk User Interface Designer (fluid)
-version 1.00 
-header_name {.h} 
-code_name {.cpp} 
-gridx 5 
-gridy 5 
-snap 3
-decl {\#include "iconbrowser.h"} {} 
+version 1.0405
+header_name {filereq.h}
+code_name {filereq.cpp}
+decl {\#include "iconbrowser.h"} {private local
+}
 
 Function {make_filereq()} {} {
   Fl_Window {} {
-    xywh {476 51 501 321} resizable modal visible
+    xywh {476 51 501 321} type Single resizable modal visible
   } {
     Fl_Group {} {
       xywh {0 0 510 20}
     } {
       Fl_Button {} {
-        label {icons/fm/kfm_home.xpm}
         callback cb_freq_home
-        xywh {10 0 30 20} box THIN_UP_BOX labeltype image
+        image {icons/fm/kfm_home.xpm} compress_image 1 xywh {10 0 30 20} box THIN_UP_BOX
       }
       Fl_Button {} {
-        label {icons/fm/kfm_refresh.xpm}
         callback cb_freq_reload
-        xywh {70 0 30 20} box THIN_UP_BOX labeltype image
+        image {icons/fm/kfm_refresh.xpm} compress_image 1 xywh {70 0 30 20} box THIN_UP_BOX
       }
       Fl_Button {} {
-        label {icons/fm/desktop.xpm}
         callback cb_freq_desktop
-        xywh {40 0 30 20} box THIN_UP_BOX labeltype image
+        image {icons/fm/desktop.xpm} compress_image 1 xywh {40 0 30 20} box THIN_UP_BOX
       }
       Fl_Input in_freq_dir {
         callback cb_freq_cd
@@ -36,20 +31,19 @@ Function {make_filereq()} {} {
       Fl_Button {} {
         label {@\#-14->}
         callback cb_freq_back
-        xywh {100 0 30 20} box THIN_UP_BOX labeltype SYMBOL_LABEL deactivate
+        xywh {100 0 30 20} box THIN_UP_BOX deactivate
       }
       Fl_Button {} {
         label {@\#-12<-}
         callback cb_freq_up
-        xywh {130 0 30 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+        xywh {130 0 30 20} box THIN_UP_BOX
       }
       Fl_Button {} {
         xywh {0 0 10 20} box THIN_UP_BOX
       }
       Fl_Button {} {
-        label {icons/fm/mini-filemgr.xpm}
         callback cb_freq_list
-        xywh {160 0 30 20} box THIN_UP_BOX labeltype image
+        image {icons/fm/mini-filemgr.xpm} compress_image 1 xywh {160 0 30 20} box THIN_UP_BOX
       }
     }
     Fl_Browser br_freq {
@@ -85,4 +79,4 @@ Function {make_filereq()} {} {
       }
     }
   }
-} 
+}
