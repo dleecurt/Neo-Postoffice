@@ -1,0 +1,11 @@
+#!/bin/sh
+if [ -w include/Fl ]; then
+  rm -f include/Fl
+fi
+if [ -w include/Flek ]; then
+  rm -f include/Flek
+fi
+cd include
+ln -s FL Fl
+ln -s FL Flek
+cd ..

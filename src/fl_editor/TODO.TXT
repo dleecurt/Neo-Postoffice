@@ -1,0 +1,23 @@
+
+Things to add:
+***************************************************************
+
+1.  Enable editing lines wider than the widget, with horizontal 
+    scrollbar as needed.
+
+2.  Check interfaces to ensure close compatibility with 
+    current Fl_Multiline_Input and Fl_Multiline_Output widgets.
+
+3.  Add definable tab stop support. 
+
+4.  Add basic RTF-type codes for font sizes, colors, etc.
+    (preferably in a subclass)
+    
+Things to fix:
+***************************************************************
+
+4.  Make TAB switch between widgets as per usual FLTK behaviour.
+
+5.  Double, triple-click empty line should select the line.
+
+6.  Check CR/LF handling (during cut/paste, save/load, etc.)

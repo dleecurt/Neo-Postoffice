@@ -1,0 +1,53 @@
+#!/bin/sh
+ls -1 pkg/20_postoffice.*
+echo include/stringtoken.h
+echo include/envelope.h
+echo include/initexitthread.h
+echo include/folderdata.h
+echo include/status.h
+echo include/style.h
+echo include/btree.h
+echo include/mailstorage.h
+echo include/debug.h
+echo include/mailview.h
+echo include/viewlist.h
+echo include/mailhandler.h
+echo include/mailmessage.h
+echo include/itc.h
+echo include/scheduler.h
+echo include/gdbmtools.h
+echo include/base64.h
+echo include/buffer.h
+echo include/ht.h
+echo include/ccache.h
+echo include/checksum.h
+echo include/chop.h
+echo include/defs.h
+echo include/eaddr.h
+echo include/encode.h
+echo include/formatter.h
+echo include/iconbrowser.h
+echo include/mailbox.h
+echo include/mailerthread.h
+echo include/mysqlclient.h
+echo include/posixthread.h
+echo include/prefjournal.h
+echo include/reg.h
+echo include/semaphore.h
+echo include/smtp.h
+echo include/socketclasses.h
+echo include/strdupp.h
+echo include/substr.h
+echo include/tolower.h
+echo include/usleep.h
+echo include/var.h
+echo include/wordlist.h
+echo src/postoffice/version.h.in
+echo src/postoffice/makeversion
+ls -1 src/postoffice/*.cpp
+ls -1 src/postoffice/*.h
+ls -1 src/postoffice/*.fld
+ls -1 src/postoffice/*.xpm
+ls -1 src/postoffice/*.jcc
+ls -1 src/postoffice/Makefile*
+echo src/postoffice/icons

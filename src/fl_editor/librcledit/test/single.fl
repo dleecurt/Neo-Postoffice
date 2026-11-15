@@ -1,0 +1,179 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.00 
+header_name {.h} 
+code_name {.cpp} 
+gridx 1 
+gridy 1 
+snap 1
+decl {\#include <FL/Fl_Editor.H>} {public
+} 
+
+decl {\#include <FL/fl_file_chooser.H>} {public
+} 
+
+decl {char *filename;} {public
+} 
+
+decl {char fname[512];} {public
+} 
+
+Function {} {open
+} {
+  Fl_Window myWindow {
+    label {Test Window} open
+    xywh {808 626 306 240} type Double resizable visible
+  } {
+    Fl_Menu_Bar {} {open
+      private xywh {-2 -1 310 21} box THIN_UP_BOX
+    } {
+      submenu {&File} {
+        label {&File} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {&New}
+          callback {myEditor->Clear();
+filename = NULL;}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {&Open}
+          callback {char *fn;
+fn = fl_file_chooser("Open File", NULL, NULL);
+if(fn)
+   {
+       FILE *file = fopen(fn, "r");
+       if(file)
+          {
+               myEditor->Clear();
+               strcpy(fname, fn);
+               filename = fname;
+               myEditor->LoadFrom(file);
+               fclose(file);
+          }
+      else
+          filename = NULL;
+   }}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {&Insert File}
+          callback {char *fn;
+fn = fl_file_chooser("Open File", NULL, NULL);
+if(fn)
+   {
+       FILE *file = fopen(fn, "r");
+       if(file)
+          {
+               strcpy(fname, fn);
+               filename = fname;
+               myEditor->LoadFrom(file);
+               fclose(file);
+          }
+      else
+          filename = NULL;
+   }}
+          xywh {0 0 100 20} labelsize 12 divider
+        }
+        menuitem {} {
+          label {&Save}
+          callback {if (!filename)
+   filename = fl_file_chooser("Save As", NULL, NULL);
+if(filename)
+    {
+        FILE *file = fopen(filename, "w");
+        if(file)
+            {
+                strcpy(fname, filename);
+                filename = fname;
+                myEditor->SaveTo(file);
+                fclose(file);
+            }
+       else
+           filename = NULL;
+    }}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {Save &As}
+          callback {filename = fl_file_chooser("Save As", NULL, NULL);
+if(filename)
+    {
+        FILE *file = fopen(filename, "w");
+        if(file)
+            {
+                strcpy(fname, filename);
+                filename = fname;
+                myEditor->SaveTo(file);
+                fclose(file);
+            }
+    }}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {&Close}
+          callback {myEditor->Clear();
+filename = NULL;}
+          xywh {0 0 100 20} labelsize 12 divider
+        }
+        menuitem {} {
+          label {E&xit}
+          callback {myWindow->hide();}
+          xywh {0 0 100 20} labelsize 12
+        }
+      }
+      submenu {} {
+        label {&Edit} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label Cut
+          callback {myEditor->Cut();}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {&Copy}
+          callback {myEditor->Copy();}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {&Paste}
+          callback {myEditor->Paste();}
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {Top of File}
+          callback {myEditor->Engine()->MoveTo(0,0);
+myEditor->SyncDisplay();} selected
+          xywh {0 0 100 20}
+        }
+      }
+      submenu {} {
+        label {&Search} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {&Find}
+          callback {myEditor->Find();}
+          xywh {0 0 100 20} shortcut 0x40066 labelsize 12
+        }
+        menuitem {} {
+          label {Find &Again}
+          callback {myEditor->FindNext();}
+          xywh {10 10 100 20} shortcut 0xffc0 labelsize 12 divider
+        }
+        menuitem {} {
+          label {&Replace}
+          callback {myEditor->Replace();}
+          xywh {0 0 100 20} labelsize 12
+        }
+      }
+    }
+    Fl_Box myEditor {
+      xywh {3 23 299 212} box DOWN_BOX color 7 resizable
+      code0 {o->textfont(FL_HELVETICA);}
+      code1 {o->textsize(16);}
+      class Fl_Editor
+    }
+  }
+} 

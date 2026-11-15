@@ -1,0 +1,100 @@
+<HTML><BODY>
+<HR break>
+<img align=right src="Fl_StatusPanel.jpg">
+<H2><A name=Fl_StatusPanel>class Fl_StatusPanel</A></H2>
+<HR>
+<H3>Class Hierarchy</H3>
+<UL>
+<PRE>
+<A href=Fl_Group.html#Fl_Group>Fl_Group</A>
+   |
+   +----<A href=Fl_StatusPanel.html#Fl_StatusPanel>Fl_StatusPanel</A>
+</PRE>
+</UL>
+<H3>Include Files</H3>
+<UL>
+<PRE>
+#include &lt;FL/Fl_StatusPanel.H&gt;
+</PRE>
+</ul>
+<H3>Description</H3>
+This is a status panel that shows indicators for the CAPS and NUM lock states,
+an INS (insert) state, and an arbitrary status message.  It also includes an embedded
+progress bar which is normally hidden but can be displayed and used on demand.
+<P>
+<H3>Methods</H3>
+<CENTER>
+<TABLE width=90%>
+<TR>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_StatusPanel.Fl_StatusPanel>Fl_StatusPanel</A></LI>
+<LI><A href=#Fl_StatusPanel.Fl_StatusPanel>~Fl_StatusPanel</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_StatusPanel.cap>cap</A></LI>
+<LI><A href=#Fl_StatusPanel.handle>handle</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_StatusPanel.ins>ins</A></LI>
+<LI><A href=#Fl_StatusPanel.num>num</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_StatusPanel.progressbar>progressbar</A></LI>
+<LI><A href=#Fl_StatusPanel.status>status</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_StatusPanel.showprogress>showprogress</A></LI>
+<LI><A href=#Fl_StatusPanel.updatestatus>updatestatus</A></LI>
+</UL>
+</TD>
+
+</TR>
+</TABLE>
+</CENTER>
+<H4><A name=Fl_StatusPanel.Fl_StatusPanel>Fl_StatusPanel::Fl_StatusPanel(int x, int y, int w, 
+int h, const char *label = 0)</A></H4>
+ Creates a new <TT>Fl_StatusPanel</TT> widget using the given position, size, 
+and label string. 
+
+<H4><A name=Fl_StatusPanel.~Fl_StatusPanel>virtual Fl_StatusPanel::~Fl_StatusPanel()</A></H4>
+ Destroys the widget and any value associated with it. 
+
+<H4><A name=Fl_StatusPanel.cap>void Fl_StatusPanel::cap(bool)</A></H4>
+ Toggle whether the CAP (caps lock) indicator is on.
+ 
+<H4><A name=Fl_StatusPanel.handle>void Fl_StatusPanel::handle()</A></H4>
+This is the event handler loop.  If you need to subclass and define special event
+processing, this is where you'll start.  
+
+<H4><A name=Fl_StatusPanel.ins>void Fl_StatusPanel::ins(bool)</A></H4>
+ Toggle whether the INS (insert) indicator is on.
+
+<H4><A name=Fl_StatusPanel.num>void Fl_StatusPanel::num(bool)</A></H4>
+ Toggle whether the NUM (number lock) indicator is on.
+
+<H4><A name=Fl_StatusPanel.progressbar>Fl_ProgressBox *Fl_StatusPanel::progressbar()</A></H4>
+ Get a pointer to the embedded progress bar.
+
+<H4><A name=Fl_StatusPanel.status>void Fl_StatusPanel::status(const char *)</A></H4>
+ Set the status text.  (For example, the editor widget sets this to be the cursor row and column.)
+
+<H4><A name=Fl_StatusPanel.showprogress>void Fl_StatusPanel::showprogress(bool)</A></H4>
+ Toggle whether or not to make the embedded progress bar visible.
+
+<H4><A name=Fl_StatusPanel.updatestatus>void Fl_StatusPanel::updatestatus()</A></H4>
+ Update the indicator display for CAPs and NUM, based on the most recent FLTK event.
+
+</BODY></HTML>

@@ -1,0 +1,26 @@
+/* XPM */
+char *image_nl[] = {
+"21 16 5 1",
+"  c #000000008080",
+". c Red",
+"X c #c0c0c0c0c0c0",
+"o c Gray100",
+"O c None",
+/* pixels */
+"OOOOOOOOOOOOOOOOOOOOO",
+"OOOOOOOOOOOOOOOOOOOOO",
+"....................O",
+"....................O",
+"....................O",
+"....................O",
+"ooooooooooooooooooooO",
+"ooooooooooooooooooooO",
+"ooooooooooooooooooooO",
+"ooooooooooooooooooooO",
+"                    O",
+"                    O",
+"                    O",
+"                    O",
+"OOOOOOOOOOOOOOOOOOOOO",
+"OOOOOOOOOOOOOOOOOOOOO"
+};

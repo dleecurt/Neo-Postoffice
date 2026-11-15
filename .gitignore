@@ -1,0 +1,15 @@
+# Build output created by config/configure and the package Makefiles
+arch/
+/bin/
+/lib/
+/dist/
+/vroot/
+/config/config.*
+
+# Generated at build time
+/src/postoffice/version.h
+/include/Flek
+
+# Editor backups and thumbnail caches
+*~
+.xvpics/

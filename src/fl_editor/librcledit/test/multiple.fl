@@ -1,0 +1,243 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.00 
+header_name {.h} 
+code_name {.cpp} 
+gridx 1 
+gridy 1 
+snap 1
+decl {\#include <FL/Fl_MultiEditor.H>} {public
+} 
+
+decl {\#include <FL/fl_file_chooser.H>} {public
+} 
+
+decl {\#include <FL/filename.H>} {public
+} 
+
+decl {\#include <FL/Fl_Menu.H>} {public
+} 
+
+decl {void AddToWindowMenu(Fl_MultiEditor *editor, long sessid, const char *menuname, Fl_Menu *menu);} {public
+} 
+
+decl {void RemoveFromWindowMenu(Fl_MultiEditor *editor, long sessid, Fl_Menu_* menu, Fl_Menu *winmenu);} {public
+} 
+
+decl {Fl_Menu_Item *WindowMenu = NULL;} {} 
+
+decl {Fl_Menu_Item *FindWindowMenu(const Fl_Menu *menu);} {public
+} 
+
+decl {bool CloseSession(Fl_Menu_ *menu, Fl_Menu *WindowMenu, Fl_MultiEditor *ed);;} {public
+} 
+
+decl {bool ExitOK(Fl_Menu_ *menu, Fl_Menu *WinMenu, Fl_MultiEditor *ed);} {public
+} 
+
+decl {void ChangeWindowMenu(Fl_MultiEditor *editor, const char *oldname, Fl_Menu_* mainmenu, Fl_Menu* winmenu);} {public
+} 
+
+decl {char *Win23Dummy = "........................................................................................................................................";} {} 
+
+decl {// Win32Dummy is a kludge for Win32 release compile, see the readme} {} 
+
+Function {} {open
+} {
+  Fl_Window myWindow {
+    label {Test Window} open
+    xywh {332 261 306 240} resizable visible
+  } {
+    Fl_Box myEditor {
+      private xywh {3 23 299 212} box DOWN_BOX color 7 selection_color 14 resizable
+      code0 {o->textfont(FL_HELVETICA);}
+      code1 {o->textsize(14);}
+      class Fl_MultiEditor
+    }
+    Fl_Menu_Bar MenuBar {open
+      xywh {-2 -1 310 21} box THIN_UP_BOX labelsize 12 textsize 12
+    } {
+      submenu {} {
+        label {&File} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {&New}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {long sessid = v->NewSession();
+WindowMenu = FindWindowMenu(MenuBar->menu());
+if(sessid >= 0)
+   AddToWindowMenu(v, sessid, "&Window", WindowMenu);
+myWindow->label(v->SessionName());}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Open}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {WindowMenu = FindWindowMenu(MenuBar->menu());
+char *fn;
+fn = fl_file_chooser("Open File", NULL, NULL);
+if(fn)
+{
+      long sessid = v->NewSession(fn);
+      AddToWindowMenu(v, sessid, "&Window", WindowMenu);
+      myWindow->label(v->SessionName());
+}}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Insert File}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {char *fn;
+fn = fl_file_chooser("Open File", NULL, NULL);
+if(fn)
+   {
+       FILE *file = fopen(fn, "r");
+       if(file)
+          {
+               v->LoadFrom(file);
+               fclose(file);
+          }
+   }}
+          xywh {0 0 100 20} labelsize 12 divider
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Save}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {WindowMenu = FindWindowMenu(MenuBar->menu());
+const char *fn = v->CurrentFileName();
+if (!fn || (!fn[0]))
+{
+   fn = fl_file_chooser("Save As", NULL, NULL);
+   if(fn)
+   {
+      wString oldname = v->SessionName();
+      v->SaveCurrent(fn);
+      ChangeWindowMenu(v, oldname.Get(), o, WindowMenu);
+   }
+}
+else
+   v->SaveCurrent(fn);}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {Save &As}
+          user_data NULL user_data_type {Fl_MultiEditor *}
+          callback {WindowMenu = FindWindowMenu(MenuBar->menu());
+const char *fn = fl_file_chooser("Save As", NULL, NULL);
+if(fn)
+{
+   wString oldname = v->SessionName();
+   v->SaveCurrent(fn);
+   ChangeWindowMenu(v, oldname.Get(), o, WindowMenu);
+}}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Close}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {WindowMenu = FindWindowMenu(MenuBar->menu());
+CloseSession(o, WindowMenu, v);}
+          xywh {0 0 100 20} labelsize 12 divider
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {E&xit}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {WindowMenu = FindWindowMenu(MenuBar->menu());
+if(ExitOK((Fl_Menu_*)o, WindowMenu, v))
+   myWindow->hide();}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+      }
+      submenu {} {
+        label {&Edit} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {Cu&t}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->Cut();}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Copy}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->Copy();}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Paste}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->Paste();}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {Toggle &Read-Only}
+          callback {v->readonly(!v->readonly());} selected
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+      }
+      submenu {} {
+        label {&Search} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {&Find}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->Find();}
+          xywh {0 0 100 20} shortcut 0x40066 labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {Find &Again}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->FindNext();}
+          xywh {10 10 100 20} shortcut 0xffc0 labelsize 12 divider
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Replace}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->Replace();}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+      }
+      submenu {} {
+        label {&Window} open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {&Next}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->NextSession();
+myWindow->label(v->SessionName());}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+        menuitem {} {
+          label {&Previous}
+          user_data NULL user_data_type {Fl_MultiEditor*}
+          callback {v->PreviousSession();
+myWindow->label(v->SessionName());}
+          xywh {0 0 100 20} labelsize 12
+          code0 {o->user_data((void *)myEditor);}
+        }
+      }
+    }
+  }
+  code {WindowMenu = FindWindowMenu(MenuBar->menu());
+long sessid = myEditor->Session();
+AddToWindowMenu(myEditor, sessid, "&Window", WindowMenu);
+myWindow->label(myEditor->SessionName());} {}
+} 

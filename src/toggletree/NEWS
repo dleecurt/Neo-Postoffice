@@ -1,0 +1,47 @@
+CHANGES SINCE VERSION 0.2.3
+
+Several bug fixes related to null pointer checking and sorting.
+
+CHANGES SINCE VERSION 0.2.2
+
+Primarily code fixes for SGI platform.  Added a new configure option
+to make it easy to compile Fl_ToggleTree if fltk is in a non-default
+directory (read INSTALL).
+
+CHANGES SINCE VERSION 0.2.1
+
+This has a few more fixes and includes code to draw lines between
+toggle nodes (like the win32 or Gtk collapsible list widgets).  Thanks 
+to Petr Vilim for contributing this.  This feature can be turned on
+and off.  More color configurability was added and the tree demo was
+updated to show off these features.
+
+CHANGES SINCE VERSION 0.2.0
+
+This is mostly a bug fix release that addresses patches submitted by
+Petr Vilim, Alexandre Liduena and bug reports submitted by other
+users (Thanks!).  It also adds methods for changing colors.
+
+CHANGES SINCE VERSION 0.1.0
+
+Most of these changes have been made by James, some by my.
+I appreciate it a lot that James started participating in
+the development of Fl_ToggleTree, and I never had expected
+the huge amount of contributions he made. 
+
+Version 0.2 is not, I repeat not, very backwards compatible
+with Version 0.1, but I think it is worth rewriting your
+code for. I did :-) 
+
+Main changes include:
+
+  - a lot more FLTK coding style compliant 
+  - beter way to keep track of open/closed items
+  - easier tree maintenance (moved from seperate
+    class into Fl_ToggleTree
+  - going through a selection with an index
+  - sorting
+  - multi-column (like Fl_Browser)
+  - editing of label
+
+Maarten

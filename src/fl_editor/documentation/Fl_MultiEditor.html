@@ -1,0 +1,152 @@
+<HTML><BODY>
+<HR break>
+<img align=right src="Fl_Editor.jpg">
+<H2><A name=Fl_MultiEditor>class Fl_MultiEditor</A></H2>
+<HR>
+<H3>Class Hierarchy</H3>
+<UL>
+<PRE>
+<A href=Fl_Group.html#Fl_Group>Fl_Group</A>
+   |
+   +----<A href=Fl_Editor.html#Fl_Editor>Fl_Editor</A>
+           |
+           +----<A href=Fl_MultiEditor.html#Fl_MultiEditor>Fl_MultiEditor</A>
+</PRE>
+</UL>
+<H3>Include Files</H3>
+<UL>
+<PRE>
+#include &lt;FL/Fl_MultiEditor.H&gt;
+</PRE>
+</ul>
+<H3>Description</H3>
+This is a subclass of the <A href=Fl_Editor.html#Fl_Editor>Fl_Editor</A>
+widget that supports editing multiple buffers.  You can switch
+back and forth among the buffers as desired.  There is no preset limit
+to the number or size of the buffers.
+<P>
+
+<H3>Methods</H3>
+<CENTER>
+<TABLE width=90%>
+<TR>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_MultiEditor.Fl_MultiEditor>Fl_MultiEditor</A></LI>
+<LI><A href=#Fl_MultiEditor.~Fl_MultiEditor>~Fl_MultiEditor</A></LI>
+<LI><A href=#Fl_MultiEditor.ActiveSessions>ActiveSessions</A></LI>
+<LI><A href=#Fl_MultiEditor.CloseCurrent>CloseCurrent</A></LI>
+<LI><A href=#Fl_MultiEditor.CurrentFileName>CurrentFileName</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_MultiEditor.FirstSession>FirstSession</A></LI>
+<LI><A href=#Fl_MultiEditor.GetSessionCount>GetSessionCount</A></LI>
+<LI><A href=#Fl_MultiEditor.NewSession>NewSession</A></LI>
+<LI><A href=#Fl_MultiEditor.NextSession>NextSession</A></LI>
+<LI><A href=#Fl_MultiEditor.PreviousSession>PreviousSession</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_MultiEditor.RenameSession>RenameSession</A></LI>
+<LI><A href=#Fl_MultiEditor.SaveCurrent>SaveCurrent</A></LI>
+<LI><A href=#Fl_MultiEditor.Session>Session</A></LI>
+<LI><A href=#Fl_MultiEditor.SessionName>SessionName</A></LI>
+<LI><A href=#Fl_MultiEditor.textfont>textfont</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_MultiEditor.textsize>textsize</A></LI>
+</UL>
+</TD>
+
+</TR>
+</TABLE>
+</CENTER>
+<H4><A name=Fl_MultiEditor.Fl_MultiEditor>Fl_MultiEditor::Fl_MultiEditor(int x, int y, int w, 
+int h, const char *label = 0)</A></H4>
+ Creates a new <TT>Fl_MultiEditor</TT> widget using the given position, size, 
+and label string. The default boxtype is <TT>FL_DOWN_BOX</TT>. The widget will
+be created to fit within the given dimensions (it will be sized down slightly 
+to make room for the scrollbar and status panel).
+
+<H4><A name=Fl_MultiEditor.~Fl_MultiEditor>virtual Fl_MultiEditor::~Fl_MultiEditor()</A></H4>
+ Destroys the widget and any value associated with it, along 
+ with all its edit buffers.
+
+<H4><A name=Fl_MultiEditor.ActiveSessions>long Fl_MultiEditor::ActiveSessions()</A></H4>
+Returns the number of sessions presently open and managed by the widget.  Note
+that this may not be the same as the number returned by 
+<A href=#Fl_MultiEditor.GetSessionCount>long Fl_MultiEditor::GetSessionCount()</A>, 
+since the session
+count includes those sessions which are already closed.  This returns <i>only</i>
+the number of sessions that are open and available.
+
+<H4><A name=Fl_MultiEditor.CloseCurrent>long Fl_MultiEditor::CloseCurrent()</A></H4>
+Closes the current editor session (buffer) and moves to the next buffer.  If there 
+is no next buffer, it moves to the previous buffer.  If there is no previous
+buffer either, then a new empty session is created and activated.
+
+<H4><A name=Fl_MultiEditor.CurrentFileName>const char *Fl_MultiEditor::CurrentFileName()</A></H4>
+Returns the file name under which the current buffer is saved.  If the current 
+buffer has never been saved, this will return an empty string ("");
+
+<H4><A name=Fl_MultiEditor.FirstSession>void Fl_MultiEditor::FirstSession()</A></H4>
+Activates the first edit session that the widget manages.  Useful if you need
+to walk the sessions -- call this first, then do <A href=#Fl_MultiEditor.NextSession>NextSession()</A>
+until you have gone <A href=#Fl_MultiEditor.ActiveSessions>ActiveSessions()</A> number of iterations.
+
+<H4><A name=Fl_MultiEditor.GetSessionCount>long Fl_MultiEditor::GetSessionCount()</A></H4>
+Returns the total number of sessions a particular widget has managed during its lifetime,
+<i>including</i> closed sessions.  If you are only concerned about open documents, 
+use <A href=#Fl_MultiEditor.ActiveSessions>ActiveSessions()</A> instead.
+	
+<H4><A name=Fl_MultiEditor.NewSession>void Fl_MultiEditor::NewSession(const char *)</A></H4>
+Creates a new edit session (buffer).  If the passed string is not NULL, 
+the editor will attempt to load a file by that name.  Cursor will be positioned
+at the top of the document.	
+        
+<H4><A name=Fl_MultiEditor.NextSession>void Fl_MultiEditor::NextSession()</A><br>
+     <A name=Fl_MultiEditor.PreviousSession>void Fl_MultiEditor::PreviousSession()</A></H4>
+Switch to the next or previous edit session in the list of sessions this widget
+manages.  Both of these "wrap" -- that is, if you are already at the first session
+and you do a PreviousSession() call, you will be switched to the <i>last</i>
+session, and if you are already at the last session and do a NextSession(),
+you will be switched to the <i>first</i> session.
+	
+<H4><A name=Fl_MultiEditor.RenameSession>void Fl_MultiEditor::RenameSession(const char *oldname, const char *newname)</A><br>
+     void Fl_MultiEditor::RenameSession(long sessionID, const char *newname)</A></H4>
+Rename an open editor session.  Sessions are known by an integer ID as well as by
+a name.  The name might be a filename or whatever you chose.  This allows for
+changing the name of a session (such as if you renamed a file, etc.).
+
+<H4><A name=Fl_MultiEditor.SaveCurrent>void Fl_MultiEditor::SaveCurrent(const char *)</A></H4>
+Save the current session (the one presently being edited) to a file with the given
+name.  If successful, renames the session to match the file name.	
+
+<H4><A name=Fl_MultiEditor.Session>void Fl_MultiEditor::Session(const char *)</A><br>
+     void Fl_MultiEditor::Session(long)</A><br>
+     long Fl_MultiEditor::Session()</A></H4>
+The last form returns the session ID of the current editing session.  The other 
+two switch to an active session with the given ID or name.
+
+<H4><A name=Fl_MultiEditor.SessionName>const char *Fl_MultiEditor::SessionName()</A><br>
+     void Fl_MultiEditor::SessionName(const char *newname)</A></H4>
+Allows for getting or setting the name of the currently edited session.  Note
+that this is <i>not</i> the same as the filename.  You should use 
+<A href=#Fl_MultiEditor.SaveCurrent>SaveCurrent</A> to change the file where a buffer is saved.
+
+<H4><A name=Fl_MultiEditor.textfont>Fl_Font Fl_MultiEditor::textfont() const
+<BR> void Fl_MultiEditor::textfont(Fl_Font)</A></H4>
+ Gets or sets the font of the text in the editor.  
+ The change is propogated across all active buffers.
+<H4><A name=Fl_MultiEditor.textsize>uchar Fl_MultiEditor::textsize() const
+<BR> void Fl_MultiEditor::textsize(uchar)</A></H4>
+ Gets or sets the size of the text in the input field. 
+ The change is propogated across all active buffers.
+
+
+</BODY></HTML>

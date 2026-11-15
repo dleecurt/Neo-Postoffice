@@ -1,0 +1,209 @@
+**************************************
+Version 0.3
+October 13, 1999
+Changes since 0.2
+**************************************
+
+*  Updated documentation (includes example screenshots).
+
+*  Fixed segfault when double-clicking an empty editor.
+
+*  Fixed broken cursor placement when clicking with the mouse.  (Was off slightly horizontally if the font wasn't set 
+   prior to the calculation).
+
+*  Broke the editor up into several classes, as follows:
+
+   Fl_Editor      base editor widget (no search/replace, no status panel, etc.  Just editing.)
+   Fl_FancyEditor   Same functionality as before (search/replace, etc).
+   Fl_MultiEditor      like Fl_Editor, but with multiple buffer support.
+   Fl_FancyMultiEditor   like Fl_FancyEditor, but with multiple buffer support.
+   Fl_StatusPanel   The status panel with CAPS, NUM, INS, and position indicators, etc.
+				Also now includes a progress bar (see below), and has been made slightly
+				more general so as to be useful for things besides just editors.
+   Fl_ProgressBox  ** new class ** (see below)
+   
+*  Created Fl_ProgressBox, which is a simple "progress bar" widget.  Can optionally show the 
+    percentage as text inside the bar (not to be confused with the label, which can be anyplace
+    any normal widget label can be).  Defaults to blue bar on a white background with red
+    text, but is entirely configurable.   Create as you would any other widget, set the min/max
+    with range(), position with position(), and step it with step().  Example program included.
+    
+*  New example programs, as follows:
+
+   simple   -- shows the basic editor widget.  Includes some menus just to exercise some of the 
+        features.  The menus are NOT part of the widget itself.
+   progress  -- shows the progress bar.  Just runs from 0 to 100% complete over a ten second
+         period, then exits.
+   status  --  shows the status bar all by itself.  Pretty boring, actually.  You can press CAP and NUM
+         locks and watch it, though.  Also shows the embedded progress bar, which runs from 0 to 100%
+	 over a ten second period, then hides itself.  Ooohhhh....
+   single and multiple are both based off of FancyEditor, and are otherwise unchanged.
+   
+
+**************************************
+Version 0.2
+October 4, 1999
+Changes since 0.1.3
+**************************************
+
+*  Made scrollbar one pixel wider (looks more like rest of FLTK).
+
+*  Added "Status Panel" toggle to "single" demo's edit menu.
+
+--------
+
+*  Changed the justification constants in strings.h to avoid naming conflicts.
+
+*  Removed unused datetime.h file.
+
+*  Added a "Browse mode". (activated by calling editor->browse(true)).  While in
+   browse mode, the cursor is hidden, and the up/down arrows scroll up and down
+   (assuming, of course, there's something to scroll).  Added a HideCursor()
+   function to support this, in addition to the mode switch.
+
+*  Changed the "single" demo to have read only and browse toggles on the edit
+   menu, just to test those modes.
+
+*  Changed the scrollbar to behave better -- now it remains invisible until there
+   is actually enough text to need it.  Smart enough to show/hide itself as you
+   add/delete text.
+
+
+-------
+
+*  Changed some functions from inline to non-inline to reduce code size.  
+   Left the ones that made sense as inline.  Also recoded some of the inlines slightly to improve
+   performance.
+
+*  Removed all old non-standard boolean type definitions (BOOL and BOOLB).  
+   Also removed a bunch of typedefs (most weren't used anyway).
+
+*  Exposed editor engine (via Engine() member) to allow for program control over the engine functions.
+   Allows, among other things, changing the position and such.   For example, to programmatically move
+   to the top of the editor, just do:
+       editWidget->Engine()->Command(MOVE_TOF);
+       editWidget->SyncDisplay();
+---------
+
+* Changed the cursor into a widget.  This made the drawing a lot less messy, eliminated
+   the need for make_current(), and fixed problem with double buffered windows.
+
+* Changed the "single" test program to use a double buffered window, just for grins
+   and to verify correct operation.
+
+* Changes to the Makefile.  Now makes both static and shared libraries,
+   Example programs are now statically linked.  Just type "make" (or "make all")
+   in the top directory to build everything.
+
+* Added a read-only mode.  While in readonly mode, all the cursor navigation will still work, 
+  as will cut and copy to the clipboard, but anything which writes to the edit buffers is ignored.
+  
+* Dragging the mouse outside the widget while scrolling will cause a continuous scroll
+   in whichever direction the mouse was dragged (interval speed is definable).
+
+* More fixes to scrollbar.
+
+* Lots of drawing bug fixes.
+
+* More drawing optimizations.  The Fl_Editor drawing is now broken down so
+  that individual lines can be drawn using the drawline() protected member.  
+  Two new damage states were added (DAMAGE_LINE and DAMAGE_PARTIAL)
+  to allow for more optimal redraw. 
+
+* Preliminary support structure added for multiple fonts, colors, etc.  Added a
+  MeasureTextHeight() function to the engine, and a DrawState structure (stack) to the
+  Fl_Editor.   Neither of these do much yet, there's just there for future enhancements,
+  and are subject to change as work progresses.
+
+* Tested against FLTK 1.05.
+  
+**************************************
+Version 0.1.3
+June 27, 1999
+Changes since 0.1.2
+**************************************
+
+*  Widget now resizes appropriately when turning the panel
+   on and off.  
+
+*  Improvements to scrollbar.  Smoother now.
+   *** Many thanks to Pim van Riezen for the patch. *** 
+
+*  Couple of case-sensitive errors fixed (included ".h" files when 
+   they were actually ".H")
+
+*  Triple-click on an empty line works now.
+
+*  Made resize() a public method and draw() a protected method
+   to match FLTK base widget.
+
+**************************************
+Version 0.1.2
+June 21, 1999
+Changes since 0.1.1
+**************************************
+
+*  Added "line select mode".  After triple-clicking the mouse, 
+   dragging selects text a line at a time.  
+   
+*  Added "scroll select".  Selecting with the mouse and then moving
+   the mouse outside the widget boundaries will scroll the text and 
+   continue the selection.  Added two inline functions (scrollspeed())
+   to get or set the speed at which this happens, with the default 
+   being five lines per second.
+
+*  Renamed widget source files to better match FLTK naming conventions.
+   fl_edit.cpp       -->  Fl_Editor.cxx
+   fl_multi_edit.cpp -->  Fl_MultiEditor.cxx
+
+**************************************
+Version 0.1.1
+June 19, 1999
+Changes since 0.1
+**************************************
+
+*  Added new mouse behaviour : double-click selects word, 
+   triple-click selects line.
+
+*  Added color text highlighting via selection_color().
+
+*  Added read-only flag (get and set with ReadOnly())
+
+*  Added ability to turn word wrap on and off.  (See documentation
+   for details.)
+
+*  Forced the widget to take the focus if the mouse is clicked on it
+   while it is unfocused (it was reported that it was not marking text
+   properly without this).
+
+*  Pressing Backspace while text is selected now erases the text.  (Has the
+   same exact effect as pressing Delete.)
+
+*  Modified middle-mouse handling to force a paste when running on
+   platforms other than Win32.
+
+*  Fixed drawing bug when selecting text with the mouse (manifested
+   itself as looking like there were multiple regions selected when moving
+   the mouse quickly).
+
+*  Fixed the scrollbar code to (a) look better, and (b) work better.  
+   *** Many thanks to Pim van Riezen for the patch. *** 
+   
+*  Renamed header files to be more in keeping with FLTK
+   file naming conventions:
+       fl_edit.h   became  Fl_Editor.H
+       fl_multi_edit.h   became Fl_MultiEditor.H
+
+*  Changed the header files to use FL_EXPORT instead of RCLE_DLL.  
+   Still has the same function (dealing with Visual C++'s DLL exporting
+   quirks under Win32).
+
+
+**************************************
+Version 0.1
+June 18, 1999
+**************************************
+
+Initial Release
+
+  

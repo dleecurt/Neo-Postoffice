@@ -1,0 +1,52 @@
+README - Fl_ToggleTree Version 0.2.4
+------------------------------------
+
+WHAT IS Fl_ToggleTree
+
+    Fl_ToggleTree is a FLTK Tree Widget 
+  
+    Written by
+    Maarten de Boer 
+    <maarten@bcn.gms.es maarten@things.nl>
+    James Dean Palmer
+    <james@tiger-marmalade.com>
+
+    using the excellent FLTK library.
+
+    See tree_demo.cxx for an example.
+
+    A big thanks to everybody contributing
+    to the development of Fltk, especially
+    Bill Spitzak.
+    
+LICENSING
+
+    The sourcecode for this widget is available under
+    the terms of the GNU Library General Public License. 
+
+MODIFYING
+
+    If you modify this code, and think it might be useful
+    for others, please let me know.
+
+INTERNET RESOURCES
+
+    FLTK is available on the 'net in a bunch of locations:
+
+	- WWW:   http://fltk.easysw.com
+
+	- FTP:   ftp://ftp.easysw.com/pub/fltk
+        	 ftp://ftp.funet.fi/mirrors/ftp.easysw.com/pub/fltk
+
+	- EMail: fltk@easysw.com [see instructions below]
+        	 fltk-bugs@easysw.com [for reporting bugs]
+
+    To send a message to the FLTK mailing list ("fltk@easysw.com") you
+    must first join the list.  Non-member submissions are blocked to
+    avoid problems with SPAM...
+
+    To join the FLTK mailing list, send a message to
+    "majordomo@easysw.com" with "subscribe fltk" in the message body. 
+    A digest of this list is available by subscribing to the
+    "fltk-digest" mailing list.
+

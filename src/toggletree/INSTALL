@@ -1,0 +1,14 @@
+If you have everything installed in the default directories, then you
+can so this at a shell prompt:
+
+   ./configure
+   make
+
+If you want to use the Fltk libs and includes out of the source archive, 
+(useful if you don't have access to install Fltk), then you can use the
+"with-fltk-dir" option:
+
+  ./configure --with-fltk-dir=/path/to/fltk
+  make
+
+This will create the tree_demo and the *.o files for the Fl_ToggleTree.

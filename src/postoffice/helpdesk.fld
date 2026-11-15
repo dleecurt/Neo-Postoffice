@@ -1,0 +1,3254 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.00 
+header_name {.h} 
+code_name {.cpp} 
+gridx 5 
+gridy 5 
+snap 3
+decl {\#include <FL/Fl_FancyEditor.H>} {} 
+
+decl {\#include "iconbrowser.h"} {} 
+
+decl {\#include "maccheck.h"} {} 
+
+decl {\#include "ht.h"} {} 
+
+decl {\#include "var.h"} {} 
+
+decl {extern Var PREFERENCES;} {} 
+
+decl {\#define xloc(arg) if (USELOCALE) o->label (strdup (CLOCALE->Get_char(arg)))} {} 
+
+Function {make_window()} {open
+} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window win_main {
+    label {Post Office 1.0}
+    callback cb_exit open
+    xywh {388 132 854 570} hide resizable
+    code0 {\#include "version.h"}
+    code1 {o->label (__VERSIONSTRING);}
+  } {
+    Fl_Menu_Bar {} {
+      xywh {0 0 855 20} box THIN_UP_BOX selection_color 246 labelsize 12 textsize 12
+    } {
+      submenu {} {
+        label File open
+        xywh {0 0 100 20} labelsize 12
+        code0 {xloc("file");}
+      } {
+        menuitem {} {
+          label {New Message}
+          callback cb_compose
+          xywh {0 0 100 20} shortcut 0x8006e labelsize 12
+          code0 {xloc("new_message");}
+        }
+        menuitem {} {
+          label {New Query}
+          xywh {10 10 100 20} labelsize 12 deactivate
+          code0 {xloc("new_query");}
+        }
+        menuitem {} {
+          label Expire
+          callback cb_expire
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {Check Mail}
+          callback cb_check_mail_m
+          xywh {20 20 100 20} shortcut 0x8006c labelsize 12 divider
+          code0 {xloc("check_mail");}
+        }
+        menuitem {} {
+          label Configure
+          callback {(Fl_Callback *) cb_configure}
+          xywh {30 30 100 20} labelsize 12 divider
+          code0 {xloc("configure");}
+        }
+        menuitem {} {
+          label Quit
+          callback cb_quit_m
+          xywh {40 40 100 20} shortcut 0x80071 labelsize 12
+          code0 {xloc("quit");}
+        }
+      }
+      submenu {} {
+        label Edit
+        xywh {0 0 100 20} labelsize 12
+        code0 {xloc("edit");}
+      } {
+        menuitem {} {
+          label Cut
+          xywh {0 0 100 20} shortcut 0x80078 labelsize 12 deactivate
+          code0 {xloc("cut");}
+        }
+        menuitem {} {
+          label Copy
+          xywh {0 0 100 20} shortcut 0x80063 labelsize 12 deactivate
+          code0 {xloc("copy");}
+        }
+        menuitem {} {
+          label Paste
+          xywh {10 10 100 20} shortcut 0x80076 labelsize 12 deactivate divider
+          code0 {xloc("paste");}
+        }
+        menuitem {} {
+          label {Select All}
+          callback cb_select_all
+          xywh {0 0 100 20} shortcut 0x80061 labelsize 12
+        }
+      }
+      submenu {} {
+        label Message open
+        xywh {10 10 100 20} labelsize 12
+        code0 {xloc("message");}
+      } {
+        menuitem {} {
+          label Reply
+          callback cb_reply_m
+          xywh {15 15 100 20} shortcut 0x80072 labelsize 12 divider
+          code0 {xloc("reply");}
+        }
+        menuitem {} {
+          label Forward
+          callback cb_forward_m
+          xywh {20 20 100 20} shortcut 0x80066 labelsize 12
+          code0 {xloc("forward");}
+        }
+        menuitem {} {
+          label {Forward full headers}
+          callback cb_forwardfull_m
+          xywh {0 0 100 20} shortcut 0x80046 labelsize 12
+        }
+        menuitem {} {
+          label Redirect
+          xywh {30 30 100 20} labelsize 12 divider
+          code0 {xloc("redirect");}
+        }
+        menuitem {} {
+          label Delete
+          callback cb_delete_m
+          xywh {40 40 100 20} shortcut 0xffff labelsize 12
+          code0 {xloc("delete");}
+        }
+        menuitem {} {
+          label Refilter
+          callback cb_refilter
+          xywh {0 0 100 20} labelsize 12 deactivate
+        }
+      }
+      submenu {} {
+        label View
+        xywh {20 20 100 20} labelsize 12
+        code0 {xloc("view");}
+      } {
+        submenu {} {
+          label Messages
+          xywh {0 0 100 20} labelsize 12
+        } {
+          menuitem rad_viewall {
+            label {All Messages}
+            callback cb_viewall
+            xywh {30 30 100 20} type Radio value 1 labelsize 12
+            code0 {xloc("all_messages");}
+          }
+          menuitem rad_viewunread {
+            label {Unread Messages}
+            callback cb_viewunread
+            xywh {35 35 100 20} type Radio labelsize 12
+            code0 {xloc("unread_messages");}
+          }
+        }
+        submenu {} {
+          label Headers
+          xywh {10 10 100 20} labelsize 12
+        } {
+          menuitem {} {
+            label {Full Headers}
+            callback cb_hdrfull
+            xywh {40 40 100 20} type Radio labelsize 12
+            code0 {xloc("all_messages");}
+          }
+          menuitem {} {
+            label {Relevant Headers}
+            callback cb_hdrpart
+            xywh {45 45 100 20} type Radio value 1 labelsize 12
+            code0 {xloc("unread_messages");}
+          }
+        }
+        submenu {} {
+          label Threads
+          xywh {20 20 100 20} labelsize 12
+        } {
+          menuitem {} {
+            label {Open All}
+            callback cb_thr_open
+            xywh {50 50 100 20} type Radio value 1 labelsize 12
+            code0 {xloc("all_messages");}
+          }
+          menuitem {} {
+            label {Close All}
+            callback cb_thr_close
+            xywh {55 55 100 20} type Radio labelsize 12
+            code0 {xloc("unread_messages");}
+          }
+        }
+      }
+      submenu {} {
+        label Info open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        menuitem {} {
+          label {About Postoffice}
+          callback cb_aboot
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label {Build Configuration}
+          callback cb_show_build
+          xywh {0 0 100 20} labelsize 12
+        }
+      }
+    }
+    Fl_Group gr_buttonbar {open
+      xywh {0 20 855 20} box FLAT_BOX
+    } {
+      Fl_Button bt_tear {
+        label {icons/bar2.xpm}
+        callback cb_menu_tearoff
+        xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+      }
+      Fl_Group gr_buttons {
+        xywh {10 20 845 20} resizable
+      } {
+        Fl_Group gr_bigbuttons {open
+          xywh {10 20 845 20}
+        } {
+          Fl_Group {} {open
+            xywh {85 20 75 20}
+          } {
+            Fl_Button {} {
+              xywh {85 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/search.xpm}
+              xywh {86 21 29 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Search
+              xywh {111 21 48 18} labelsize 10 align 24
+              code0 {xloc("search");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {10 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_check_mail
+              xywh {10 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/send.xpm}
+              xywh {11 21 28 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Check
+              xywh {41 21 43 18} labelsize 10 align 24
+              code0 {xloc("check");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {235 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_forward
+              xywh {235 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/forward.xpm}
+              xywh {236 21 29 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Fwd
+              xywh {261 21 48 18} labelsize 10 align 24
+              code0 {xloc("fwd");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {160 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_reply
+              xywh {160 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/redo.xpm}
+              xywh {161 21 29 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Reply
+              xywh {181 21 53 18} labelsize 10 align 24
+              code0 {xloc("rply");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {385 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_delete
+              xywh {385 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/delete.xpm}
+              xywh {386 21 23 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Delete
+              xywh {411 21 48 18} labelsize 10 align 24
+              code0 {xloc("dlte");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {310 20 75 20}
+          } {
+            Fl_Button {} {
+              xywh {310 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/move.xpm}
+              xywh {311 21 23 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Redir
+              xywh {331 21 53 18} labelsize 10 align 24
+              code0 {xloc("redir");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {460 20 75 20}
+          } {
+            Fl_Button {} {
+              xywh {460 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/stamp.xpm}
+              xywh {461 21 29 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Mark
+              xywh {486 21 48 18} labelsize 10 align 24
+              code0 {xloc("mark");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {535 20 75 20}
+          } {
+            Fl_Button {} {
+              xywh {535 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/fileprint.xpm}
+              xywh {536 21 29 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Print
+              xywh {561 21 48 18} labelsize 10 align 24
+              code0 {xloc("print");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {610 20 75 20}
+          } {
+            Fl_Button {} {
+              xywh {610 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/openbook.xpm}
+              xywh {611 21 23 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Addr
+              xywh {636 21 48 18} labelsize 10 align 24
+              code0 {xloc("addr");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {685 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_configure
+              xywh {685 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/configure.xpm}
+              xywh {686 21 28 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Config
+              xywh {711 21 48 18} labelsize 10 align 24
+              code0 {xloc("config");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {760 20 75 20}
+          } {
+            Fl_Button {} {
+              callback cb_stop
+              xywh {760 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              label {icons/stop.xpm}
+              xywh {761 21 28 18} labeltype image align 20
+            }
+            Fl_Box {} {
+              label Stop
+              xywh {786 21 48 18} labelsize 10 align 24 resizable
+            }
+          }
+          Fl_Button bt_menu_shrink {
+            label {@-2<}
+            callback cb_menu_shrink
+            xywh {835 20 20 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype SYMBOL_LABEL
+          }
+        }
+        Fl_Group gr_minibuttons {open
+          xywh {10 20 845 20} hide
+        } {
+          Fl_Button {} {
+            label {icons/send.xpm}
+            callback cb_check_mail
+            xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/search.xpm}
+            xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/redo.xpm}
+            callback cb_reply
+            xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/forward.xpm}
+            callback cb_forward
+            xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/move.xpm}
+            xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/delete.xpm}
+            callback cb_delete
+            xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/stamp.xpm}
+            xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/fileprint.xpm}
+            xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/openbook.xpm}
+            xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/configure.xpm}
+            callback cb_configure
+            xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Button {} {
+            label {icons/stop.xpm}
+            callback cb_stop
+            xywh {310 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 20
+          }
+          Fl_Output out_ministatus {
+            xywh {360 20 495 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11 resizable
+          }
+          Fl_Button bt_menu_expand {
+            label {@-2>}
+            callback cb_menu_expand
+            xywh {340 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+          }
+        }
+      }
+    }
+    Fl_Group gr_stats {open
+      xywh {0 550 855 20} box FLAT_BOX
+    } {
+      Fl_Box bt_status {
+        label {Init...}
+        xywh {0 550 855 20} box DOWN_BOX labelsize 12 align 20 resizable
+      }
+      Fl_Slider sld_progress {
+        xywh {710 554 140 12} type {Horz Fill} selection_color 138 maximum 100 value 80 hide
+      }
+    }
+    Fl_Group {} {open
+      xywh {-5 40 860 511} resizable
+    } {
+      Fl_Group gr_tiles {open
+        xywh {-5 40 860 511} resizable
+      } {
+        Fl_Tile tile_all {
+          callback cb_updatewidth open
+          xywh {-5 40 860 511} when 0 resizable
+        } {
+          Fl_Group gr_message {
+            xywh {0 175 855 376} resizable
+          } {
+            Fl_Group {} {open
+              xywh {0 175 855 21}
+            } {
+              Fl_Button bt_tearmessage {
+                label {icons/bar2.xpm}
+                xywh {0 175 10 20} box THIN_UP_BOX labeltype image
+              }
+              Fl_Group {} {open
+                xywh {10 175 845 21} box THIN_UP_BOX resizable
+              } {
+                Fl_Group {} {open
+                  xywh {12 177 806 17} color 48 resizable
+                } {
+                  Fl_Button bt_mdi_0 {
+                    label {Message 1}
+                    user_data 0 user_data_type long
+                    callback cb_mdi_window
+                    xywh {12 177 99 17} box DOWN_BOX shortcut 0x80031 color 48 labelsize 10 align 84
+                  }
+                  Fl_Button bt_mdi_1 {
+                    label {Message 2}
+                    user_data 1 user_data_type long
+                    callback cb_mdi_window
+                    xywh {113 177 99 17} shortcut 0x80032 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_2 {
+                    label {Message 3}
+                    user_data 2 user_data_type long
+                    callback cb_mdi_window
+                    xywh {214 177 99 17} shortcut 0x80033 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_3 {
+                    label {Message 4}
+                    user_data 3 user_data_type long
+                    callback cb_mdi_window
+                    xywh {315 177 99 17} shortcut 0x80034 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_4 {
+                    label {Message 5}
+                    user_data 4 user_data_type long
+                    callback cb_mdi_window
+                    xywh {416 177 99 17} shortcut 0x80035 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_5 {
+                    label {Message 6}
+                    user_data 5 user_data_type long
+                    callback cb_mdi_window
+                    xywh {517 177 99 17} shortcut 0x80036 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_6 {
+                    label {Message 7}
+                    user_data 6 user_data_type long
+                    callback cb_mdi_window
+                    xywh {618 177 99 17} shortcut 0x80037 color 48 labelsize 10 align 84 hide
+                  }
+                  Fl_Button bt_mdi_7 {
+                    label {Message 8}
+                    user_data 7 user_data_type long
+                    callback cb_mdi_window
+                    xywh {719 177 99 17} shortcut 0x80038 color 48 labelsize 10 align 84 hide
+                  }
+                }
+                Fl_Button bt_mdi_new {
+                  label {@\#>[]}
+                  callback cb_mdi_new
+                  xywh {823 178 14 15} shortcut 0x80060 labeltype SYMBOL_LABEL labelsize 10 align 20
+                }
+                Fl_Button bt_mdi_close {
+                  label {@\#1+}
+                  callback cb_mdi_close
+                  xywh {838 178 14 15} labeltype SYMBOL_LABEL labelsize 10 align 20
+                }
+              }
+            }
+            Fl_Group gr_view_wrapper {open
+              xywh {0 195 855 355} resizable
+            } {
+              Fl_Menu_Button popup_msgwin {
+                label Message open
+                xywh {0 195 855 355} type popup3 labelsize 12 textsize 12
+              } {
+                menuitem {} {
+                  label Reply
+                  callback cb_reply_m
+                  xywh {0 0 100 20} labelsize 12
+                  code0 {xloc("reply");}
+                }
+                menuitem {} {
+                  label Forward
+                  xywh {0 0 100 20} labelsize 12
+                  code0 {xloc("forward");}
+                }
+                menuitem {} {
+                  label Delete
+                  callback cb_delete_m
+                  xywh {0 0 100 20} labelsize 12
+                  code0 {xloc("delete");}
+                }
+              }
+              Fl_Browser br_message {
+                xywh {0 195 855 355} selection_color 136 labelsize 12 align 66
+                code0 {\#include "ht.h"}
+                class Fl_View
+              }
+            }
+          }
+          Fl_Tile tile_lists {open
+            xywh {-5 40 860 135} when 0
+          } {
+            Fl_Group gr_folderlist {open
+              xywh {0 40 180 135}
+            } {
+              Fl_Group {} {open
+                xywh {0 40 180 20}
+              } {
+                Fl_Button {} {
+                  label Mailboxes
+                  xywh {10 40 150 20} box THIN_UP_BOX labelsize 12 align 20 resizable
+                  code0 {xloc("mailboxes");}
+                }
+                Fl_Button bt_tearfolders {
+                  label {icons/bar2.xpm}
+                  callback cb_folders_tearoff
+                  xywh {0 40 10 20} box THIN_UP_BOX labeltype image
+                }
+                Fl_Button bt_dropfolders {
+                  label {@-22>}
+                  callback cb_folders_dropdown
+                  xywh {160 40 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+                }
+              }
+              Fl_Scroll br_folderlist {
+                xywh {0 60 180 115} type VERTICAL box DOWN_BOX color 7 resizable
+              } {}
+            }
+            Fl_Group gr_folderindex {open
+              xywh {180 40 675 135} resizable
+            } {
+              Fl_Scroll br_folderindex_ {open
+                xywh {180 60 675 115} box DOWN_BOX color 7 selection_color 246 labelsize 12 resizable
+              } {}
+              Fl_Group {} {open
+                xywh {180 40 675 20}
+              } {
+                Fl_Button bt_thread {
+                  label Thread
+                  callback cb_sort_thread
+                  xywh {180 40 70 20} box THIN_UP_BOX labelsize 12 align 20
+                  code0 {xloc("msgid");}
+                }
+                Fl_Tile tile_sortbutton {open
+                  xywh {250 40 605 20} resizable
+                } {
+                  Fl_Button {} {
+                    label Subject
+                    callback cb_sortby_subject
+                    xywh {250 40 345 20} box THIN_UP_BOX labelsize 12 align 20
+                    code0 {xloc("subject");}
+                  }
+                  Fl_Button bt_from {
+                    label From
+                    callback cb_sortby_from
+                    xywh {595 40 140 20} box THIN_UP_BOX labelsize 12 align 20
+                    code0 {xloc("from");}
+                  }
+                  Fl_Button bt_date {
+                    label Date
+                    callback cb_sortby_date
+                    xywh {735 40 120 20} box THIN_UP_BOX labelsize 12 align 20
+                    code0 {xloc("date");}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 
+
+Function {make_menuwindow()} {} {
+  Fl_Window win_menu {
+    label {Mail Menu}
+    xywh {244 305 114 218} hide resizable
+  } {
+    Fl_Group {} {open
+      xywh {0 0 115 220}
+    } {
+      Fl_Group {} {
+        xywh {0 20 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/search.xpm}
+          xywh {0 20 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Search
+          xywh {0 20 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 0 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/send.xpm}
+          xywh {0 0 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Check
+          xywh {0 0 115 20} box NO_BOX labelsize 12 align 24 hotspot
+        }
+      }
+      Fl_Group {} {
+        xywh {0 60 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/forward.xpm}
+          xywh {0 60 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Fwd
+          xywh {0 60 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 40 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/redo.xpm}
+          xywh {0 40 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Reply
+          xywh {0 40 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 100 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/delete.xpm}
+          xywh {0 100 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Delete
+          xywh {0 100 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 80 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/move.xpm}
+          xywh {0 80 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Redir
+          xywh {0 80 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 120 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/stamp.xpm}
+          xywh {0 120 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Mark
+          xywh {0 120 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 140 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/fileprint.xpm}
+          xywh {0 140 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Print
+          xywh {0 140 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {
+        xywh {0 160 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/openbook.xpm}
+          xywh {0 160 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Address
+          xywh {0 160 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {open
+        xywh {0 180 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/configure.xpm}
+          xywh {0 180 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Config
+          xywh {0 180 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+      Fl_Group {} {open
+        xywh {0 200 115 20} box UP_BOX
+      } {
+        Fl_Button {} {
+          label {icons/contents.xpm}
+          xywh {0 200 115 20} box NO_BOX labeltype image align 20
+        }
+        Fl_Button {} {
+          label Help
+          xywh {0 200 115 20} box NO_BOX labelsize 12 align 24
+        }
+      }
+    }
+  }
+} 
+
+Function {make_compose_window()} {} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window {} {
+    label {Compose Message} open
+    xywh {245 438 570 545} hide resizable
+    code0 {xloc("win_compose");}
+  } {
+    Fl_Group {} {open
+      xywh {0 0 580 545}
+    } {
+      Fl_Menu_Bar {} {
+        xywh {0 0 580 20} selection_color 246
+      } {
+        submenu {} {
+          label Message open
+          xywh {0 0 100 20} labelsize 12
+          code0 {xloc("message");}
+        } {
+          menuitem {} {
+            label Send
+            xywh {0 0 100 20} labelsize 12
+            code0 {xloc("send");}
+          }
+          menuitem {} {
+            label Discard
+            xywh {0 0 100 20} labelsize 12
+            code0 {xloc("discard");}
+          }
+        }
+        submenu {} {
+          label Template open
+          xywh {0 0 100 20} labelsize 12
+          code0 {xloc("template");}
+        } {
+          menuitem {} {
+            label {New Template}
+            xywh {0 0 100 20} labelsize 12
+            code0 {xloc("new_template");}
+          }
+          submenu {} {
+            label {Use Template} open
+            xywh {0 0 100 20} labelsize 12
+            code0 {xloc("use_template");}
+          } {
+            submenu {} {
+              label helpdesk open
+              xywh {0 0 100 20} labelsize 12
+            } {
+              menuitem {} {
+                label {password vergeten}
+                xywh {0 0 100 20} labelsize 12
+              }
+              menuitem {} {
+                label {mailquota vol}
+                xywh {10 10 100 20} labelsize 12
+              }
+            }
+            submenu {} {
+              label beheer open
+              xywh {0 0 100 20} labelsize 12
+            } {
+              menuitem {} {
+                label {frontpage verhuizing}
+                xywh {25 25 100 20} labelsize 12
+              }
+            }
+          }
+        }
+      }
+      Fl_Group gr_compose_mini_buttons {
+        xywh {0 20 570 20} hide
+      } {
+        Fl_Output {} {
+          xywh {210 20 360 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11
+        }
+        Fl_Button compose_mbt_send {
+          label {icons/mailappt.xpm}
+          xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/lock.xpm}
+          xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/attach2.xpm}
+          xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/editcut.xpm}
+          xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/editcopy.xpm}
+          xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/editpaste.xpm}
+          xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labeltype image align 16
+        }
+        Fl_Button {} {
+          label {icons/bar2.xpm}
+          xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+        }
+        Fl_Button bt_compose_menu_expand {
+          label {@-2>}
+          callback cb_compose_menu_expand
+          xywh {190 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+        }
+      }
+      Fl_Group gr_compose_attachments {
+        xywh {0 470 570 75}
+      } {
+        Fl_Button {} {
+          label {icons/bar5.xpm}
+          xywh {0 470 10 75} box THIN_UP_BOX labeltype image align 17 hide
+        }
+        Fl_Browser {} {
+          xywh {10 470 560 75} textsize 12 hide
+        }
+      }
+      Fl_Group gr_compose_headers {open
+        xywh {0 40 570 55} box FLAT_BOX
+      } {
+        Fl_Group compose_gr_personality {open
+          xywh {125 45 190 20} box BORDER_BOX color 0 hide
+        } {
+          Fl_Choice compose_ch_personality {
+            label Identity open
+            xywh {126 46 189 19} labelsize 12 textsize 12
+            code0 {xloc("identity");}
+          } {}
+        }
+        Fl_Group gr_compose_to {open
+          xywh {125 45 405 20}
+        } {
+          Fl_Input compose_in_to {
+            label To
+            xywh {125 45 375 20} labelsize 12 textsize 12
+            code0 {xloc("to");}
+          }
+          Fl_Group {} {open
+            xywh {500 45 30 20} box BORDER_BOX color 0
+          } {
+            Fl_Button compose_bt_address {
+              label {icons/openbook.xpm}
+              callback cb_address
+              xywh {501 46 29 19} labeltype image align 20
+            }
+          }
+        }
+        Fl_Group gr_compose_cc {open
+          xywh {125 45 405 20} hide
+        } {
+          Fl_Input compose_in_cc {
+            label CC
+            xywh {125 45 375 20} labelsize 12 textsize 12
+            code0 {xloc("cc");}
+          }
+          Fl_Group {} {open
+            xywh {500 45 30 20} box BORDER_BOX color 0
+          } {
+            Fl_Button compose_bt_address2 {
+              label {icons/openbook.xpm}
+              callback cb_address
+              xywh {501 46 29 19} labeltype image align 20
+            }
+          }
+        }
+        Fl_Group gr_compose_bcc {open
+          xywh {125 45 405 20} hide
+        } {
+          Fl_Input compose_in_bcc {
+            label BCC
+            xywh {125 45 375 20} labelsize 12 textsize 12
+            code0 {xloc("bcc");}
+          }
+          Fl_Group {} {open
+            xywh {500 45 30 20} box BORDER_BOX color 0
+          } {
+            Fl_Button compose_bt_address4 {
+              label {icons/openbook.xpm}
+              callback cb_address
+              xywh {501 46 29 19} labeltype image align 20
+            }
+          }
+        }
+        Fl_Group gr_compose_groups {open
+          xywh {125 45 405 20} hide
+        } {
+          Fl_Input compose_in_groups {
+            label Newsgroups
+            xywh {125 45 265 20} labelsize 12 textsize 12
+            code0 {xloc("newsgroups");}
+          }
+          Fl_Group {} {open
+            xywh {395 45 30 20} box BORDER_BOX color 0
+          } {
+            Fl_Button compose_bt_address3 {
+              label {icons/leftjust.xpm}
+              callback cb_address
+              xywh {396 46 29 19} labeltype image align 16
+            }
+          }
+          Fl_Group {} {open
+            xywh {430 45 100 20} box BORDER_BOX color 0
+          } {
+            Fl_Choice {} {open
+              xywh {431 46 99 19} textsize 12
+            } {}
+          }
+        }
+        Fl_Input compose_in_subject {
+          label Subject
+          xywh {125 70 405 20} labelsize 12 textsize 12
+          code0 {xloc("subject");}
+        }
+        Fl_Button compose_bt_resizeheader {
+          label {icons/bar5.xpm}
+          xywh {0 40 10 55} box THIN_UP_BOX labeltype image align 17 resizable
+        }
+      }
+      Fl_Group gr_compose_bigbuttons {
+        xywh {0 20 575 20}
+      } {
+        Fl_Button compose_bt_send {
+          label {icons/mailappt.xpm}
+          xywh {10 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/lock.xpm}
+          xywh {100 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/attach2.xpm}
+          xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/editcut.xpm}
+          xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/editcopy.xpm}
+          xywh {370 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/editpaste.xpm}
+          xywh {460 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME labeltype image align 20
+        }
+        Fl_Button {} {
+          label {icons/bar2.xpm}
+          xywh {0 20 10 20} box THIN_UP_BOX labeltype image
+        }
+        Fl_Button bt_compose_menu_shrink {
+          label {@-2<}
+          callback cb_compose_menu_shrink
+          xywh {550 20 20 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+        }
+        Fl_Box {} {
+          label Send
+          xywh {10 20 90 20} labelsize 10 align 24
+          code0 {xloc("send");}
+        }
+        Fl_Box {} {
+          label Crypt
+          xywh {100 20 90 20} labelsize 10 align 24
+          code0 {xloc("crypt");}
+        }
+        Fl_Box {} {
+          label Attach
+          xywh {190 20 90 20} labelsize 10 align 24
+          code0 {xloc("attach");}
+        }
+        Fl_Box {} {
+          label Cut
+          xywh {280 20 90 20} labelsize 10 align 24
+          code0 {xloc("cut");}
+        }
+        Fl_Box {} {
+          label Copy
+          xywh {370 20 90 20} labelsize 10 align 24
+          code0 {xloc("copy");}
+        }
+        Fl_Box {} {
+          label Paste
+          xywh {460 20 90 20} labelsize 10 align 24
+          code0 {xloc("paste");}
+        }
+      }
+      Fl_Input compose_in_message {
+        xywh {0 95 570 450} labelsize 12 textfont 13 textsize 12 resizable
+        code0 {\#include <FL/Fl_FancyEditor.H>}
+        class Fl_FancyEditor
+      }
+    }
+  }
+} 
+
+Function {make_address_window()} {open
+} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window {} {
+    label {Address Book} open
+    xywh {78 150 480 193} hide resizable
+    code0 {xloc("win_address");} modal
+  } {
+    Fl_Group {} {open
+      xywh {0 0 480 195}
+    } {
+      Fl_Group {} {open
+        xywh {0 0 480 195} resizable
+      } {
+        Fl_Group {} {open
+          xywh {0 55 480 20}
+        } {
+          Fl_Group {} {open
+            xywh {0 55 480 20}
+          } {
+            Fl_Button bt_address_nickname {
+              label Nickname
+              xywh {0 55 120 20} box THIN_UP_BOX labelsize 12 align 20
+              code0 {xloc("nickname");}
+            }
+            Fl_Button bt_address_email {
+              label {Email Address}
+              xywh {120 55 360 20} box THIN_UP_BOX labelsize 12 align 20
+              code0 {xloc("email_address");}
+            }
+          }
+        }
+        Fl_Browser br_addresses {
+          xywh {0 75 480 120} type Hold labelsize 12 textsize 12 resizable
+        }
+      }
+      Fl_Group {} {open
+        xywh {0 0 470 55}
+      } {
+        Fl_Group {} {open
+          xywh {115 0 355 55} resizable
+        } {
+          Fl_Group {} {open
+            xywh {115 30 355 25}
+          } {
+            Fl_Input in_address_nickname {
+              label Nickname
+              xywh {135 30 225 20} labelsize 12 textsize 12 resizable
+              code0 {xloc("nickname");}
+            }
+            Fl_Group {} {open
+              xywh {420 30 50 20} box FLAT_BOX color 0
+            } {
+              Fl_Button bt_address_new {
+                label New
+                callback cb_address_new
+                xywh {421 31 49 19} labelsize 12
+              }
+            }
+            Fl_Group {} {open
+              xywh {365 30 50 20} box FLAT_BOX color 0
+            } {
+              Fl_Button bt_address_delete {
+                label Delete
+                callback cb_address_delete
+                xywh {366 31 49 19} labelsize 12
+              }
+            }
+          }
+          Fl_Input in_address_email {
+            label Email
+            xywh {135 5 335 20} labelsize 12 when 1 textsize 12
+            code0 {xloc("email");}
+          }
+        }
+        Fl_Group {} {open
+          xywh {0 0 55 55}
+        } {
+          Fl_Group {} {open
+            xywh {5 5 45 45} box FLAT_BOX color 0
+          } {
+            Fl_Button bt_address_execute {
+              label {icons/filer.xpm}
+              xywh {6 6 43 43} box THIN_UP_BOX labeltype image
+            }
+          }
+        }
+      }
+    }
+  }
+} 
+
+Function {make_folderlist_window()} {} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window {} {
+    label Mailboxes
+    xywh {145 801 174 223} hide resizable
+    code0 {xloc("mailboxes");}
+  } {
+    Fl_Button {} {
+      label Mailboxes
+      xywh {0 0 175 20} box THIN_UP_BOX labelsize 12 align 20
+      code0 {xloc("mailboxes");}
+    }
+    Fl_Scroll br_winfolderlist {open
+      xywh {0 20 175 205} type VERTICAL box DOWN_BOX color 55 labelsize 12 resizable
+    } {}
+  }
+} 
+
+Function {make_splash_screen()} {} {
+  Fl_Window win_splash {
+    label {Starting Up...} open
+    xywh {796 216 240 325} box BORDER_BOX color 0 hide modal
+  } {
+    Fl_Group {} {
+      label {icons/xbanner.xpm} open
+      xywh {0 0 242 302} box THIN_DOWN_BOX labeltype image align 16
+    } {
+      Fl_Group {} {open
+        xywh {116 175 118 35}
+      } {
+        Fl_Box {} {
+          label {0.7.2}
+          xywh {120 180 100 25} color 138 labelfont 1 labelcolor 147 align 24
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASE);}
+        }
+        Fl_Box {} {
+          label {0.7.2}
+          xywh {119 180 100 25} color 138 labelfont 1 labelcolor 147 align 24
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASE);}
+        }
+        Fl_Box {} {
+          label {0.7.2}
+          xywh {120 179 100 25} color 138 labelfont 1 labelcolor 147 align 24
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASE);}
+        }
+        Fl_Box {} {
+          label {0.7.2}
+          xywh {119 179 100 25} color 138 labelfont 1 labelcolor 146 align 24
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASE);}
+        }
+        Fl_Box {} {
+          label {0.7.2}
+          xywh {118 178 100 25} color 138 labelfont 1 labelcolor 174 align 24
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASE);}
+        }
+      }
+      Fl_Box {} {
+        label {Mad Science Labs / Vuurwerk Internet}
+        xywh {0 285 240 15} labelsize 9 labelcolor 7
+      }
+    }
+    Fl_Slider sl_splash {
+      label {    Loading Preferences}
+      xywh {0 302 240 25} type {Horz Fill} box THIN_DOWN_BOX color 53 selection_color 51 labelfont 1 labelsize 10 align 16 maximum 100
+    }
+  }
+} 
+
+Function {make_query_window()} {} {
+  Fl_Window {} {
+    label {Search Messages} open
+    xywh {173 326 339 100} selection_color 15 hide
+  } {
+    Fl_Button bt_query_execute {
+      label {icons/kfind.xpm}
+      xywh {5 5 45 45} box NO_BOX labeltype image
+    }
+    Fl_Group {} {
+      label Mailbox open
+      xywh {130 5 200 20} box FLAT_BOX color 0 labelsize 12 align 4
+    } {
+      Fl_Choice {} {open
+        xywh {131 6 199 19} labelsize 12 textsize 12
+      } {}
+    }
+    Fl_Input {} {
+      label {Query Text}
+      xywh {130 30 200 20} labelsize 12 textsize 12
+    }
+    Fl_Group {} {open
+      xywh {260 55 70 20} box BORDER_BOX color 0
+    } {
+      Fl_Button {} {
+        label Search
+        xywh {261 56 69 19} labelsize 12
+      }
+    }
+    Fl_Group {} {
+      label Field open
+      xywh {130 55 125 20} box FLAT_BOX color 0 labelsize 12 align 4
+    } {
+      Fl_Choice {} {open
+        xywh {131 56 124 19} labelsize 12 textsize 12
+      } {
+        menuitem {} {
+          label From
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label To
+          xywh {10 10 100 20} labelsize 12
+        }
+        menuitem {} {
+          label Subject
+          xywh {20 20 100 20} labelsize 12
+        }
+        menuitem {} {
+          label Body
+          xywh {30 30 100 20} labelsize 12
+        }
+      }
+    }
+    Fl_Slider {} {
+      xywh {0 80 340 20} type {Horz Fill} color 48 maximum 100 value 20
+    }
+  }
+} 
+
+Function {make_prefs_window()} {open
+} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window win_prefs {
+    label {Post Office Preferences Panel}
+    callback cb_prefs_window
+    xywh {44 41 650 461} hide
+    code0 {xloc("win_prefs");}
+  } {
+    Fl_Tabs tb_prefs {
+      callback cb_prefs_tab open
+      xywh {5 5 635 415} box UP_BOX
+    } {
+      Fl_Group gr_prefs_mailboxes {
+        label Mailboxes
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12
+        code0 {xloc("mailboxes");}
+      } {
+        Fl_Browser br_prefs_mailboxes {
+          callback cb_prefs_mailboxes
+          xywh {20 45 175 165} selection_color 246 labelsize 10 align 20 textsize 12
+          code0 {\#include "iconbrowser.h"}
+          class Fl_Iconbrowser
+        }
+        Fl_Button bt_prefs_mailbox_add {
+          label {icons/filenew2.xpm}
+          callback cb_prefs_mailbox_add
+          xywh {155 215 20 20} labeltype image labelsize 12
+        }
+        Fl_Group gr_mailboxes_set {open
+          xywh {20 42 610 363} color 51 selection_color 246
+        } {
+          Fl_Group {} {
+            xywh {20 245 600 160} box ENGRAVED_BOX color 51
+          } {
+            Fl_Group {} {open
+              xywh {35 255 565 20}
+            } {
+              Fl_Group {} {open
+                xywh {315 255 285 20} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_collection {
+                  callback cb_prefs_mailbox_flags open
+                  xywh {317 256 283 19} selection_color 7 labelsize 12 when 1 textsize 12
+                } {
+                  menuitem {} {
+                    label {Fetch Headers seperately}
+                    xywh {35 35 100 20} labelsize 12
+                    code0 {xloc("fetch_hdr_sep");}
+                  }
+                  menuitem {} {
+                    label {Fetch complete messages}
+                    xywh {35 35 100 20} labelsize 12
+                    code0 {xloc("fetch_complete");}
+                  }
+                  menuitem {} {
+                    label {Fetch and Delete complete messages}
+                    xywh {0 0 100 20} labelsize 12
+                    code0 {xloc("fetch_delete");}
+                  }
+                }
+              }
+              Fl_Button {} {
+                label {Collection Method}
+                xywh {35 255 220 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("collection_method");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {35 300 565 20}
+            } {
+              Fl_Button {} {
+                label {Expire received messages on server after}
+                xywh {35 300 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("expire_onserver_received");}
+              }
+              Fl_Input in_prefs_expire_onserver_received {
+                label days
+                callback cb_prefs_mailbox_flags_b
+                xywh {315 300 70 20} type Int labelsize 12 align 8 textsize 12
+                code0 {xloc("days");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {35 325 565 20}
+            } {
+              Fl_Button {} {
+                label {Expire unread messages on server after}
+                xywh {35 325 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("expire_onserver_notreceived");}
+              }
+              Fl_Input in_prefs_expire_onserver_notreceived {
+                label {days (also removing local reference)}
+                callback cb_prefs_mailbox_flags_b
+                xywh {315 325 70 20} type Int labelsize 12 align 8 textsize 12
+                code0 {xloc("days_also_local");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {35 350 565 20}
+            } {
+              Fl_Button {} {
+                label {Expire orphaned local messages after}
+                xywh {35 350 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("expire_local_only");}
+              }
+              Fl_Input in_prefs_expire_local_only {
+                label days
+                callback cb_prefs_mailbox_flags_b
+                xywh {315 350 70 20} type Int labelsize 12 align 8 textsize 12
+                code0 {xloc("days");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {35 375 565 20}
+            } {
+              Fl_Button {} {
+                label {Expire any local message after}
+                xywh {35 375 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("expire_local");}
+              }
+              Fl_Input in_prefs_expire_local {
+                label days
+                callback cb_prefs_mailbox_flags_b
+                xywh {315 375 70 20} type Int labelsize 12 align 8 textsize 12
+                code0 {xloc("days");}
+              }
+            }
+            Fl_Button {} {
+              label {(To turn off any expiration option, set the time to 0 days)}
+              xywh {315 280 270 20} box NO_BOX labelfont 2 labelsize 11 align 20
+              code0 {xloc("expiration_helpmsg");}
+            }
+          }
+          Fl_Input in_prefs_mailboxname {
+            callback cb_prefs_mailboxname
+            xywh {20 215 135 20} labelsize 12 when 1 textsize 12
+          }
+          Fl_Button {} {
+            label {icons/eraser.xpm}
+            callback cb_prefs_mailbox_delete
+            xywh {175 215 20 20} labeltype image labelsize 12
+          }
+          Fl_Button {} {
+            label Protocol
+            xywh {210 45 70 20} box NO_BOX color 48 labelsize 12 align 20
+            code0 {xloc("protocol");}
+          }
+          Fl_Group {} {
+            xywh {295 45 195 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_protocol {
+              callback cb_prefs_protocol open
+              xywh {296 46 194 19} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label {Post Office MySQL table}
+                xywh {0 0 100 20} labelsize 12
+                code0 {xloc ("proto_mysql");}
+              }
+              menuitem {} {
+                label {POP3 Account}
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("proto_pop3");}
+              }
+              menuitem {} {
+                label {NNTP/Usenet}
+                xywh {20 20 100 20} labelsize 12
+                code0 {xloc("proto_nntp");}
+              }
+              menuitem {} {
+                label {MBox File collection}
+                xywh {30 30 100 20} labelsize 12
+                code0 {xloc("proto_mbox");}
+              }
+              menuitem {} {
+                label {IMAP4 Account}
+                xywh {30 30 100 20} labelsize 12
+                code0 {xloc("proto_imap4");}
+              }
+            }
+          }
+          Fl_Group gr_prefs_protocol_mysql {
+            xywh {210 75 410 160} box ENGRAVED_BOX color 51 align 5
+          } {
+            Fl_Group {} {open
+              xywh {220 85 385 21}
+            } {
+              Fl_Input in_prefs_protocol_mysql_host {
+                callback cb_prefs_protocol_mysql
+                xywh {375 85 230 21} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {MySQL Host}
+                xywh {225 85 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("mysql_host");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {225 115 380 20}
+            } {
+              Fl_Input in_prefs_protocol_mysql_user {
+                callback cb_prefs_protocol_mysql
+                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Username
+                xywh {225 115 90 20} box NO_BOX color 48 labelsize 12 align 20
+                code0 {xloc("username");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {225 145 380 20}
+            } {
+              Fl_Input in_prefs_protocol_mysql_pass {
+                callback cb_prefs_protocol_mysql
+                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Password
+                xywh {225 145 90 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("password");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {225 175 380 20}
+            } {
+              Fl_Input in_prefs_protocol_mysql_db {
+                callback cb_prefs_protocol_mysql
+                xywh {375 175 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Database
+                xywh {225 175 90 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("database");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {225 205 380 20}
+            } {
+              Fl_Input in_prefs_protocol_mysql_tab {
+                callback cb_prefs_protocol_mysql
+                xywh {375 205 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Table
+                xywh {225 205 90 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("table");}
+              }
+            }
+          }
+          Fl_Group gr_prefs_protocol_pop3 {
+            xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
+          } {
+            Fl_Group {} {open
+              xywh {235 85 370 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_host {
+                callback cb_prefs_protocol_pop3
+                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {POP3 Host}
+                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("pop3_host");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 115 365 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_user {
+                callback cb_prefs_protocol_pop3
+                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Username
+                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
+                code0 {xloc("username");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 145 365 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_pass {
+                callback cb_prefs_protocol_pop3
+                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Password
+                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("password");}
+              }
+            }
+          }
+          Fl_Group gr_prefs_protocol_imap4 {
+            xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
+          } {
+            Fl_Group {} {open
+              xywh {235 85 370 20}
+            } {
+              Fl_Input in_prefs_protocol_imap4_host {
+                callback cb_prefs_protocol_imap4
+                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {IMAP4 Host}
+                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("imap4_host");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 115 365 20}
+            } {
+              Fl_Input in_prefs_protocol_imap4_user {
+                callback cb_prefs_protocol_imap4
+                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Username
+                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
+                code0 {xloc("username");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 145 365 20}
+            } {
+              Fl_Input in_prefs_protocol_imap4_pass {
+                callback cb_prefs_protocol_imap4
+                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Password
+                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("password");}
+              }
+            }
+          }
+          Fl_Group gr_prefs_protocol_nntp {
+            xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
+          } {
+            Fl_Group {} {open
+              xywh {235 85 370 20}
+            } {
+              Fl_Input in_prefs_protocol_nntp_host {
+                callback cb_prefs_protocol_nntp
+                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {NNTP Host}
+                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("nntp_host");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 115 365 20}
+            } {
+              Fl_Input in_prefs_protocol_nntp_user {
+                callback cb_prefs_protocol_nntp
+                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Username
+                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
+                code0 {xloc("username");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 145 365 20}
+            } {
+              Fl_Input in_prefs_protocol_nntp_pass {
+                callback cb_prefs_protocol_nntp
+                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Password
+                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("password");}
+              }
+            }
+          }
+          Fl_Group gr_prefs_protocol_mbox {open
+            xywh {210 75 410 160} box ENGRAVED_BOX color 51 align 5 hide
+          } {
+            Fl_Browser br_prefs_mboxfiles {
+              callback cb_prefs_mboxfiles
+              xywh {235 85 355 120} selection_color 246 labelsize 10 align 20 textsize 12
+              code0 {\#include "iconbrowser.h"}
+              class Fl_Iconbrowser
+            }
+            Fl_Button bt_prefs_mboxfile_add {
+              label {icons/filenew2.xpm}
+              callback cb_prefs_mboxfile_add
+              xywh {550 210 20 20} labeltype image labelsize 12
+            }
+            Fl_Input in_prefs_mboxfile_name {
+              callback cb_prefs_mboxfile_name
+              xywh {235 210 315 20} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button bt_prefs_mboxfile_erase {
+              label {icons/eraser.xpm}
+              callback cb_prefs_mboxfile_delete
+              xywh {570 210 20 20} labeltype image labelsize 12
+            }
+          }
+          Fl_Input in_prefs_interval {
+            label Interval
+            callback cb_prefs_interval
+            xywh {561 46 57 18} type Int labelsize 12 when 1 textsize 12
+            code0 {xloc("interval");}
+          }
+        }
+      }
+      Fl_Group gr_prefs_mailfolders {
+        label Mailfolders
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        code0 {xloc("mailfolders");}
+      } {
+        Fl_Browser br_prefs_mailfolders_mailboxes {
+          callback cb_prefs_mailfolders_mailboxes
+          xywh {20 45 185 190} selection_color 246 labelsize 10 align 20 textsize 12
+          code0 {\#include "iconbrowser.h"}
+          class Fl_Iconbrowser
+        }
+        Fl_Browser br_prefs_mailfolders_folders {
+          callback cb_prefs_mailfolders_folders
+          xywh {230 45 185 165} selection_color 246 labelsize 10 align 20 textsize 12
+          code0 {\#include "iconbrowser.h"}
+          class Fl_Iconbrowser
+        }
+        Fl_Group gr_prefs_mailfolders_folderset {
+          xywh {230 215 165 20} deactivate
+        } {
+          Fl_Input in_prefs_mailfolders_foldername {
+            callback cb_prefs_mailfolders_foldername
+            xywh {230 215 105 20} labelsize 12 when 1 textsize 12
+          }
+          Fl_Button bt_prefs_mailfolders_folderdel {
+            label {icons/eraser.xpm}
+            callback cb_prefs_mailfolder_folder_del
+            xywh {375 215 20 20} labeltype image labelsize 12
+          }
+          Fl_Button {} {
+            label {icons/centrejust.xpm}
+            xywh {335 215 20 20} labeltype image labelsize 12
+          }
+        }
+        Fl_Button bt_prefs_mailfolders_folderadd {
+          label {icons/filenew2.xpm}
+          callback cb_prefs_mailfolder_folder_add
+          xywh {355 215 20 20} labeltype image labelsize 12
+        }
+        Fl_Button bt_prefs_mailfolders_newsub {
+          label {icons/folder.xpm}
+          callback cb_prefs_mailfolders_newsub
+          xywh {395 215 20 20} labeltype image labelsize 12
+        }
+        Fl_Browser br_prefs_mailfolders_subfolders {
+          callback cb_prefs_mailfolders_sub
+          xywh {445 45 175 165} selection_color 246 labelsize 10 align 20 textsize 12
+          code0 {\#include "iconbrowser.h"}
+          class Fl_Iconbrowser
+        }
+        Fl_Group gr_prefs_mailfolders_subset {
+          xywh {445 215 175 20} deactivate
+        } {
+          Fl_Input in_prefs_mailfolders_subname {
+            callback cb_prefs_mailfolders_subname
+            xywh {445 215 115 20} labelsize 12 when 1 textsize 12
+          }
+          Fl_Button prefs_mailfolders_subdel {
+            label {icons/eraser.xpm}
+            callback cb_prefs_mailfolders_sub_del
+            xywh {600 215 20 20} labeltype image labelsize 12
+          }
+          Fl_Button {} {
+            label {icons/centrejust.xpm}
+            xywh {560 215 20 20} labeltype image
+          }
+        }
+        Fl_Button bt_prefs_mailfolders_subadd {
+          label {icons/filenew2.xpm}
+          callback cb_prefs_mailfolders_sub_add
+          xywh {580 215 20 20} labeltype image labelsize 12 deactivate
+        }
+        Fl_Group gr_prefs_filters {
+          xywh {20 240 600 165} box ENGRAVED_BOX color 51
+        } {
+          Fl_Browser br_prefs_filters {
+            callback cb_prefs_br_filters
+            xywh {305 270 305 125} type Hold selection_color 246 labelsize 12 textsize 12
+          }
+          Fl_Group {} {open
+            xywh {140 250 155 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_filt_match {open
+              xywh {142 252 153 18} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label {Envelope From}
+                xywh {0 0 100 20} labelsize 12
+                code0 {xloc("envelope_from");}
+              }
+              menuitem {} {
+                label {Envelope Folder}
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("envelope_folder");}
+              }
+              menuitem {} {
+                label {Message-ID}
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("message_id");}
+              }
+              menuitem {} {
+                label Subject
+                xywh {20 20 100 20} labelsize 12
+                code0 {xloc("subject");}
+              }
+              menuitem {} {
+                label From
+                xywh {30 30 100 20} labelsize 12
+                code0 {xloc("mailfrom");}
+              }
+              menuitem {} {
+                label To
+                xywh {40 40 100 20} labelsize 12
+                code0 {xloc("mailto");}
+              }
+              menuitem {} {
+                label Groups
+                xywh {50 50 100 20} labelsize 12
+                code0 {xloc("groups");}
+              }
+              menuitem {} {
+                label Sender
+                xywh {60 60 100 20} labelsize 12
+                code0 {xloc("sender");}
+              }
+              menuitem {} {
+                label {Reply-To}
+                xywh {70 70 100 20} labelsize 12
+                code0 {xloc("replyto");}
+              }
+              menuitem {} {
+                label Received
+                xywh {80 80 100 20} labelsize 12
+              }
+              menuitem {} {
+                label Cc
+                xywh {0 0 100 20} labelsize 12
+              }
+            }
+          }
+          Fl_Button {} {
+            label Match
+            xywh {35 250 100 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("filtermatch");}
+          }
+          Fl_Group {} {open
+            xywh {140 275 155 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_filt_type {
+              xywh {142 277 153 18} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label Substring
+                xywh {0 0 100 20} labelsize 12
+                code0 {xloc("substring");}
+              }
+              menuitem {} {
+                label {Substring (case)}
+                xywh {0 0 100 20} labelsize 12
+                code0 {xloc("case_substring");}
+              }
+              menuitem {} {
+                label GLOB
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("glob");}
+              }
+            }
+          }
+          Fl_Button {} {
+            label Type
+            xywh {35 275 100 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("type");}
+          }
+          Fl_Group {} {open
+            xywh {140 300 155 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_filt_action {
+              xywh {142 302 153 18} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label Accept
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("filter_accept");}
+              }
+              menuitem {} {
+                label Deny
+                xywh {10 10 100 20} labelsize 12
+                code0 {xloc("filter_deny");}
+              }
+              menuitem {} {
+                label Score
+                xywh {20 20 100 20} labelsize 12
+                code0 {xloc("filter_score");}
+              }
+            }
+          }
+          Fl_Button {} {
+            label Action
+            xywh {35 300 100 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("action");}
+          }
+          Fl_Group {} {open
+            xywh {140 325 95 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_filt_scoring {
+              xywh {142 327 93 18} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label Positive
+                xywh {20 20 100 20} labelsize 12
+                code0 {xloc("score_positive");}
+              }
+              menuitem {} {
+                label Negative
+                xywh {20 20 100 20} labelsize 12
+                code0 {xloc("score_negative");}
+              }
+              menuitem {} {
+                label Score
+                xywh {30 30 100 20} labelsize 12
+                code0 {xloc("score_score");}
+              }
+            }
+          }
+          Fl_Button {} {
+            label Scoring
+            xywh {35 325 100 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("scoring");}
+          }
+          Fl_Input in_prefs_filt_scoring {
+            xywh {240 325 55 20} type Int labelsize 12 textsize 12
+          }
+          Fl_Input in_prefs_filt_string {
+            xywh {140 350 160 20} labelsize 12 textsize 12
+          }
+          Fl_Button {} {
+            label String
+            xywh {35 350 100 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("string");}
+          }
+          Fl_Group {} {open
+            xywh {225 375 75 20} box BORDER_FRAME color 0
+          } {
+            Fl_Button bt_prefs_filt_delete {
+              label Delete
+              callback cb_prefs_delfilter
+              xywh {227 377 73 18} color 51 labelsize 12
+              code0 {xloc("delete");}
+            }
+          }
+          Fl_Button {} {
+            label Match
+            xywh {305 250 130 20} box THIN_UP_BOX color 51 labelsize 12 align 20
+            code0 {xloc("filtermatch");}
+          }
+          Fl_Button {} {
+            label String
+            xywh {435 250 173 20} box THIN_UP_BOX color 51 labelsize 12 align 20
+            code0 {xloc("string");}
+          }
+          Fl_Group {} {open
+            xywh {140 375 75 20} box BORDER_FRAME color 0
+          } {
+            Fl_Button bt_prefs_filt_new {
+              label Add
+              callback cb_prefs_addfilter
+              xywh {142 377 73 18} color 51 labelsize 12
+              code0 {xloc("add");}
+            }
+          }
+        }
+      }
+      Fl_Group gr_prefs_identities {
+        label Identities open
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        code0 {xloc("identities");}
+      } {
+        Fl_Browser br_prefs_identities {
+          callback cb_prefs_identities
+          xywh {20 45 175 135} selection_color 246 labelsize 10 align 20 textsize 12
+          class Fl_Iconbrowser
+        }
+        Fl_Button bt_prefs_identityadd {
+          label {icons/filenew2.xpm}
+          callback cb_prefs_identity_add
+          xywh {155 185 20 20} labeltype image labelsize 12
+        }
+        Fl_Group gr_identities_set {
+          xywh {20 45 600 355} selection_color 246
+        } {
+          Fl_Input in_prefs_identityname {
+            callback cb_prefs_identityname
+            xywh {20 185 135 20} labelsize 12 when 1 textsize 12
+          }
+          Fl_Button bt_prefs_identitydel {
+            label {icons/eraser.xpm}
+            callback cb_prefs_identity_del
+            xywh {175 185 20 20} labeltype image labelsize 12
+          }
+          Fl_Group {} {
+            xywh {205 45 415 160} box ENGRAVED_BOX color 51 align 5
+          } {
+            Fl_Group {} {open
+              xywh {215 55 390 20}
+            } {
+              Fl_Input in_prefs_id_realname {
+                callback cb_prefs_identity_fields
+                xywh {325 55 280 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {Real Name}
+                xywh {215 55 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("real_name");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {215 85 390 20}
+            } {
+              Fl_Input in_prefs_id_email {
+                callback cb_prefs_identity_fields
+                xywh {325 85 280 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {Email From}
+                xywh {215 85 80 20} box NO_BOX color 48 labelsize 12 align 20
+                code0 {xloc("email_from");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {215 115 390 20}
+            } {
+              Fl_Input in_prefs_id_replyto {
+                callback cb_prefs_identity_fields
+                xywh {325 115 280 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {Reply To}
+                xywh {215 115 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("reply_to");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {215 145 390 20}
+            } {
+              Fl_Input in_prefs_id_org {
+                callback cb_prefs_identity_fields
+                xywh {325 145 280 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Organization
+                xywh {215 145 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("organization");}
+              }
+            }
+            Fl_Group {} {open
+              xywh {215 175 390 20}
+            } {
+              Fl_Button {} {
+                label {Primary Box}
+                xywh {215 175 80 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc("primary_box");}
+              }
+              Fl_Group {} {
+                xywh {325 175 135 20} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_id_box {open
+                  xywh {326 176 134 19} labelsize 12 textsize 12
+                } {
+                  menuitem {} {
+                    label Common
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label Personal
+                    xywh {10 10 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label Usenet
+                    xywh {10 10 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label {(none)}
+                    xywh {20 20 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label {(default)}
+                    xywh {30 30 100 20} labelsize 12
+                  }
+                }
+              }
+              Fl_Group {} {open
+                xywh {470 175 135 20} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_id_box2 {open
+                  xywh {471 176 134 19} labelsize 12 textsize 12
+                } {
+                  menuitem {} {
+                    label Common
+                    xywh {10 10 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label Personal
+                    xywh {20 20 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label Usenet
+                    xywh {20 20 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label {(none)}
+                    xywh {30 30 100 20} labelsize 12
+                  }
+                  menuitem {} {
+                    label {(default)}
+                    xywh {40 40 100 20} labelsize 12
+                  }
+                }
+              }
+            }
+          }
+          Fl_Input ed_prefs_edittexts {
+            xywh {20 245 600 155} type Multiline labelsize 12 align 5 textfont 4 textsize 12
+            class Fl_Editor
+          }
+          Fl_Group {} {
+            xywh {20 220 175 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_edittext {
+              xywh {21 221 174 19} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label Signature
+                xywh {15 15 100 20} labelsize 12
+                code0 {xloc("signature");}
+              }
+              menuitem {} {
+                label {Message Header}
+                xywh {25 25 100 20} labelsize 12
+                code0 {xloc("msgheader");}
+              }
+            }
+          }
+          Fl_Group {} {
+            xywh {420 220 200 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_inserttext {open
+              xywh {440 221 180 19} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label {Date of Original Message}
+                xywh {25 25 100 20} labelsize 12
+                code0 {xloc("date_original");}
+              }
+              menuitem {} {
+                label {Name of Original Sender}
+                xywh {35 35 100 20} labelsize 12
+                code0 {xloc("name_original");}
+              }
+              menuitem {} {
+                label {Email of Original Sender}
+                xywh {45 45 100 20} labelsize 12
+                code0 {xloc("email_original");}
+              }
+              menuitem {} {
+                label {Original Mailfolder}
+                xywh {55 55 100 20} labelsize 12
+                code0 {xloc("folder_original");}
+              }
+              menuitem {} {
+                label {Message-ID}
+                xywh {65 65 100 20} labelsize 12
+                code0 {xloc("message_id");}
+              }
+            }
+            Fl_Button bt_prefs_inserttext {
+              label {@-12>}
+              xywh {421 221 19 19} labeltype SYMBOL_LABEL
+            }
+          }
+        }
+      }
+      Fl_Group gr_prefs_network {
+        label Network
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        code0 {xloc("network");}
+      } {
+        Fl_Group {} {open
+          xywh {20 45 600 210} box ENGRAVED_BOX color 51 align 5
+        } {
+          Fl_Group {} {open
+            xywh {30 65 575 20}
+          } {
+            Fl_Input in_prefs_smtpserver {
+              callback cb_prefs_smtpserver
+              xywh {230 65 375 20} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label {SMTP Server}
+              xywh {30 65 105 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("smtp_server");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {30 155 575 20}
+          } {
+            Fl_Input {} {
+              xywh {230 155 375 20} labelsize 12 textsize 12 deactivate
+            }
+            Fl_Button {} {
+              label {MySQL Host}
+              xywh {30 155 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+            }
+          }
+          Fl_Group {} {open
+            xywh {30 125 470 20}
+          } {
+            Fl_Button {} {
+              label {Directory Service}
+              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("directory_service");}
+            }
+            Fl_Group {} {open
+              xywh {230 125 235 20} box BORDER_FRAME color 0
+            } {
+              Fl_Choice ch_prefs_directoryservice {open
+                xywh {231 126 234 19} labelsize 12 textsize 12
+              } {
+                menuitem {} {
+                  label {User Homedir}
+                  xywh {15 15 100 20} labelsize 12
+                  code0 {xloc("homedir");}
+                }
+                menuitem {} {
+                  label {Post Office MySQL directory}
+                  xywh {25 25 100 20} labelsize 12 deactivate
+                  code0 {xloc("mysql_dir");}
+                }
+              }
+            }
+          }
+          Fl_Group {} {open
+            xywh {30 185 575 20}
+          } {
+            Fl_Button {} {
+              label {MySQL Database}
+              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+            }
+            Fl_Input {} {
+              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
+            }
+          }
+        }
+      }
+      Fl_Group gr_prefs_language {
+        label Language
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        code0 {xloc("language");}
+      } {
+        Fl_Group {} {open
+          xywh {20 65 600 210} box ENGRAVED_BOX color 51 align 5
+        } {
+          Fl_Group {} {open
+            xywh {230 84 370 21}
+          } {
+            Fl_Input {} {
+              callback cb_prefs_protocol_mysql
+              xywh {370 84 230 21} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label Language
+              xywh {235 84 80 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("language");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {230 114 370 21}
+          } {
+            Fl_Input {} {
+              callback cb_prefs_protocol_mysql
+              xywh {370 114 230 21} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label Author
+              xywh {235 114 80 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("author");}
+            }
+          }
+          Fl_Button {} {
+            label {The new language will not be active until the app is restarted.}
+            xywh {235 210 365 40} box NO_BOX labelsize 12 align 149
+          }
+          Fl_Browser {} {
+            xywh {40 85 185 165} selection_color 246 labelsize 12 textsize 12
+          }
+        }
+        Fl_Group {} {open
+          xywh {20 40 565 20}
+        } {
+          Fl_Button {} {
+            label {Local language support}
+            xywh {20 40 170 20} box NO_BOX labelsize 12 align 20
+            code0 {xloc("language_support");}
+          }
+          Fl_Group {} {open
+            xywh {215 40 120 20}
+          } {
+            Fl_Button rd_prefs_locale_off {
+              label {icons/radio_off.xpm}
+              xywh {215 40 15 20} box FLAT_BOX down_box FLAT_BOX color 51 selection_color 51 labeltype image
+            }
+            Fl_Button {} {
+              label {Off (English)}
+              xywh {235 40 100 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("off_english");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {390 40 140 20}
+          } {
+            Fl_Button rd_prefs_locale_on {
+              label {icons/radio_on.xpm}
+              xywh {390 40 15 20} box FLAT_BOX color 51 selection_color 51 labeltype image
+            }
+            Fl_Button {} {
+              label On
+              xywh {410 40 110 20} box NO_BOX labelsize 12 align 20
+              code0 {xloc("on");}
+            }
+          }
+        }
+        Fl_Group {} {open
+          xywh {35 315 180 20}
+        } {}
+        Fl_Group {} {open
+          xywh {35 295 180 20}
+        } {}
+      }
+      Fl_Group gr_prefs_style {
+        label Style open
+        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        code0 {xloc("language");}
+      } {
+        Fl_Group {} {open
+          xywh {20 40 600 330} box ENGRAVED_BOX color 51 align 5
+        } {
+          Fl_Browser br_prefs_style_element {
+            callback cb_prefs_style_element
+            xywh {35 65 210 275} type Hold selection_color 246 labelsize 12 textsize 12
+          }
+          Fl_Box bx_prefs_style_example {
+            label {Can I compare thee to a summer's night? - Thou art more lovely and considerate.}
+            xywh {255 90 350 60} box DOWN_BOX color 53 labelfont 4 labelsize 12 align 192
+          }
+          Fl_Group {} {open
+            xywh {320 160 160 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_style_typeface {
+              label Typeface
+              callback cb_prefs_style_typeface open
+              xywh {322 162 158 18} labelsize 12 textsize 12
+              code0 {xloc("typeface");}
+            } {
+              menuitem {} {
+                label Courier
+                xywh {0 0 100 20} labelsize 12
+              }
+              menuitem {} {
+                label Helvetica
+                xywh {10 10 100 20} labelsize 12
+              }
+              menuitem {} {
+                label Times
+                xywh {20 20 100 20} labelsize 12
+              }
+              menuitem {} {
+                label Terminal
+                xywh {30 30 100 20} labelsize 12
+              }
+            }
+          }
+          Fl_Group {} {open
+            xywh {520 160 85 20} box BORDER_FRAME color 0
+          } {
+            Fl_Choice ch_prefs_style_size {
+              label Size
+              user_data 10
+              callback cb_prefs_style_size open
+              xywh {522 161 83 19} labelsize 12 textsize 12
+            } {
+              menuitem {} {
+                label 10
+                xywh {0 0 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 11
+                user_data 11
+                xywh {10 10 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 12
+                user_data 12
+                xywh {20 20 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 13
+                user_data 13
+                xywh {30 30 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 14
+                user_data 14
+                xywh {40 40 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 16
+                user_data 16
+                xywh {50 50 100 20} labelsize 12
+              }
+              menuitem {} {
+                label 18
+                user_data 18
+                xywh {60 60 100 20} labelsize 12
+              }
+            }
+          }
+          Fl_Check_Button ck_prefs_style_italic {
+            label Italic
+            callback cb_prefs_style_italic
+            xywh {320 190 130 20} down_box DIAMOND_DOWN_BOX labelfont 2 labelsize 12
+            code0 {xloc("italic");}
+            code1 {\#include "maccheck.h"}
+            class Fl_MacCheck_Button
+          }
+          Fl_Check_Button ck_prefs_style_bold {
+            label Bold
+            callback cb_prefs_style_bold
+            xywh {320 210 130 20} down_box DIAMOND_DOWN_BOX labelfont 1 labelsize 12
+            code0 {\#include "maccheck.h"}
+            code1 {xloc("bold");}
+            class Fl_MacCheck_Button
+          }
+          Fl_Group {} {open
+            xywh {365 245 240 60}
+          } {
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {365 245 30 20} box THIN_DOWN_BOX color 0
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {395 245 30 20} box THIN_DOWN_BOX color 34
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {425 245 30 20} box THIN_DOWN_BOX color 35
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {455 245 30 20} box THIN_DOWN_BOX color 36
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {485 245 30 20} box THIN_DOWN_BOX color 38
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {515 245 30 20} box THIN_DOWN_BOX color 40
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {545 245 30 20} box THIN_DOWN_BOX color 44
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {575 245 30 20} box THIN_DOWN_BOX color 46
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {365 265 30 20} box THIN_DOWN_BOX color 64
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {395 265 30 20} box THIN_DOWN_BOX color 72
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {425 265 30 20} box THIN_DOWN_BOX color 73
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {455 265 30 20} box THIN_DOWN_BOX color 81
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {485 265 30 20} box THIN_DOWN_BOX color 80
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {515 265 30 20} box THIN_DOWN_BOX color 89
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {545 265 30 20} box THIN_DOWN_BOX color 91
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {575 265 30 20} box THIN_DOWN_BOX color 93
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {365 285 30 20} box THIN_DOWN_BOX color 96
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {395 285 30 20} box THIN_DOWN_BOX color 97
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {425 285 30 20} box THIN_DOWN_BOX color 137
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {455 285 30 20} box THIN_DOWN_BOX color 138
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {485 285 30 20} box THIN_DOWN_BOX color 179
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {515 285 30 20} box THIN_DOWN_BOX color 98
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {545 285 30 20} box THIN_DOWN_BOX color 99
+            }
+            Fl_Button {} {
+              callback cb_prefs_style_color
+              xywh {575 285 30 20} box THIN_DOWN_BOX color 58
+            }
+          }
+          Fl_Box bx_prefs_style_curcol {
+            xywh {320 245 45 60} box THIN_DOWN_BOX color 97 labelsize 12 align 4
+          }
+          Fl_Box {} {
+            label {Font Color}
+            xywh {320 245 45 20} color 97 labelsize 12 align 4
+            code0 {xloc("fontcolor");}
+          }
+          Fl_Box bx_prefs_style_elementname {
+            label {Message Body Text}
+            xywh {255 65 355 25} labelsize 12
+          }
+          Fl_Group {} {open
+            xywh {525 320 80 20} box BORDER_FRAME color 0
+          } {
+            Fl_Button bt_prefs_style_update {
+              label Update
+              callback cb_prefs_style_update
+              xywh {527 322 78 18} down_box DOWN_BOX labelsize 12
+            }
+          }
+          Fl_Box {} {
+            label {Font Style}
+            xywh {320 190 65 20} labelsize 12 align 4
+            code0 {\#include "maccheck.h"}
+            code1 {xloc("fontstyle");}
+          }
+        }
+      }
+    }
+    Fl_Group {} {
+      xywh {8 428 95 24} box BORDER_FRAME color 35
+    } {
+      Fl_Group {} {open
+        xywh {11 431 89 18} box BORDER_BOX
+      } {
+        Fl_Button bt_prefs_save {
+          label Save
+          callback cb_prefs_save
+          xywh {12 432 88 17} down_box DOWN_BOX color 51 labelsize 12
+          code0 {xloc("save");}
+        }
+      }
+    }
+    Fl_Group {} {
+      xywh {115 430 90 20} box BORDER_BOX
+    } {
+      Fl_Button bt_prefs_apply {
+        label Apply
+        callback cb_prefs_apply
+        xywh {116 431 89 19} down_box DOWN_BOX color 51 labelsize 12
+        code0 {xloc("apply");}
+      }
+    }
+    Fl_Group {} {
+      xywh {545 430 90 20} box BORDER_BOX
+    } {
+      Fl_Button bt_prefs_cancel {
+        label Cancel
+        callback cb_prefs_cancel
+        xywh {546 431 89 19} down_box DOWN_BOX color 51 labelsize 12
+        code0 {xloc("cancel");}
+      }
+    }
+  }
+} 
+
+Function {make_reply_options()} {} {
+  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
+char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
+Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
+  Fl_Window win_reply_options {
+    label {Reply With Options}
+    xywh {118 191 610 112} hide
+    code0 {xloc("reply_with_options");} modal
+  } {
+    Fl_Group {} {open
+      xywh {5 5 600 70} box ENGRAVED_BOX color 51
+    } {
+      Fl_Group {} {open
+        xywh {20 45 565 20}
+      } {
+        Fl_Group {} {
+          xywh {215 45 165 20} box BORDER_FRAME color 0
+        } {
+          Fl_Choice ch_repopts_quoting {
+            callback cb_prefs_mailbox_flags
+            xywh {216 46 164 19} selection_color 7 labelsize 12 when 1 textsize 12
+          } {
+            menuitem {} {
+              label {Smart Quoting}
+              xywh {40 40 100 20} labelsize 12
+              code0 {xloc("smart_quoting");}
+            }
+            menuitem {} {
+              label {Literal Quoting}
+              xywh {40 40 100 20} labelsize 12
+              code0 {xloc("literal_quoting");}
+            }
+            menuitem {} {
+              label {Quote All}
+              xywh {0 0 100 20} labelsize 12
+              code0 {xloc("quote_all");}
+            }
+          }
+        }
+        Fl_Button {} {
+          label Quoting
+          xywh {20 45 154 20} box NO_BOX labelsize 12 align 20
+          code0 {xloc("quoting");}
+        }
+        Fl_Input {} {
+          xywh {500 45 85 20} type Int labelsize 12 textsize 12
+        }
+        Fl_Button {} {
+          label {Max Quote Depth}
+          xywh {390 45 130 20} box NO_BOX labelsize 12 align 20
+          code0 {xloc("message_policy");}
+        }
+      }
+      Fl_Group {} {
+        xywh {20 15 565 20}
+      } {
+        Fl_Group {} {
+          xywh {215 15 370 20} box BORDER_FRAME color 0
+        } {
+          Fl_Choice ch_repopts_replyto {
+            callback cb_prefs_mailbox_flags
+            xywh {216 16 369 19} selection_color 7 labelsize 12 when 1 textsize 12
+          } {
+            menuitem {} {
+              label {Sender or Reply-To header}
+              xywh {50 50 100 20} labelsize 12
+              code0 {xloc("sender_or_reply_to");}
+            }
+            menuitem {} {
+              label {Sender and All Recipients}
+              xywh {50 50 100 20} labelsize 12
+              code0 {xloc("sender_and_all_rcpt");}
+            }
+            menuitem {} {
+              label Sender
+              xywh {15 15 100 20} labelsize 12
+              code0 {xloc("sender");}
+            }
+          }
+        }
+        Fl_Button {} {
+          label {Email Reply}
+          xywh {20 15 154 20} box NO_BOX labelsize 12 align 20
+          code0 {xloc("reply_to");}
+        }
+      }
+    }
+    Fl_Group {} {
+      xywh {509 81 95 24} box BORDER_FRAME color 35
+    } {
+      Fl_Group {} {open
+        xywh {512 84 89 18} box BORDER_BOX
+      } {
+        Fl_Button bt_repopts_save {
+          label Use
+          callback cb_prefs_save
+          xywh {513 85 88 17} down_box DOWN_BOX color 51 labelsize 12
+          code0 {xloc("save");}
+        }
+      }
+    }
+    Fl_Group {} {
+      xywh {8 84 90 20} box BORDER_BOX
+    } {
+      Fl_Button bt_repopts_apply {
+        label Apply
+        callback cb_prefs_apply
+        xywh {9 85 89 19} down_box DOWN_BOX color 51 labelsize 12
+        code0 {xloc("apply");}
+      }
+    }
+  }
+} 
+
+Function {make_exitwindow()} {} {
+  Fl_Window win_exit {
+    label {Post Office Shutdown} open
+    xywh {914 262 279 100} hide modal
+  } {
+    Fl_Group {} {
+      label {icons/bg.xpm} open
+      xywh {0 0 280 100} labeltype image align 16
+    } {
+      Fl_Button {} {
+        label {icons/shredder2.xpm}
+        xywh {18 10 50 50} box NO_BOX labeltype image
+      }
+      Fl_Button {} {
+        label {Taking 'special care' of your mission critical mail data.}
+        xywh {80 15 170 40} box BORDER_FRAME color 0 labelsize 12 align 128
+      }
+      Fl_Slider bt_exitline {
+        xywh {10 69 260 21} type {Horz Fill} box THIN_DOWN_BOX color 53 selection_color 51 labelfont 1 labelsize 10 align 16 maximum 100
+      }
+    }
+  }
+} 
+
+Function {make_wizard()} {} {
+  Fl_Window win_wizard {
+    label {Post Office Installation Wizard} open
+    xywh {721 585 680 372} hide
+  } {
+    Fl_Group {} {open
+      xywh {10 10 656 329} box UP_BOX color 51
+    } {
+      Fl_Button {} {
+        label {icons/xbanner.xpm}
+        xywh {20 20 244 307} down_box UP_BOX labeltype image
+      }
+      Fl_Group {} {
+        xywh {273 20 380 307}
+      } {
+        Fl_Group gr_wiz01 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50
+        } {
+          Fl_Box {} {
+            label {Welcome to Post Office.}
+            xywh {283 30 360 20} labelfont 1 labelsize 18 align 149
+          }
+          Fl_Box {} {
+            label {This seems to be the first time you run Post Office from this account. You will be guided through the initial setup of the client. In the process, a directory called '.postoffice' will be created in your homedir. If, at any time, you need a clean start with the program you can move this directory out of the way and this wizard will reappear upon startup.}
+            xywh {283 55 355 140} labelsize 12 align 149
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+        Fl_Group gr_wiz02 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
+        } {
+          Fl_Input {} {
+            label {Your Name}
+            user_data {"postoffice/identities/001/realname"}
+            callback cb_wiz_data
+            xywh {413 30 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label {Your Organization}
+            user_data {"postoffice/identities/001/organization"}
+            callback cb_wiz_data
+            xywh {413 55 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label {Your Email Address}
+            user_data {"postoffice/identities/001/mailfrom"}
+            callback cb_wiz_data
+            xywh {413 95 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Box {} {
+            label {This information will be used to set up an 'Identity' in the program. The Email Address should be one you can receive mail on. You can add more identities or change the default one from the configuration panel under "Identities".}
+            xywh {283 130 360 70} labelsize 12 align 149
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+        Fl_Group gr_wiz03 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
+        } {
+          Fl_Input {} {
+            label {Autoconfig URL}
+            user_data {"tmp/autoconfig"}
+            callback cb_wiz_data
+            xywh {408 30 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Box {} {
+            label {Autoconfig is a convenient way to distribute general settings department- or company-wide. If Post Office is widely used inside your company, you may want to ask your system administrator for this url. In other cases you can leave this empty.}
+            xywh {283 70 355 125} labelsize 12 align 149
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+        Fl_Group gr_wiz04 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
+        } {
+          Fl_Input {} {
+            label {POP3 Hostname}
+            user_data {"postoffice/mailboxes/Personal/host"}
+            callback cb_wiz_data
+            xywh {413 30 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label Username
+            user_data {"postoffice/mailboxes/Personal/user"}
+            callback cb_wiz_data
+            xywh {413 55 100 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label Password
+            user_data {"postoffice/mailboxes/Personal/pass"}
+            callback cb_wiz_data
+            xywh {413 80 100 20} type Secret labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Box {} {
+            label {This will create the POP3 mailbox. If you keep the password empty the program will prompt for it when it first contacts the host during a session. No POP3 box will be created if you leave these fields empty.}
+            xywh {283 115 360 80} labelsize 12 align 149
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+        Fl_Group gr_wiz05 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
+        } {
+          Fl_Input {} {
+            label {NNTP Server}
+            user_data {"postoffice/mailboxes/Usenet/host"}
+            callback cb_wiz_data
+            xywh {413 30 230 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label Username
+            user_data {"postoffice/mailboxes/Usenet/user"}
+            callback cb_wiz_data
+            xywh {413 55 100 20} labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Input {} {
+            label Password
+            user_data {"postoffice/mailboxes/Usenet/pass"}
+            callback cb_wiz_data
+            xywh {413 80 100 20} type Secret labelfont 1 labelsize 12 when 1 textsize 12
+          }
+          Fl_Box {} {
+            label {This will set up your connection to the Usenet newsgroup facility. If you don't intend to read newsgroups, you can keep this all empty. If no username is filled in, no authentication will be used. If the password is left blank, you will be prompted for it upon connect.}
+            xywh {283 115 360 80} labelsize 12 align 149
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+        Fl_Group gr_wiz06 {open
+          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
+        } {
+          Fl_Box {} {
+            label {These checkboxes will create a few convenient settings for the incoming mailbox. Extra mailfolders and filters can be created to seperate incoming messages if they are related to mailinglists, or if they are bounces. Don't turn on automatic mailchecking if you want to be able to run Post Office in offline mode.}
+            xywh {283 100 360 95} labelsize 12 align 149
+          }
+          Fl_Check_Button {} {
+            label {Seperate folder for lists}
+            user_data {"tmp/listfolder"}
+            callback cb_wiz_check
+            xywh {283 30 180 20} down_box DIAMOND_DOWN_BOX selection_color 7 labelsize 12
+            code0 {\#include "maccheck.h"}
+            class Fl_MacCheck_Button
+          }
+          Fl_Check_Button {} {
+            label {Seperate folder for bounces}
+            user_data {"tmp/bouncefolder"}
+            callback cb_wiz_check
+            xywh {283 50 180 20} down_box DIAMOND_DOWN_BOX selection_color 7 labelsize 12
+            code0 {\#include "maccheck.h"}
+            class Fl_MacCheck_Button
+          }
+          Fl_Check_Button {} {
+            label {Automatically check mail}
+            user_data {"tmp/autocheck"}
+            callback cb_wiz_check
+            xywh {283 70 180 20} down_box DIAMOND_DOWN_BOX selection_color 7 labelsize 12
+            code0 {\#include "maccheck.h"}
+            class Fl_MacCheck_Button
+          }
+          Fl_Group {} {open
+            xywh {282 291 363 27}
+          } {
+            Fl_Box {} {
+              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
+              xywh {282 291 363 15} labelsize 10
+            }
+            Fl_Box {} {
+              label {This program is available under the GNU General Public License}
+              xywh {282 303 363 15} labelsize 10
+            }
+          }
+        }
+      }
+    }
+    Fl_Group {} {open
+      xywh {522 343 70 20} box BORDER_BOX
+    } {
+      Fl_Button bt_wiz_next {
+        label {Next >}
+        callback cb_wiz_next
+        xywh {524 345 68 18} labelsize 12
+      }
+    }
+    Fl_Group {} {open
+      xywh {10 343 70 20} box BORDER_BOX
+    } {
+      Fl_Button bt_wiz_prev {
+        label {< Prev}
+        callback cb_wiz_prev
+        xywh {12 345 68 18} labelsize 12 deactivate
+      }
+    }
+    Fl_Group {} {open
+      xywh {597 343 70 20} box BORDER_BOX
+    } {
+      Fl_Button bt_wiz_finish {
+        label Finish
+        callback cb_wiz_finish
+        xywh {599 345 68 18} labelsize 12 deactivate
+      }
+    }
+  }
+} 
+
+Function {make_aboot()} {} {
+  Fl_Window win_aboot {
+    label {About Post Office} open
+    xywh {891 716 239 299} hide modal
+  } {
+    Fl_Group {} {
+      label {icons/ebanner.xpm} open
+      xywh {0 0 240 300} labeltype image align 16
+    } {
+      Fl_Group {} {open
+        xywh {14 18 211 261}
+      } {
+        Fl_Group {} {open
+          xywh {30 63 180 107}
+        } {
+          Fl_Box {} {
+            label {Main Development}
+            xywh {30 63 180 15} labelsize 12 align 16
+          }
+          Fl_Box {} {
+            label {Pim van Riezen}
+            xywh {30 78 180 15} labelfont 1 labelsize 12 align 16
+          }
+          Fl_Box {} {
+            label {Special Ops & Architecture Cop}
+            xywh {30 102 180 15} labelsize 12 align 16
+          }
+          Fl_Box {} {
+            label {Vadim Kogan}
+            xywh {30 117 180 15} labelfont 1 labelsize 12 align 16
+          }
+          Fl_Box {} {
+            label {IMAP4 & Stuff}
+            xywh {30 140 180 15} labelsize 12 align 16
+          }
+          Fl_Box {} {
+            label {Eric the Pezking}
+            xywh {30 155 180 15} labelfont 1 labelsize 12 align 16
+          }
+        }
+        Fl_Box {} {
+          label {Post Office 0.7.2}
+          xywh {24 24 189 33} labelfont 1 labelsize 18
+          code0 {\#include "version.h"}
+          code1 {o->label (__RELEASESTRING);}
+        }
+        Fl_Group {} {open
+          xywh {87 249 63 21} box BORDER_FRAME color 0
+        } {
+          Fl_Button {} {
+            label OK
+            callback cb_close_aboot
+            xywh {89 251 61 19} labelsize 12
+          }
+        }
+        Fl_Box {} {
+          label {This program is in part sponsored by Vuurwerk Internet in Haarlem, The Netherlands. All code and the resulting binaries are subject to the GNU General Public License.}
+          xywh {35 175 170 65} box BORDER_FRAME color 0 labelsize 10 align 145
+        }
+      }
+    }
+  }
+} 
+
+Function {make_buildinfo()} {} {
+  Fl_Window win_buildinfo {
+    label {Build Congiruration} open
+    xywh {469 281 498 207} hide
+  } {
+    Fl_Box {} {
+      label {linux2.2-x86-glibc2.1-gnuegcs2.91}
+      xywh {155 10 330 20} box THIN_DOWN_BOX color 51 labelsize 12 align 20
+      code0 {\#include "version.h"}
+      code1 {o->label (__ARCH);}
+    }
+    Fl_Box {} {
+      label Platform
+      xywh {10 10 140 20} labelsize 12 align 24
+    }
+    Fl_Box {} {
+      label {(kernel)}
+      xywh {155 35 330 30} box THIN_DOWN_BOX color 51 labelsize 12 align 149
+      code0 {\#include "version.h"}
+      code1 {o->label (__UNAME);}
+    }
+    Fl_Box {} {
+      label Kernel
+      xywh {10 35 140 20} labelsize 12 align 24
+    }
+    Fl_Box {} {
+      label {0.7.2 build 20000121}
+      xywh {155 85 330 20} box THIN_DOWN_BOX color 51 labelsize 12 align 20
+      code0 {\#include "version.h"}
+      code1 {o->label (__VERSIONSTRING);}
+    }
+    Fl_Box {} {
+      label {Application version}
+      xywh {10 85 140 20} labelsize 12 align 24
+    }
+    Fl_Box {} {
+      label {(build info)}
+      xywh {155 120 330 20} box THIN_DOWN_BOX color 51 labelsize 12 align 20
+      code0 {\#include "version.h"}
+      code1 {o->label (__BUILDINFO);}
+    }
+    Fl_Box {} {
+      label {Build Info}
+      xywh {10 120 140 20} labelsize 12 align 24
+    }
+    Fl_Box {} {
+      label {-DDEBUG -DUSE_GDBM -Wall -g -O2 -DLINUX}
+      xywh {155 145 330 20} box THIN_DOWN_BOX color 51 labelsize 12 align 20
+      code0 {\#include "version.h"}
+      code1 {o->label (__CXXFLAGS);}
+    }
+    Fl_Box {} {
+      label CXXFLAGS
+      xywh {10 145 140 20} labelsize 12 align 24
+    }
+    Fl_Group {} {open
+      xywh {390 175 95 20} box BORDER_BOX
+    } {
+      Fl_Button {} {
+        label {Bug Report}
+        callback cb_bugreport
+        xywh {392 177 93 18} labelsize 12
+      }
+    }
+  }
+} 
+
+Function {make_activelist_window()} {open
+} {
+  Fl_Window win_grouplist {
+    label {Group Listing} open selected
+    xywh {48 530 494 209} hide
+  } {
+    Fl_Browser {} {
+      xywh {0 55 495 155} type Select labelsize 12 textsize 12
+    }
+    Fl_Group {} {open
+      xywh {10 5 45 45} box BORDER_BOX color 0
+    } {
+      Fl_Button {} {
+        label {icons/filer.xpm}
+        xywh {11 6 44 44} labeltype image
+      }
+    }
+    Fl_Input {} {
+      label Filter
+      xywh {115 5 260 20} labelsize 12 textsize 12
+    }
+    Fl_Group {} {open
+      xywh {380 5 100 20} box BORDER_BOX color 0
+    } {
+      Fl_Button {} {
+        label {Get from Server}
+        xywh {381 6 99 19} labelsize 12
+      }
+    }
+    Fl_Group {} {open
+      xywh {115 30 120 20} box BORDER_BOX color 0
+    } {
+      Fl_Choice {} {
+        label View open
+        xywh {116 31 119 19} labelsize 12 textsize 12
+      } {
+        menuitem {} {
+          label All
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label Unsubscribed
+          xywh {0 0 100 20} labelsize 12
+        }
+        menuitem {} {
+          label Subscribed
+          xywh {0 0 100 20} labelsize 12
+        }
+      }
+    }
+  }
+} 

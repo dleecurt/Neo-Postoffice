@@ -1,0 +1,24 @@
+TODO - Fl_ToggleTree Version 0.2
+--------------------------------
+
+proper implementation of standard Fl_Widget methods 
+for Fl_ToggleTree such as
+when(),color and box settings.
+
+Win32 version
+
+[ TODO stuff from James :-) ]
+
+* I'm thinking that scrollbars might should be put into 
+  the widget, or it should use an Fl_Scroll.  What I'd
+  like is that the widget be resizable along the x-axis,
+  but be of fixed height along the y-axis.
+
+* Make it work with the styles patch.
+
+Maarten de Boer <maarten@things.nl> <maarten@bcn.gms.es>
+James Dean Palmer <james@tiger-marmalade.com>
+
+
+
+

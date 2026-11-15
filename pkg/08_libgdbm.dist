@@ -1,0 +1,6 @@
+#!/bin/sh
+ls -1 pkg/08_libgdbm.*
+echo src/libgdbm/Makefile
+echo src/libgdbm/Makefile.common
+echo src/libgdbm/checktarget.sh
+echo src/libgdbm/gdbm-1.8.0

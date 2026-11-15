@@ -1,0 +1,41 @@
+/* XPM */
+static char *thing[] = {
+/* width height num_colors chars_per_pixel */
+"    84    28        6            1",
+/* colors */
+". c #3a3a3a",
+"# c #757575",
+"a c #808080",
+"b c #c0c0c0",
+"c c #e4e4e4",
+"d c #ffffff",
+/* pixels */
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"ccccccccccc....................................................aaaaaaaaaaabbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........#####################ddddddddddbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbb..........dddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..........bbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbb...........bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbdddddddddddbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+"cccccccccccbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+};

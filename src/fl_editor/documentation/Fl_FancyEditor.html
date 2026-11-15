@@ -1,0 +1,84 @@
+<HTML><BODY>
+<HR break>
+<img align=right src="Fl_FancyEditor.jpg">
+<H2><A name=Fl_FancyEditor>class Fl_FancyEditor</A></H2>
+<HR>
+<H3>Class Hierarchy</H3>
+<UL>
+<PRE>
+<A href=Fl_Group.html#Fl_Group>Fl_Group</A>
+   |
+   +----<A href=Fl_Editor.html#Fl_Editor>Fl_Editor</A>,
+           |
+           +----<A href=Fl_FancyEditor.html>Fl_FancyEditor</A>
+</PRE>
+</UL>
+<H3>Include Files</H3>
+<UL>
+<PRE>
+#include &lt;FL/Fl_Editor.H&gt;
+</PRE>
+</ul>
+<H3>Description</H3>
+This is an extension to the basic editor widget that includes interactive find
+and replace, optional status panel, etc.  For information on the basic
+editor functionality, see <a href="Fl_Editor.html">Fl_Editor</a>.
+<P>
+<H3>Methods</H3>
+<CENTER>
+<TABLE width=90%>
+<TR>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_FancyEditor.Fl_FancyEditor>Fl_FancyEditor</A></LI>
+<LI><A href=#Fl_FancyEditor.Fl_FancyEditor>~Fl_FancyEditor</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_FancyEditor.Find>Find</A></LI>
+<LI><A href=#Fl_FancyEditor.FindNext>FindNext</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_FancyEditor.handle>handle</A></LI>
+<LI><A href=#Fl_FancyEditor.Replace>Replace</A></LI>
+<LI><A href=#Fl_FancyEditor.ShowPanel>ShowPanel</A></LI>
+</UL>
+</TD>
+</TR>
+</TABLE>
+</CENTER>
+<H4><A name=Fl_FancyEditor.Fl_FancyEditor>Fl_FancyEditor::Fl_FancyEditor(int x, int y, int w, 
+int h, const char *label = 0)</A></H4>
+ Creates a new <TT>Fl_FancyEditor</TT> widget using the given position, size, 
+and label string. The default boxtype is <TT>FL_DOWN_BOX</TT>. The widget will
+be created to fit within the given dimensions (the "editable area" will be sized down slightly 
+to make room for the scrollbar and status panel).
+
+<H4><A name=Fl_FancyEditor.~Fl_FancyEditor>virtual Fl_FancyEditor::~Fl_FancyEditor()</A></H4>
+ Destroys the widget and any value associated with it. 
+
+<H4><A name=Fl_FancyEditor.Find>bool Fl_FancyEditor::Find()</A></H4>
+Displays a "find" dialog where the user can enter a string to search for and 
+begin searching.  Returns true if a search was initiated and the text was found,
+otherwise returns false.  When Find() succeeeds, the found text is selected
+and the cursor is positioned at the <i>start</i> of the found text.
+<H4><A name=Fl_FancyEditor.FindNext>bool Fl_FancyEditor::FindNext()</A></H4>
+Searches for the last string searched for, using the same options
+for case sensitivity, etc., beginning at the current cursor position.
+
+<H4><A name=Fl_Editor.handle>void Fl_Editor::handle()</A></H4>
+This is really the same event handler as in the base Fl_Editor, this just passes keyboard
+status events and position changes to the status panel.
+
+<H4><A name=Fl_FancyEditor.Replace>void Fl_FancyEditor::Replace()</A></H4>
+Displays a "search and replace" dialog where the user can enter a string to
+search for and replace with another string.  Various options can be set for case
+sensitivity, etc., and the user can optionally be asked to confirm each
+replacement.
+<H4><A name=Fl_FancyEditor.ShowPanel>void Fl_FancyEditor::ShowPanel(bool showit)</A></H4>
+Turn the status panel on or off.
+
+</BODY></HTML>

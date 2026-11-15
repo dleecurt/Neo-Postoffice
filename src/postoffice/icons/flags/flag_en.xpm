@@ -1,0 +1,27 @@
+/* XPM */
+char *image_en[] = {
+/* columns rows colors chars-per-pixel */
+"21 16 5 1",
+"  c #000000008080",
+". c Red",
+"X c Gray100",
+"o c #000000008080",
+"O c None",
+/* pixels */
+"OOOOOOOOOOOOOOOOOOOOO",
+"         ............",
+" X X X X XXXXXXXXXXXX",
+"  X X X  ............",
+" X X X X XXXXXXXXXXXX",
+"  X X X  ............",
+" X X X X XXXXXXXXXXXX",
+"         ............",
+"XXXXXXXXXXXXXXXXXXXXX",
+".....................",
+"XXXXXXXXXXXXXXXXXXXXX",
+".....................",
+"XXXXXXXXXXXXXXXXXXXXX",
+".....................",
+"XXXXXXXXXXXXXXXXXXXXX",
+"OOOOOOOOOOOOOOOOOOOOO"
+};

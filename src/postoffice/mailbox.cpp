@@ -1,0 +1,704 @@
+//===============================================================================
+// POSTOFFICE - X11 Office Communication Handler
+// ---------------------------------------------
+// All sourcecode, unless differently annotated, written by Pim van Riezen
+// Sourcecode and resulting binaries are covered by the GNU Lesser General Public
+// License (GNU LGPL). For more information and the literal text of the license
+// agreement, check the Free Software Foundation's website on http://www.fsf.org/
+// 
+// Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
+//===============================================================================
+
+#include "mailbox.h"
+#include "wordlist.h"
+#include "var.h"
+#include "semaphore.h"
+#include "chop.h"
+#include "checksum.h"
+#include "usleep.h"
+#include "strdupp.h"
+
+#include "debug.h"
+
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#if defined(SOLARIS) || defined(IRIX)
+  #include <strings.h>
+#endif
+
+extern Var PREFERENCES;
+
+#include "encode.h"
+
+MailBox::MailBox (ITCPipe *ui, char *name)
+{
+    int i;
+    struct stat mystat;
+
+    // And our name shall be such and such
+
+    Name = new char[strlen(name)+1];
+    strcpy (Name, name);
+
+    // Seperate locks for the message-list and the mailview-list
+
+    Lock = new ASemaphore ("mailbox::lock");
+    VLock = new ASemaphore ("mailbox::vlock");
+
+    // Store a local pointer to the preferences
+
+    Var *PREFROOT = PREFERENCES.
+                    Get_collection ("postoffice")->
+                    Get_collection ("mailboxes")->
+                    Get_collection (Name);
+
+    // Initialize the linked list pointers
+
+    Root = NULL;
+    Root = new MailMessage (this, NULL);
+    VFirst = VLast = NULL;
+
+    // Set up the ITCPipe for communication with the collector thread
+
+    ToCollector = new ITCPipe;
+
+    // Inherit the ITCPipe to the GUI
+
+    ToUI = ui;
+
+    // Create the scheduler for automated actions
+
+    Schedule = new Scheduler;
+
+    // Register the "Save Mailbox" event with the scheduler
+
+    Schedule->Schedule (120, 120, SCHED_SAVEBOX, NO_SUBCLASS, "");
+
+    // See if there's an interval for automatic retrieval set, if so then schedule
+
+    i = PREFROOT->Get_int ("interval");
+    if (i) Schedule->Schedule (5, i, SCHED_CHECKNEW, NO_SUBCLASS, "");
+
+    // Initialize counters
+
+    MemoryUsage = 0;
+    Count = 0;
+    CacheToDisk = 0;
+    NewCount = 0;
+    Open = 0;
+
+    // Create collector thread
+
+    Collector = new MailerThread;
+
+    // Extract the directory from the prefs, or make on up if it wasn't there.
+
+    char *dp = PREFROOT->Get_char ("prefix");
+    if (strlen (dp)) DirectoryPrefix = strdupp (dp);
+    else
+    {
+        char *HOME = (char *) getenv ("HOME");
+        DirectoryPrefix = new char [strlen (HOME) + strlen ("/.postoffice/.box") + strlen (Name) + 3];
+        sprintf (DirectoryPrefix, "%s/.postoffice/%s.box", HOME, Name);
+        PREFROOT->Set_char ("prefix", DirectoryPrefix);
+    }
+
+    char path[256];
+    const char *HOME = getenv ("HOME");
+
+    if (!HOME) HOME = "/tmp";
+
+    if (stat (HOME, &mystat)==0)
+    {
+        sprintf (path, "%s/.postoffice", HOME);
+        if (stat (path, &mystat)!=0)
+        {
+            mkdir (path, 0700);
+        }
+        if (stat (DirectoryPrefix, &mystat)!=0) mkdir (DirectoryPrefix, 0700);
+    }
+
+#ifdef USE_GDBM
+    char *gdbm_filename = new char[strlen(DirectoryPrefix)+strlen("/box.gdbm")+1];
+    sprintf (gdbm_filename, "%s/box.gdbm", DirectoryPrefix);
+    DB = STORAGE.Open (gdbm_filename, this, STORAGE_GDBM);
+    delete[] gdbm_filename;
+#endif
+
+    // Initialize the collector with the proper handler
+
+    if (strcasecmp (PREFROOT->Get_char ("protocol"), "pop3") == 0) // POP3 box
+    {
+        Handler = new POP3Handler (this, PREFROOT);
+    }
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mysql") == 0)
+    {
+        Handler = new MySQLHandler (this, PREFROOT);
+    }
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "nntp") == 0)
+    {
+        Handler = new NNTPHandler (this, PREFROOT);
+    }
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mbox") == 0)
+    {
+        Handler = new MBoxHandler (this, PREFROOT);
+    }
+	else if (strcasecmp (PREFROOT->Get_char ("protocol"), "imap4") == 0)
+	{
+		Handler = new IMAP4Handler (this, PREFROOT);
+	}
+	
+    // Open all views
+
+    WordList *Views = PREFROOT->Get_wordlist ("folders");
+
+    for (i=0;i<Views->Count;++i)
+    {
+        CreateMailView (Views->Get(i));
+    }
+
+    // Load MailBox into memory
+
+    LoadMailBox();
+	ClearBiff();
+	
+
+    // Start the collector thread
+
+    Collector->Run((void *) this);
+}
+
+MailBox::MailBox (ITCPipe *ui)
+{
+//	int i;
+    struct stat mystat;
+
+    Name = new char[16];
+    strcpy (Name, "OutBox");
+
+    Lock = new ASemaphore ("mailbox::lock");
+    VLock = new ASemaphore ("mailbox::vlock");
+
+    Root = NULL;
+    Root = new MailMessage (this, NULL);
+    VFirst = VLast = NULL;
+
+    ToCollector = new ITCPipe;
+    ToUI = ui;
+    Schedule = new Scheduler;
+
+    Schedule->Schedule (120, 120, SCHED_SAVEBOX, NO_SUBCLASS, "");
+    Schedule->Schedule (10, 15, SCHED_CHECKNEW, NO_SUBCLASS, "");   
+    MemoryUsage = 0;
+    Count = 0;
+    CacheToDisk = 0;
+    Collector = new MailerThread;
+    NewCount = 0;
+    Open = 0;
+
+    char *HOME = (char *) getenv ("HOME");
+    DirectoryPrefix = new char [strlen (HOME) + strlen ("/.postoffice/.box") + strlen (Name) + 3];
+    sprintf (DirectoryPrefix, "%s/.postoffice/%s.box", HOME, Name);
+
+    char path[256];
+
+    if (!HOME) HOME = "/tmp";
+
+    if (stat (HOME, &mystat)==0)
+    {
+        sprintf (path, "%s/.postoffice", HOME);
+        if (stat (path, &mystat)!=0)
+        {
+            mkdir (path, 0700);
+        }
+        if (stat (DirectoryPrefix, &mystat)!=0) mkdir (DirectoryPrefix, 0700);
+    }
+
+#ifdef USE_GDBM
+    char *gdbm_filename = new char[strlen(DirectoryPrefix)+strlen("/box.gdbm")+1];
+    sprintf (gdbm_filename, "%s/box.gdbm", DirectoryPrefix);
+    DB = STORAGE.Open (gdbm_filename, this, STORAGE_GDBM);
+    delete[] gdbm_filename;
+#endif
+
+    Handler = new OutBoxHandler (this, PREFERENCES.Get_collection ("postoffice")->Get_collection ("network"));
+    CreateMailView ("Queue");
+    CreateMailView ("Sent");
+
+    LoadMailBox();
+    Collector->Run((void *) this);
+}
+
+MailBox::~MailBox (void)
+{
+#ifdef USE_GDBM
+    STORAGE.Close (this);
+#endif
+
+    SaveMailBox();
+    Collector->Kill();
+}
+
+/*
+#define ENVELOPE_I_READ			0
+#define ENVELOPE_I_PARENTID		1
+#define ENVELOPE_MAILFROM		2
+#define ENVELOPE_NAMEFROM		3
+#define ENVELOPE_SUBJECT		4
+#define ENVELOPE_DATE			5
+#define ENVELOPE_NEWSGROUPS		6
+#define ENVELOPE_GROUPS			6
+*/
+
+void MailBox::LoadMailBox (void)
+{
+    FILE *IDX;
+    char *fname;
+    char buf[1024];
+    WordList *Line = new WordList;
+    WordList *Subs = new WordList;
+    int i;
+    MailView *V;
+    int delivered;
+//    struct stat mystat;
+//	int mbcount=0;
+
+    // Make sure the directories exist
+
+	//iprintf ("[mbox] (%s) LoadIndex()\n", Name);
+    //if (DB) DB->LoadIndex();
+
+    // Constuct path for the indexfile
+
+    fname = new char [strlen (DirectoryPrefix) + strlen ("index") + 16];
+    sprintf (fname, "%s/index", DirectoryPrefix);
+
+    if ((IDX = fopen (fname, "r"))) // Attempt to open the index file;
+    {
+        while (!feof (IDX)) // Browse through the index file
+        {
+            buf[0] = 0;
+            fgets (buf, 1023, IDX); // Read a line
+            buf[1023] = 0;
+            if ((strlen (buf)>1)&&(!feof (IDX)))
+            {
+                choplf (buf);
+
+                Line->MakeDB (buf); // The 9 arguments to a message in the index
+                Subs->MakeGeneric (Line->Get(6),','); // The names of all views it was a part of
+
+                // Initialize a MailMessage with all information from the dbrow
+
+                MailMessage *M = new MailMessage (this, Line->Get(0));
+                M->Envelope->Set (ENVELOPE_I_PARENTID, Line->Get(1));
+                M->Envelope->Set (ENVELOPE_MAILFROM, Line->Get(2));
+                M->Envelope->Set (ENVELOPE_NAMEFROM, Line->Get(3));
+                M->Envelope->Set (ENVELOPE_SUBJECT, Line->Get(4));
+                M->Envelope->Set (ENVELOPE_DATE, Line->Get(5));
+                M->Envelope->Set (ENVELOPE_GROUPS, Line->Get(6));
+                M->Envelope->SetInt (ENVELOPE_I_READ, Line->GetInt(8));
+                M->Count = Line->GetInt(9);
+                M->Flags = Line->GetInt(7) & (MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_ONDISK);
+                M->ReceiveDate = atol (Line->Get (10));
+                if (!M->ReceiveDate) M->ReceiveDate = time (NULL) - 864000;
+
+                delivered = 0;
+
+                for (i=0;i<Subs->Count;++i)
+                {
+                    V = GetView (Subs->Get(i)); // Find the named view
+                    if (!V) // If it doesn't exist
+                    {
+                        dprintf ("%s does not exist, using Deliver()\n", Subs->Get(i));
+                        M->LoadHeaders();
+                        UnTie (M); // Undo direct deliveries
+                        Deliver (M); // And fall back to filter rules
+                        i = Subs->Count; // Exit direct delivery cycle
+                        delivered = 1;
+                    }
+                    else // But of course it exists
+                    {
+                        V->Associate (M); // Direct delivery
+                    }
+                }
+            }
+        }
+    }
+	delete (Subs);
+	delete (Line);
+}
+
+void MailBox::SaveMailBox (void)
+{
+    struct stat mystat;
+    char path[256];
+	char oldpath[256];
+    const char *HOME = getenv ("HOME");
+
+    if (!HOME) HOME = "/tmp";
+
+	// build the path to the index file
+
+    if (stat (HOME, &mystat)==0)
+    {
+        sprintf (path, "%s/.postoffice", HOME);
+        if (stat (path, &mystat)!=0)
+        {
+            mkdir (path, 0700);
+        }
+        strcat (path, "/");
+        strcat (path, Name);
+        strcat (path, ".box");
+        if (stat (path, &mystat)!=0) mkdir (path, 0700);
+		strcat (path, "/index");
+		
+		// touch the original index file to ensure it exists.
+		
+		FILE *OLD = fopen (path, "a");
+		if (!OLD)
+		{
+			eprintf ("could not touch %s\n", path);
+			return;
+		}
+		fclose (OLD);
+		
+		strcpy (oldpath, path);
+		
+		// create the "index.new" file to dump the database to.
+		
+		strcat (path, ".new");
+		
+        FILE *OUT = fopen (path, "w");
+        if (OUT)
+        {
+            MailMessage *M;
+            ViewListNode *V;
+            int i;
+
+            Lock->LockR();
+            VLock->LockR();
+
+			// Iterate through the mailbox;
+
+            M = (MailMessage *) Root->BNext;
+            while (M && (M!=Root))
+            {
+				char *esc_msgid, *esc_parentid, *esc_mailfrom, *esc_namefrom;
+				char *esc_subject, *esc_date;
+				
+				esc_msgid		= escape_db (M->MsgID);
+				esc_parentid	= escape_db (M->Envelope->Get (ENVELOPE_I_PARENTID));
+				esc_mailfrom	= escape_db (M->Envelope->Get (ENVELOPE_MAILFROM));
+				esc_namefrom	= escape_db (M->Envelope->Get (ENVELOPE_NAMEFROM));
+				esc_subject		= escape_db (M->Envelope->Get (ENVELOPE_SUBJECT));
+				esc_date		= escape_db (M->Envelope->Get (ENVELOPE_DATE));
+				
+                fprintf (OUT, "%s|%s|%s|%s|%s|%s|",
+                         esc_msgid, esc_parentid, esc_mailfrom,
+						 esc_namefrom, esc_subject, esc_date);
+
+				free (esc_msgid);
+				free (esc_parentid);
+				free (esc_mailfrom);
+				free (esc_namefrom);
+				free (esc_subject);
+				free (esc_date);
+
+                for (i=0;i<M->Subscribers->Count();++i)
+                {
+                    if ((V=M->Subscribers->Get(i)))
+                    {
+                        fprintf (OUT, "%s", V->View->Name);
+                        if (i+1 < M->Subscribers->Count()) fputc (',', OUT);
+                    }
+                }
+                fprintf (OUT, "|%i|%i|%i|%d\n", M->Flags, M->Envelope->GetInt (ENVELOPE_I_READ), M->Count, (unsigned int) M->ReceiveDate);
+
+                //M->SaveHeaders();
+
+                M = (MailMessage *) M->BNext;
+            }
+
+            fclose (OUT);
+			
+			// move the new file on top of the old one. Congratulations, your index
+			// dump is now atomical.
+			
+			rename (path, oldpath);
+
+            Lock->UnlockR();
+            VLock->UnlockR();
+        }
+        else
+        {
+            ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mailboxhandler", "Could not create index file");
+            eprintf ("error creating index file\n");
+        }
+    }
+}
+
+void MailBox::UnTie (MailMessage *M)
+{
+    MailView *V = VFirst;
+
+    while (V) // While the fat lady's still singing
+    {
+        V->Unassociate (M); // This procedure is expensive and should best be avoided, alas I'm lazy today.
+        V = V->Next; // And on and on and on...
+    }
+}
+
+void MailBox::Deliver (MailMessage *M)
+{
+    MailView *V;
+
+    int delivered = 0;
+
+    V = VFirst;
+
+    while ((V)&&(!delivered))
+    {
+        delivered = V->ProcessRules (M);
+        V = V->Next;
+    }
+
+    if (!delivered)
+    {
+        char *fld = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name)->Get_char ("defaultfolder");
+        V = GetView (fld);
+        if (!V) V = GetView ("Inbox");
+        if (!V) V = VFirst;
+        if (V) V->Associate (M);
+    }
+
+    if (MemoryUsage > MBOX_MAXMEM)
+    {
+        //printf("[deliver] memusage=%d - calling grim reaper\n", MemoryUsage);
+    }
+}
+
+void MailBox::GrimReaper (void)
+{
+    if (!Root) return;
+    Lock->LockRW();
+        MailMessage *V = (MailMessage *) Root->BNext;
+        while ((MemoryUsage > (MBOX_MAXMEM * 0.8)) && (V && (V!=Root)))
+        {
+            if (V->Flags & MMFL_INRAM)
+            {
+                //printf("[grimreaper] reaping %s\n", V->MsgID);
+                V->Flush();
+            }
+            V = (MailMessage *) V->BNext;
+        }
+    Lock->UnlockRW();
+}
+
+void MailBox::ExpireLocal (void)
+{
+    MailMessage *M, *NM;
+
+    time_t expire_local_only = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name)->Get_int ("expire_local_only");
+    time_t expire_local = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name)->Get_int ("expire_local");
+
+    expire_local_only *= 86400;
+    expire_local *= 86400;
+
+    M = (MailMessage *) Root->BNext;
+    Lock->LockR();
+    while (M && (M!=Root))
+    {
+        NM = (MailMessage *) M->BNext;
+        if ((expire_local_only) &&
+            (!(M->Flags & MMFL_HAVEBODY)) &&
+            ((time(NULL) - M->ReceiveDate) > expire_local_only))
+        {
+            Lock->RelockRW();
+            RemoveMessage (M);
+            Lock->RelockR();
+        }
+        else if ((expire_local) &&
+                 ((time(NULL) - M->ReceiveDate) > expire_local))
+        {
+            Lock->RelockRW();
+            RemoveMessage (M);
+            Lock->RelockR();
+        }
+        M = NM;
+    }
+    Lock->UnlockR();
+}
+
+int MailBox::Have (char *msgid)
+{
+    int result = 0;
+
+    Lock->LockR();
+        if (Root->Find (msgid)) result = 1;
+    Lock->UnlockR();
+    return (result);
+}
+
+void MailBox::CreateMailView (char *name)
+{
+    MailView *V = new MailView (this, name);
+    VLock->LockRW();
+    if (VLast)
+    {
+        V->Next = NULL;
+        V->Prev = VLast;
+        VLast->Next = V;
+        VLast = V;
+    }
+    else
+    {
+        V->Next = V->Prev = NULL;
+        VFirst = VLast = V;
+    }
+    VLock->UnlockRW();
+}
+
+void MailBox::DestroyMailView (char *name)
+{
+    MailView *V = GetView (name);
+    if (V)
+    {
+        VLock->LockRW();
+        if (V->Next)
+        {
+            if (V->Prev)
+            {
+                V->Prev->Next = V->Next;
+                V->Next->Prev = V->Prev;
+            }
+            else
+            {
+                V->Next->Prev = NULL;
+                VFirst = V->Next;
+            }
+        }
+        else
+        {
+            if (V->Prev)
+            {
+                V->Prev->Next = NULL;
+                VLast = V->Prev;
+            }
+            else
+            {
+                VFirst = VLast = NULL;
+            }
+        }
+        VLock->UnlockRW();
+        for (int i=0; i<V->Count();++i)
+        {
+            MailMessage *M = V->GetMessage (i);
+            V->DoneWithMessage();
+            V->Unassociate (M);
+            if (M->Subscribers->Count() == 0)
+            {
+                dprintf ("erasing: %s\n", M->MsgID);
+                M->RemoveFiles();
+                RemoveMessage (M);
+                --i;
+            }
+        }
+    }
+}
+
+MailView *MailBox::GetView (char *Name)
+{
+    MailView *V;
+
+    VLock->LockR();
+    V = VFirst;
+    while (V)
+    {
+        if (strcasecmp (V->Name, Name) == 0)
+        {
+            VLock->UnlockR();
+            return(V);
+        }
+        V = V->Next;
+    }
+    VLock->UnlockR();
+    return((MailView *) NULL);
+}
+
+MailMessage *MailBox::Find (char *msgid)
+{
+    Lock->LockR();
+    MailMessage *M = (MailMessage *) Root->Find (msgid);
+    Lock->UnlockR();
+    return M;
+}
+
+void MailBox::Quit (void)
+{
+    int hitcount = 0;
+
+    dprintf ("quitting mailbox started=%i\n", Collector->Started);
+    if (Collector->Started)
+    {
+        ToCollector->PostMessage (CLASS_DIE | CLASS_URGENT, NO_SUBCLASS, "");
+        iprintf ("[mailbox] Sent CLASS_DIE to Collector."); fflush (stdout);
+        while (Collector->Started)
+        {
+            iprintf ("."); fflush (stdout);
+            if (Collector->Started) _usleep(100000);
+            if (++hitcount > 100)
+            {
+                iprintf ("<timeout>\n[mailbox] Killing.. "); fflush (stdout);
+                Collector->Kill();
+                Collector->Started = 0;
+            }
+        }
+        iprintf ("done\n[mailbox] This is a death thread.\n");
+    }
+}
+
+void MailBox::RemoveMessage (MailMessage *M)
+{
+    if (M)
+    {
+        M->Subscribers->UnTie();
+
+        if (M->Flags & (MMFL_HAVEBODY | MMFL_ONDISK))
+        {
+            M->RemoveFiles();
+        }
+
+        delete (M);
+        --Count;
+    }
+}
+
+void MailBox::RemoveMessage (char *msgid)
+{
+    MailMessage *M = Find (msgid);
+    if (!M)
+    {
+        ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mailboxhandler", "RemoveMessage(): Message does not exist!");
+        return;
+    }
+
+    Lock->LockRW();
+    RemoveMessage (M);
+    Lock->UnlockRW();
+}
+
+void MailBox::ClearBiff (void)
+{
+	Biff = false;
+	VLock->LockR();
+		MailView *V = VFirst;
+		while (V)
+		{
+			//V->Biff = false;
+			V = V->Next;
+		}
+	VLock->UnlockR();
+}

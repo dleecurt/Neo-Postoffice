@@ -1,0 +1,14 @@
+#!/bin/sh
+ls -1 pkg/15_toggletree.*
+echo include/FL/Fl_Toggle_*.H
+echo include/FL/closed_icon.xpm
+echo include/FL/file_small.xpm
+echo include/FL/folder_small.xpm
+echo include/FL/open_icon.xpm
+ls -1 src/toggletree/*.cxx
+ls -1 src/toggletree/*.html
+ls -1 src/toggletree/Makefile*
+echo src/toggletree/INSTALL
+echo src/toggletree/NEWS
+echo src/toggletree/README
+echo src/toggletree/TODO

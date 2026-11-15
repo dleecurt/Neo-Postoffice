@@ -1,0 +1,16 @@
+#ifndef _VERSION_H
+  #define _VERSION_H 1
+  #define __RELEASE "0.7.2"
+  #define __BUILD ".BUILD."
+  #define __VERSION __RELEASE " build " __BUILD
+  #define __VERSIONSTRING "Post Office " __VERSION
+  #define __RELEASESTRING "Post Office " __RELEASE
+  #define __CXXFLAGS ".CXXFLAGS."
+  #define __UNAME ".UNAME."
+  #define __ARCH ".ARCH."
+  #define __BUILDINFO ".BUILDINFO."
+  
+  extern const char *_VERSION, *_RELEASE, *_BUILD;
+  extern const char *_VERSIONSTRING, *_RELEASESTRING, *_CXXFLAGS;
+  extern const char *_UNAME, *_ARCH, *_BUILDINFO;
+#endif

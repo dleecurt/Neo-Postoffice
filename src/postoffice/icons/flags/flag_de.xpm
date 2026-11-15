@@ -1,0 +1,27 @@
+/* XPM */
+char *image_de[] = {
+/* columns rows colors chars-per-pixel */
+"21 16 5 1",
+"  c Gray0",
+". c Red",
+"X c Yellow",
+"o c #c0c0c0c0c0c0",
+"O c None",
+/* pixels */
+"OOOOOOOOOOOOOOOOOOOOO",
+"OOOOOOOOOOOOOOOOOOOOO",
+"                    O",
+"                    O",
+"                    O",
+"                    O",
+"....................O",
+"....................O",
+"....................O",
+"....................O",
+"XXXXXXXXXXXXXXXXXXXXO",
+"XXXXXXXXXXXXXXXXXXXXO",
+"XXXXXXXXXXXXXXXXXXXXO",
+"XXXXXXXXXXXXXXXXXXXXO",
+"OOOOOOOOOOOOOOOOOOOOO",
+"OOOOOOOOOOOOOOOOOOOOO"
+};

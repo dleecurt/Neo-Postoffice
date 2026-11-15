@@ -1,0 +1,328 @@
+# ===============================================================================
+# POSTOFFICE - X11 Office Communication Handler
+# ---------------------------------------------
+# All sourcecode, unless differently annotated, written by Pim van Riezen
+# Sourcecode and resulting binaries are covered by the GNU Lesser General Public
+# License (GNU LGPL). For more information and the literal text of the license
+# agreement, check the Free Software Foundation's website on http://www.fsf.org/
+# 
+# Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
+# ===============================================================================
+
+# ==== Include coniguration from architecture-specific configure
+
+include ../../config/config.$(HOST)
+
+# ==== Some extra stuff
+
+XTRAFLAGS = -D_REENTRANT -I../../include -I/usr/local/mysql/include -I/usr/include/mysql -c
+
+# ==== FLTK-Related objects
+
+ALL_DEP			= \
+	../../include/wordlist.h \
+	../../include/semaphore.h \
+	../../include/var.h \
+	../../include/btree.h \
+	../../include/buffer.h \
+	../../include/stringtoken.h \
+	../../include/envelope.h
+
+GUI_DEP			= \
+	helpdesk.h \
+	filereq.h \
+	maccheck.h \
+	requesters.h \
+	../../include/ccache.h \
+	../../include/iconbrowser.h
+
+MBOX_DEP		= \
+	../../include/mailbox.h \
+	../../include/mailhandler.h \
+	../../include/mailmessage.h \
+	../../include/mailstorage.h \
+	../../include/mailview.h
+
+GUI_OBJ			= \
+	arch/$(ARCH)/helpdesk-main.o \
+	arch/$(ARCH)/mailboxtree.o \
+	arch/$(ARCH)/helpdesk.o \
+	arch/$(ARCH)/listviewtree.o \
+	arch/$(ARCH)/mdi.o \
+	arch/$(ARCH)/iconbrowser.o \
+	arch/$(ARCH)/initexitthread.o \
+	arch/$(ARCH)/prefpanel.o \
+	arch/$(ARCH)/filereq.o \
+	arch/$(ARCH)/filereq-main.o \
+	arch/$(ARCH)/maccheck.o \
+	arch/$(ARCH)/ht.o \
+	arch/$(ARCH)/composer.o \
+	arch/$(ARCH)/style.o
+
+# ==== Messenger Backend
+
+BACKEND_OBJ		= \
+	arch/$(ARCH)/base64.o \
+	arch/$(ARCH)/btree.o \
+	arch/$(ARCH)/buffer.o \
+	arch/$(ARCH)/checksum.o \
+	arch/$(ARCH)/ccache.o \
+	arch/$(ARCH)/chop.o \
+	arch/$(ARCH)/connection.o \
+	arch/$(ARCH)/debug.o \
+	arch/$(ARCH)/eaddr.o \
+	arch/$(ARCH)/envelope.o \
+	arch/$(ARCH)/encode.o \
+	arch/$(ARCH)/formatter.o \
+	arch/$(ARCH)/gdbmstorage.o \
+	arch/$(ARCH)/gdbmtools.o \
+	arch/$(ARCH)/mailmessage.o \
+	arch/$(ARCH)/mailstorage.o \
+	arch/$(ARCH)/mailerthread.o \
+	arch/$(ARCH)/mailview.o \
+	arch/$(ARCH)/mailbox.o \
+	arch/$(ARCH)/mboxhandler.o \
+	arch/$(ARCH)/mboxstorage.o \
+	arch/$(ARCH)/mysql.o \
+	arch/$(ARCH)/nntphandler.o \
+	arch/$(ARCH)/outboxhandler.o \
+	arch/$(ARCH)/mysqlhandler.o \
+	arch/$(ARCH)/pop3handler.o \
+	arch/$(ARCH)/imap4handler.o \
+	arch/$(ARCH)/posixthread.o \
+	arch/$(ARCH)/prefjournal.o \
+	arch/$(ARCH)/prefs.o \
+	arch/$(ARCH)/reg.o \
+	arch/$(ARCH)/scheduler.o \
+	arch/$(ARCH)/semaphore.o \
+	arch/$(ARCH)/smtp.o \
+	arch/$(ARCH)/status.o \
+	arch/$(ARCH)/storagelist.o \
+	arch/$(ARCH)/strdupp.o \
+	arch/$(ARCH)/stringtoken.o \
+	arch/$(ARCH)/substr.o \
+	arch/$(ARCH)/tolower.o \
+	arch/$(ARCH)/usleep.o \
+	arch/$(ARCH)/wordlist.o \
+	arch/$(ARCH)/var.o \
+	arch/$(ARCH)/itc.o \
+	arch/$(ARCH)/folderxpm.o \
+	arch/$(ARCH)/var2.o \
+	arch/$(ARCH)/wizard.o
+
+# ==== Redundant
+
+.SUFFIXES:		.cpp
+
+# ==== Build the binary
+
+all: $(GUI_OBJ) $(BACKEND_OBJ)
+	./makeversion "$(ARCH)" "$(CXXFLAGS)"
+	$(CXX) -I. -o arch/$(ARCH)/version.o -c version.cpp
+	$(CXX) -o ../../bin/arch/$(ARCH)/postoffice $(GUI_OBJ) $(BACKEND_OBJ) ../../lib/arch/$(ARCH)/libtoggletree.a \
+			  ../../lib/arch/$(ARCH)/libgdbm.a ../../lib/arch/$(ARCH)/librcl.a ../../lib/arch/$(ARCH)/librcledit.a ../../lib/arch/$(ARCH)/libfltk.a \
+			  $(LIBPTHREAD) $(LIBRESOLV) $(LIBDL) arch/$(ARCH)/version.o \
+			  -L/usr/X11R6/lib -lX11 -lXext -L/usr/lib/mysql -L/usr/local/mysql/lib -lmysqlclient -lm -ljpeg 
+
+#../../lib/arch/$(ARCH)/LeakTracer.o 
+
+# ==== Clean up the cruft for this architecture
+
+clean:
+	rm -f arch/$(ARCH)/*.o
+	rm -f ../../bin/arch/$(ARCH)/postoffice
+
+# === Create distribution of binary
+
+bindist:
+	tar cvf ../../dist/postoffice-bin-`date +%Y%m%d`-$(ARCH).tar -C ../.. bin/arch/$(ARCH)
+	gzip ../../dist/postoffice-bin-`date +%Y%m%d`-$(ARCH).tar
+
+# === General build rules for the sourcefiles
+
+arch/$(ARCH)/helpdesk-main.o: helpdesk-main.cpp $(ALL_DEP) $(MBOX_DEP) $(GUI_DEP) version.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/helpdesk-main.o helpdesk-main.cpp
+
+arch/$(ARCH)/helpdesk.o: helpdesk.cpp helpdesk.h version.h
+	./makeversion "$(ARCH)" "$(CXXFLAGS)"
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/helpdesk.o helpdesk.cpp
+
+arch/$(ARCH)/ht.o: ht.cpp ../../include/ht.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/ht.o ht.cpp
+
+arch/$(ARCH)/initexitthread.o: initexitthread.cpp ../../include/initexitthread.h $(MBOX_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/initexitthread.o initexitthread.cpp
+
+arch/$(ARCH)/iconbrowser.o: iconbrowser.cpp ../../include/iconbrowser.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/iconbrowser.o iconbrowser.cpp
+
+arch/$(ARCH)/prefpanel.o: prefpanel.cpp $(ALL_DEP) $(MBOX_DEP) $(GUI_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/prefpanel.o prefpanel.cpp
+
+arch/$(ARCH)/base64.o: base64.cpp ../../include/base64.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/base64.o base64.cpp
+
+arch/$(ARCH)/btree.o: btree.cpp ../../include/btree.h ../../include/semaphore.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/btree.o btree.cpp
+
+arch/$(ARCH)/buffer.o: buffer.cpp ../../include/buffer.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/buffer.o buffer.cpp
+
+arch/$(ARCH)/checksum.o: checksum.cpp ../../include/checksum.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/checksum.o checksum.cpp
+
+arch/$(ARCH)/ccache.o: ccache.cpp $(MBOX_DEP) ../../include/ccache.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/ccache.o ccache.cpp
+
+arch/$(ARCH)/chop.o: chop.cpp ../../include/chop.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/chop.o chop.cpp
+
+arch/$(ARCH)/composer.o: composer.cpp $(GUI_DEP) $(MBOX_DEP) version.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/composer.o composer.cpp
+
+arch/$(ARCH)/connection.o: connection.cpp ../../include/socketclasses.h ../../include/buffer.h buffer.cpp
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/connection.o connection.cpp
+
+arch/$(ARCH)/debug.o: debug.cpp ../../include/debug.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/debug.o debug.cpp
+
+arch/$(ARCH)/eaddr.o: eaddr.cpp ../../include/eaddr.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/eaddr.o eaddr.cpp
+
+arch/$(ARCH)/encode.o: encode.cpp ../../include/encode.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/encode.o encode.cpp
+
+arch/$(ARCH)/envelope.o: envelope.cpp ../../include/envelope.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/envelope.o envelope.cpp
+
+arch/$(ARCH)/filereq.o: filereq.cpp filereq.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/filereq.o filereq.cpp
+
+arch/$(ARCH)/filereq-main.o: filereq-main.cpp $(GUI_DEP) filereq.h filereq.cpp
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/filereq-main.o filereq-main.cpp
+
+arch/$(ARCH)/formatter.o: formatter.cpp ../../include/wordlist.h ../../include/formatter.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/formatter.o formatter.cpp
+
+arch/$(ARCH)/gdbmstorage.o: gdbmstorage.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/gdbmstorage.o gdbmstorage.cpp
+
+arch/$(ARCH)/gdbmtools.o: gdbmtools.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/gdbmtools.o gdbmtools.cpp
+
+arch/$(ARCH)/listviewtree.o: listviewtree.cpp $(GUI_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/listviewtree.o listviewtree.cpp
+
+arch/$(ARCH)/maccheck.o: maccheck.cpp $(GUI_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/maccheck.o maccheck.cpp
+
+arch/$(ARCH)/mailmessage.o: mailmessage.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailmessage.o mailmessage.cpp
+
+arch/$(ARCH)/mailstorage.o: mailstorage.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailstorage.o mailstorage.cpp
+
+arch/$(ARCH)/mailerthread.o: mailerthread.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailerthread.o mailerthread.cpp
+
+arch/$(ARCH)/mailview.o: mailview.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailview.o mailview.cpp
+
+arch/$(ARCH)/mailbox.o: mailbox.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailbox.o mailbox.cpp
+
+arch/$(ARCH)/mailboxtree.o: mailboxtree.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mailboxtree.o mailboxtree.cpp
+
+arch/$(ARCH)/mboxhandler.o: mboxhandler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mboxhandler.o mboxhandler.cpp
+
+arch/$(ARCH)/mboxstorage.o: mboxstorage.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mboxstorage.o mboxstorage.cpp
+
+arch/$(ARCH)/mdi.o: mdi.cpp $(GUI_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mdi.o mdi.cpp
+
+arch/$(ARCH)/mysql.o: mysql.cpp
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mysql.o mysql.cpp
+
+arch/$(ARCH)/nntphandler.o: nntphandler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/nntphandler.o nntphandler.cpp
+
+arch/$(ARCH)/outboxhandler.o: outboxhandler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/outboxhandler.o outboxhandler.cpp
+
+arch/$(ARCH)/mysqlhandler.o: mysqlhandler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/mysqlhandler.o mysqlhandler.cpp
+
+arch/$(ARCH)/pop3handler.o: pop3handler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/pop3handler.o pop3handler.cpp
+
+arch/$(ARCH)/imap4handler.o: imap4handler.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/imap4handler.o imap4handler.cpp
+
+arch/$(ARCH)/posixthread.o: posixthread.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/posixthread.o posixthread.cpp
+
+arch/$(ARCH)/prefjournal.o: prefjournal.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/prefjournal.o prefjournal.cpp
+
+arch/$(ARCH)/prefs.o: prefs.cpp
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/prefs.o prefs.cpp
+
+arch/$(ARCH)/reg.o: reg.cpp ../../include/reg.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/reg.o reg.cpp
+
+arch/$(ARCH)/scheduler.o: scheduler.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/scheduler.o scheduler.cpp
+
+arch/$(ARCH)/semaphore.o: semaphore.cpp ../../include/semaphore.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/semaphore.o semaphore.cpp
+
+arch/$(ARCH)/smtp.o: smtp.cpp $(MBOX_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/smtp.o smtp.cpp
+
+arch/$(ARCH)/status.o: status.cpp ../../include/status.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/status.o status.cpp
+
+arch/$(ARCH)/strdupp.o: strdupp.cpp ../../include/strdupp.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/strdupp.o strdupp.cpp
+
+arch/$(ARCH)/stringtoken.o: stringtoken.cpp ../../include/stringtoken.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/stringtoken.o stringtoken.cpp
+
+arch/$(ARCH)/storagelist.o: storagelist.cpp $(MBOX_DEP) $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/storagelist.o storagelist.cpp
+
+arch/$(ARCH)/style.o: style.cpp ../../include/style.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/style.o style.cpp
+
+arch/$(ARCH)/substr.o: substr.cpp ../../include/substr.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/substr.o substr.cpp
+
+arch/$(ARCH)/tolower.o: tolower.cpp ../../include/tolower.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/tolower.o tolower.cpp
+
+arch/$(ARCH)/usleep.o: usleep.cpp ../../include/usleep.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/usleep.o usleep.cpp
+
+arch/$(ARCH)/wordlist.o: wordlist.cpp ../../include/wordlist.h
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/wordlist.o wordlist.cpp
+
+arch/$(ARCH)/var.o: var.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/var.o var.cpp
+
+arch/$(ARCH)/itc.o: itc.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/itc.o itc.cpp
+
+arch/$(ARCH)/folderxpm.o: folderxpm.cpp
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/folderxpm.o folderxpm.cpp
+
+arch/$(ARCH)/var2.o: var2.cpp $(ALL_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/var2.o var2.cpp
+
+arch/$(ARCH)/wizard.o: wizard.cpp $(GUI_DEP) $(MBOX_DEP)
+	$(CXX) $(CXXFLAGS) $(XTRAFLAGS) -o arch/$(ARCH)/wizard.o wizard.cpp
+
+version.h:
+	./makeversion

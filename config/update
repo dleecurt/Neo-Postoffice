@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+open (FTP, "| ftp -n >& /dev/null");
+print FTP "open ftp.vuurwerk.nl\n";
+print FTP "user anonymous anon\@anon.com\n";
+print FTP "cd /pub/postoffice/snapshots\n";
+print FTP "lcd dist\n";
+print FTP "bin\n";
+print FTP "get .current\n";
+print FTP "quit\n";
+close (FTP);
+open (DISTFILE, "dist/.current");
+while (<DISTFILE>)
+{
+   chop;
+   if (! -e "dist/$_")
+   {
+      printf ("obtaining package: $_\n");
+      open (FTP, "| ftp -n >& /dev/null");
+      print FTP "open ftp.vuurwerk.nl\n";
+      print FTP "user anonymous anon\@anon.com\n";
+      print FTP "cd /pub/postoffice/snapshots\n";
+      print FTP "lcd dist\n";
+      print FTP "bin\n";
+      print FTP "get $_\n";
+      print FTP "quit\n";
+      close (FTP);
+      open (TAR, "gzip -dc dist/$_ | tar xvf - 2>&1 |");
+      while (<TAR>)
+      {
+         chop;
+         print "    $_\n";
+       }
+       close (TAR);
+   }
+   else
+   {
+      printf ("package $_ is up to date.\n");
+   }
+}
+close (DISTFILE);

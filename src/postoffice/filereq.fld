@@ -1,0 +1,88 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.00 
+header_name {.h} 
+code_name {.cpp} 
+gridx 5 
+gridy 5 
+snap 3
+decl {\#include "iconbrowser.h"} {} 
+
+Function {make_filereq()} {} {
+  Fl_Window {} {
+    xywh {476 51 501 321} resizable modal visible
+  } {
+    Fl_Group {} {
+      xywh {0 0 510 20}
+    } {
+      Fl_Button {} {
+        label {icons/fm/kfm_home.xpm}
+        callback cb_freq_home
+        xywh {10 0 30 20} box THIN_UP_BOX labeltype image
+      }
+      Fl_Button {} {
+        label {icons/fm/kfm_refresh.xpm}
+        callback cb_freq_reload
+        xywh {70 0 30 20} box THIN_UP_BOX labeltype image
+      }
+      Fl_Button {} {
+        label {icons/fm/desktop.xpm}
+        callback cb_freq_desktop
+        xywh {40 0 30 20} box THIN_UP_BOX labeltype image
+      }
+      Fl_Input in_freq_dir {
+        callback cb_freq_cd
+        xywh {190 0 310 20} labelsize 12 textsize 12
+      }
+      Fl_Button {} {
+        label {@\#-14->}
+        callback cb_freq_back
+        xywh {100 0 30 20} box THIN_UP_BOX labeltype SYMBOL_LABEL deactivate
+      }
+      Fl_Button {} {
+        label {@\#-12<-}
+        callback cb_freq_up
+        xywh {130 0 30 20} box THIN_UP_BOX labeltype SYMBOL_LABEL
+      }
+      Fl_Button {} {
+        xywh {0 0 10 20} box THIN_UP_BOX
+      }
+      Fl_Button {} {
+        label {icons/fm/mini-filemgr.xpm}
+        callback cb_freq_list
+        xywh {160 0 30 20} box THIN_UP_BOX labeltype image
+      }
+    }
+    Fl_Browser br_freq {
+      callback cb_freq_select selected
+      xywh {0 20 500 280} labelsize 12 align 20 textsize 12 resizable
+      code0 {\#include "iconbrowser.h"}
+      class Fl_Iconbrowser
+    }
+    Fl_Group {} {
+      xywh {0 300 500 20}
+    } {
+      Fl_Input in_freq_filename {
+        callback cb_freq_filename
+        xywh {0 300 380 20} labelsize 12 textsize 12
+      }
+      Fl_Group {} {open
+        xywh {380 300 60 20} box BORDER_FRAME color 0
+      } {
+        Fl_Button {} {
+          label OK
+          callback cb_freq_ok
+          xywh {382 302 58 18} labelsize 12
+        }
+      }
+      Fl_Group {} {open
+        xywh {440 300 60 20} box BORDER_FRAME color 0
+      } {
+        Fl_Button {} {
+          label Cancel
+          callback cb_freq_cancel
+          xywh {442 302 58 18} labelsize 12
+        }
+      }
+    }
+  }
+} 

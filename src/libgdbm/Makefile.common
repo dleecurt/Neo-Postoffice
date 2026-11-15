@@ -1,0 +1,9 @@
+include ../../config/config.$(HOST)
+
+all:
+	cd arch/$(ARCH) && make
+	cp arch/$(ARCH)/.libs/libgdbm.a ../../lib/arch/$(ARCH)/libgdbm.a
+	cp arch/$(ARCH)/gdbm.h ../../include/gdbm.h
+clean:
+	cd arch/$(ARCH) && make clean
+	rm -f ../../lib/arch/$(ARCH)/libgdbm.a

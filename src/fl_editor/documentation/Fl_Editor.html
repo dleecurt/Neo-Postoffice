@@ -1,0 +1,241 @@
+<HTML><BODY>
+<HR break>
+<img align=right src="Fl_Editor.jpg">
+<H2><A name=Fl_Editor>class Fl_Editor</A></H2>
+<HR>
+<H3>Class Hierarchy</H3>
+<UL>
+<PRE>
+<A href=Fl_Group.html#Fl_Group>Fl_Group</A>
+   |
+   +----<A href=Fl_Editor.html#Fl_Editor>Fl_Editor</A>,
+           |
+           +----<A href=Fl_MultiEditor.html>Fl_MultiEditor</A>
+</PRE>
+</UL>
+<H3>Include Files</H3>
+<UL>
+<PRE>
+#include &lt;FL/Fl_FancyEditor.H&gt;
+</PRE>
+</ul>
+<H3>Description</H3>
+This is an extension to the basic text editor widget.  This one supports
+interactive find and replace, an optional status panel display, and other features.
+<P>  
+The editor widgets allow you to enter text of any length,
+limited by available memory.   A number of operations can
+be performed on the text, including loading from and saving
+to files, cutting and pasting from the clipboard, and 
+searching and replacing text.
+<P>  
+The editor widgets support "CUA-style" keys.  That is, in
+addition to the normal ASCII keys, the following keys are
+recognized by the editor:
+<P>
+<table border=1>
+<tr><td>Cursor Arrows </td><td> Move left, right, up, and down</td></tr>
+<tr><td>Page Up/Down </td><td> Move the text up or down one screen</td></tr>
+<tr><td>Ctrl-Home </td><td> Move to the first character of the text</td></tr>
+<tr><td>Ctrl-End </td><td> Move to the last character of the text</td></tr>
+<tr><td>Home </td><td> Move to the start of the current line</td></tr>
+<tr><td>End </td><td> Move to the end of the current line</td></tr>
+<tr><td>Ctrl-Left </td><td> Move to the start of the previous word</td></tr>
+<tr><td>Ctrl-Right </td><td> Move to the start of the next word</td></tr>
+<tr><td>Delete </td><td> Delete the character under the cursor.</td></tr>
+<tr><td>Insert </td><td> Toggle Insert / Overstrike mode</td></tr>
+<tr><td>Backspace </td><td> Delete character to the left of the cursor.</td></tr>
+<tr><td>Shift-Delete or Ctrl-X </td><td> Cut selection to clipboard</td></tr>
+<tr><td>Ctrl-Insert or Ctrl-C  </td><td> Copy selection to clipboard   </td></tr>
+<tr><td>Shift-Insert or Ctrl-V </td><td> Paste from clipboard</td></tr>
+<tr><td>Mouse </td><td> Click for cursor placement<br>
+                   Double-click selects word<br>
+                   Triple-click selects line<br>
+                   Click and drag selects text.</td>         </tr>
+<tr><td>Shift </td><td> hold the Shift key while moving the cursor to select text.	 </td>         </tr>
+</table>
+<P>   
+The editor also has a scrollbar which will automatically appear when the
+text being edited is larger than will fit in the visible area.  Text is reformatted automatically
+when the editor widget is resized.
+<P>
+Also please note that this is NOT presently a "rich text"
+editor -- that is, it doesn't support more than one font,
+size, or color at a time.  This is planned for a future
+release, but the present widgets limit you to one font at a
+time.
+<P>
+<H3>Methods</H3>
+<CENTER>
+<TABLE width=90%>
+<TR>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_Editor.Fl_Editor>Fl_Editor</A></LI>
+<LI><A href=#Fl_Editor.Fl_Editor>~Fl_Editor</A></LI>
+<LI><A href=#Fl_Editor.browse>browse</A></LI>
+<LI><A href=#Fl_Editor.changed>changed</A></LI>
+<LI><A href=#Fl_Editor.CharacterCount>CharacterCount</A></LI>
+<LI><A href=#Fl_Editor.Clear>Clear</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_Editor.Copy>Copy</A></LI>
+<LI><A href=#Fl_Editor.CursorX>CursorX</A></LI>
+<LI><A href=#Fl_Editor.CursorY>CursorY</A></LI>
+<LI><A href=#Fl_Editor.Cut>Cut</A></LI>
+<LI><A href=#Fl_Editor.draw>draw</A></LI>
+<LI><A href=#Fl_Editor.draw_clip>draw_clip</A></LI>
+<LI><A href=#Fl_Editor.Engine>Engine</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_Editor.FindColumn>FindColumn</A></LI>
+<LI><A href=#Fl_Editor.FindRow>FindRow</A></LI>
+<LI><A href=#Fl_Editor.FindRow>FindCursor</A></LI>
+<LI><A href=#Fl_Editor.handle>handle</A></LI>
+<LI><A href=#Fl_Editor.HandleScroll>HandleScroll</A></LI>
+<LI><A href=#Fl_Editor.HideCursor>HideCursor</A></LI>
+</UL>
+</TD>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_Editor.LoadFrom>LoadFrom</A></LI>
+<LI><A href=#Fl_Editor.Paste>Paste</A></LI>
+<LI><A href=#Fl_Editor.readonly>readonly</A></LI>
+<LI><A href=#Fl_Editor.Replace>Replace</A></LI>
+<LI><A href=#Fl_Editor.resize>resize</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_Editor.SaveTo>SaveTo</A></LI>
+<LI><A href=#Fl_Editor.scrollspeed>scrollspeed</A></LI>
+<LI><A href=#Fl_Editor.SyncDisplay>SyncDisplay</A></LI>
+<LI><A href=#Fl_Editor.textcolor>textcolor</A></LI>
+<LI><A href=#Fl_Editor.textfont>textfont</A></LI>
+<LI><A href=#Fl_Editor.textsize>textsize</A></LI>
+<LI><A href=#Fl_Editor.textsize>TimerEnabled</A></LI>
+<LI><A href=#Fl_Editor.Wrap>Wrap</A></LI>
+</UL>
+</TD>
+
+</TR>
+</TABLE>
+</CENTER>
+<H4><A name=Fl_Editor.Fl_Editor>Fl_Editor::Fl_Editor(int x, int y, int w, 
+int h, const char *label = 0)</A></H4>
+ Creates a new <TT>Fl_Editor</TT> widget using the given position, size, 
+and label string. The default boxtype is <TT>FL_DOWN_BOX</TT>. The widget will
+be created to fit within the given dimensions.
+
+<H4><A name=Fl_Editor.~Fl_Editor>virtual Fl_Editor::~Fl_Editor()</A></H4>
+ Destroys the widget and any value associated with it. 
+
+<H4><A name=Fl_Editor.Browse>void Fl_Editor::browse(bool)</A></H4>
+Changes the editor state into or out of "browse mode".  In browse mode,
+the editor is made read-only, the cursor is hidden, and using the 
+up/down arrows scrolls the visible text.  This is useful for situations where 
+all you want to do is display some text, but not edit it.
+ 
+<H4><A name=Fl_Editor.changed>bool Fl_Editor::changed()</A></H4>
+ Returns true if there have been any changes to the edited text,
+ otherwise returns false.
+<H4><A name=Fl_Editor.CharacterCount>long Fl_Editor::CharacterCount()</A></H4>
+ Returns the character count in the editor's buffers.  This is useful if you need
+ to save the edited text to a buffer, since you can just allocate a buffer
+ of this size plus 1 (for terminating null character), then call 
+ <a href="#Fl_Editor.SaveTo">SaveTo()</a> with your buffer as an argument.
+<H4><A name=Fl_Editor.Clear>void Fl_Editor::Clear()</A></H4>
+ Resets the editor to a "clean slate" -- a blank document, cursor at the start of 
+ the document.
+
+<H4><A name=Fl_Editor.Copy>void Fl_Editor::Copy()</A></H4>
+Copy selected text to the clipboard.
+<H4><A name=Fl_Editor.CursorX>short Fl_Editor::CursorX()</A><br>
+    <A name=Fl_Editor.CursorY>short Fl_Editor::CursorY()</A></H4>
+Based on the position of the logical cursor in the edit buffer, returns
+the top left corner where the cursor image will be drawn on the display.    
+ <H4><A name=Fl_Editor.Cut>void Fl_Editor::Cut()</A></H4>
+Cuts selected text to the clipboard.
+<H4><A name=Fl_Editor.draw>void Fl_Editor::draw()</A></H4>
+Redraws the editor.  Tries to minimize the area redrawn to only the part that
+actually needs drawn.
+<H4><A name=Fl_Editor.draw_clip>void Fl_Editor::draw_clip(void *, int, int, int, int)</A></H4>
+Used in conjunction with the HandleScroll() routine to redraw while scrolling.  
+<H4><A name=Fl_Editor.Engine>void Fl_Editor::Engine()</A></H4>
+Returns a pointer to the editor engine being driven by the widget.  This engine can be driven by
+sending it commands (see the header file, editor.hpp for details), and then resynchronized with the editor
+widget by calling SyncDisplay() on the widget.  
+
+<H4><A name=Fl_Editor.FindColumn>long Fl_Editor::FindColumn(short)</A><br>
+ <A name=Fl_Editor.FindRow>long Fl_Editor::FindRow(short)</A></H4>
+ <A name=Fl_Editor.FindCursor>void Fl_Editor::FindCursor()</A></H4>
+Positions the logical edit cursor based on a screen position.  Returns the position set.  If the cursor is outside the 
+text (for example, a mouse click past the end of the text being edited), both functions will position to the
+end of the text and return -1.
+<H4><A name=Fl_Editor.handle>void Fl_Editor::handle()</A></H4>
+This is the event handler loop.  If you need to subclass and define special event
+processing, this is where you'll start.  
+
+<H4><A name=Fl_Editor.HandleScroll>void Fl_Editor::HandleScroll()</A></H4>
+Checks for whether the widget display contains the logical cursor.  If it 
+doesn't, it is automatically "scrolled" (redrawn) so that the cursor is visible.
+<H4><A name=Fl_Editor.HideCursor>void Fl_Editor::HideCursor(bool)</A><br>
+    bool Fl_Editor::HideCursor()</A></H4>
+Allows for having the cursor shown or hidden, or determining the present state.
+<H4><A name=Fl_Editor.LoadFrom>short Fl_Editor::LoadFrom(const char *)</A><br>
+    void Fl_Editor::LoadFrom(FILE *)</A></H4>
+Reads a file or buffer, inserting it at the current cursor position.  
+<H4><A name=Fl_Editor.Paste>void Fl_Editor::Paste()</A></H4>
+Paste from the clipboard at the current cursor location.  After pasting, the cursor
+will be positioned at the <i>end</i> of the inserted text.  
+<H4><A name=Fl_Editor.readonly>bool Fl_Editor::readonly()</A><br>
+     void Fl_Editor::readonly(bool)</H4>
+Determine whether the edit buffer is read only, and be able to change whether 
+it is or not.
+<H4><A name=Fl_Editor.Replace>void Fl_Editor::Replace()</A></H4>
+Displays a "search and replace" dialog where the user can enter a string to
+search for and replace with another string.  Various options can be set for case
+sensitivity, etc., and the user can optionally be asked to confirm each
+replacement.
+<H4><A name=Fl_Editor.resize>void Fl_Editor::resize()</A></H4>
+Overrides the standard FLTK resize method.  Reformats the text to match the new size.
+
+<H4><A name=Fl_Editor.SaveTo>short Fl_Editor::SaveTo(char *)<br>
+    void Fl_Editor::SaveTo(FILE *)</A></H4>
+Saves the entire contents of the editor to the buffer or file specified.  Note
+that no length checking is done when saving to buffers.  You should check your
+buffer size against <a href="#Fl_Editor.CharacterCount">CharacterCount()</a> first.
+<H4><A name=Fl_Editor.scrollspeed>void Fl_Editor::scrollspeed(int lines)<br>
+     int Fl_Editor::scrollspeed()</A></H4>
+Get or set the speed at which scroll select operates, in lines per second.  The 
+default is five lines per second.
+<H4><A name=Fl_Editor.SyncDisplay>void Fl_Editor::SyncDisplay()</A></H4>
+The editor uses an internal engine that can be manipulated without involving the 
+user or the display.  This function allows for synchronizing the display with the
+present editor state after programmatic manipulations.
+
+<H4><A name=Fl_Editor.textcolor>Fl_Color Fl_Editor::textcolor() const
+<BR> void Fl_Editor::textcolor(Fl_Color)</A></H4>
+ Gets or sets the color of the text in the input field. 
+<H4><A name=Fl_Editor.textfont>Fl_Font Fl_Editor::textfont() const
+<BR> void Fl_Editor::textfont(Fl_Font)</A></H4>
+ Gets or sets the font of the text in the input field. 
+<H4><A name=Fl_Editor.textsize>uchar Fl_Editor::textsize() const
+<BR> void Fl_Editor::textsize(uchar)</A></H4>
+ Gets or sets the size of the text in the input field. 
+<H4><A name=Fl_Editor.TimerEnabled>bool Fl_Editor::TimerEnabled() const</A></H4>
+ Returns true if the scroll timer is presently enabled (if the user is drag-selecting and has
+ moved the mouse outside the bounds of the widget).
+<H4><A name=Fl_Editor.Wrap>bool Fl_Editor::Wrap()<BR>
+         void Fl_Editor::Wrap(bool)</A></H4>
+ Read the word wrap state, or change it.  Setting it true turns on word wrap.  Setting it 
+ false turns off word wrap, but the cursor still wraps at the margin.  (That is, with word
+ wrap off, when the user hits the margin, the word will split in the middle and typing
+ will continue on the next line.)
+
+</BODY></HTML>

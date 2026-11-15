@@ -1,0 +1,88 @@
+<HTML><BODY>
+<HR break>
+<img align=right src="Fl_ProgressBox.jpg">
+<H2><A name=Fl_ProgressBox>class Fl_ProgressBox</A></H2>
+<HR>
+<H3>Class Hierarchy</H3>
+<UL>
+<PRE>
+<A href=Fl_Box.html#Fl_Box>Fl_Box</A>
+   |
+   +----<A href=Fl_ProgressBox.html#Fl_ProgressBox>Fl_ProgressBox</A>,
+</PRE>
+</UL>
+<H3>Include Files</H3>
+<UL>
+<PRE>
+#include &lt;FL/Fl_ProgressBox.H&gt;
+</PRE>
+</ul>
+<H3>Description</H3>
+This is a simple "progress bar" that you can use to show the progress of lengthy operations.  
+You can use an arbitrary range, not just 0 to 100.  You can also show (or not) the percentage
+as text in the middle (and still display a normal widget label too).
+<P>
+<H3>Methods</H3>
+<CENTER>
+<TABLE width=90%>
+<TR>
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_ProgressBox.Fl_ProgressBox>Fl_ProgressBox</A></LI>
+<LI><A href=#Fl_ProgressBox.min>min</A></LI>
+<LI><A href=#Fl_ProgressBox.max>max</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_ProgressBox.position>position</A></LI>
+<LI><A href=#Fl_ProgressBox.range>range</A></LI>
+<LI><A href=#Fl_ProgressBox.step>step</A></LI>
+</UL>
+</TD>
+
+<TD align=left valign=top>
+<UL>
+<LI><A href=#Fl_ProgressBox.showtext>showtext</A></LI>
+<LI><A href=#Fl_ProgressBox.showtext>textcolor</A></LI>
+</UL>
+</TD>
+
+</TR>
+</TABLE>
+</CENTER>
+<H4><A name=Fl_ProgressBox.Fl_ProgressBox>Fl_ProgressBox::Fl_ProgressBox(int x, int y, int w, 
+int h, const char *label = 0)</A></H4>
+ Creates a new <TT>Fl_ProgressBox</TT> widget using the given position, size, 
+and label string.   You probably don't want to put your label inside the box, since it's going to be 
+overridden when it gets drawn.
+
+<H4><A name=Fl_ProgressBox.min>void Fl_ProgressBox::min(double)
+<BR> double Fl_ProgressBox::min()</A></H4>
+ Get or set the minimum value of the range to be displayed.
+
+<H4><A name=Fl_ProgressBox.min>void Fl_ProgressBox::max(double)
+<BR> double Fl_ProgressBox::max()</A></H4>
+ Get or set the maximum value of the range to be displayed.
+
+<H4><A name=Fl_ProgressBox.min>void Fl_ProgressBox::position(double)
+<BR> double Fl_ProgressBox::position()</A></H4>
+ Set the position of the progress bar and redraw it.  Poisition should be between the minimum and
+ maximum values.
+
+<H4><A name=Fl_ProgressBox.min>void Fl_ProgressBox::showtext(bool)
+<BR> bool Fl_ProgressBox::showtext()</A></H4>
+ Controls whether or not a percentage text is displayed within the bar.  Text is displayed in
+ the textcolor() color.
+
+<H4><A name=Fl_ProgressBox.min>void Fl_ProgressBox::showtext(bool)
+<BR> bool Fl_ProgressBox::showtext()</A></H4>
+ Controls whether or not a percentage text is displayed within the bar.  Text is displayed in
+ the textcolor() color.
+
+<H4><A name=Fl_ProgressBox.textcolor>Fl_Color Fl_ProgressBox::textcolor() const
+<BR> void Fl_ProgressBox::textcolor(Fl_Color)</A></H4>
+ Gets or sets the color of the text used to display the percentage text.
+
+</BODY></HTML>

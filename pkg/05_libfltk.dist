@@ -1,0 +1,117 @@
+#!/bin/sh
+ls -1 pkg/05_libfltk.*
+ls -1 src/libfltk/src/*.cxx
+ls -1 src/libfltk/src/*.H
+ls -1 src/libfltk/src/Makefile*
+ls -1 src/libfltk/src/*.xbm
+ls -1 src/libfltk/src/*.h
+ls -1 src/libfltk/src/*.c
+ls -1 src/libfltk/src/makedepend
+ls -1 src/libfltk/configure*
+ls -1 src/libfltk/configh.in
+ls -1 src/libfltk/forms.h
+ls -1 src/libfltk/install-sh
+ls -1 src/libfltk/CHANGES
+ls -1 src/libfltk/COPYING
+ls -1 src/libfltk/README
+ls -1 src/libfltk/Makefile.common
+ls -1 src/libfltk/Makefile
+ls -1 src/libfltk/makeinclude.in
+echo include/FL/Enumerations.H
+echo include/FL/Fl.H
+echo include/FL/Fl_Adjuster.H
+echo include/FL/Fl_Bitmap.H
+echo include/FL/Fl_Box.H
+echo include/FL/Fl_Browser.H
+echo include/FL/Fl_Browser_.H
+echo include/FL/Fl_Button.H
+echo include/FL/Fl_Chart.H
+echo include/FL/Fl_Check_Button.H
+echo include/FL/Fl_Choice.H
+echo include/FL/Fl_Clock.H
+echo include/FL/Fl_Color_Chooser.H
+echo include/FL/Fl_Counter.H
+echo include/FL/Fl_Dial.H
+echo include/FL/Fl_Double_Window.H
+echo include/FL/Fl_Fill_Dial.H
+echo include/FL/Fl_Fill_Slider.H
+echo include/FL/Fl_Float_Input.H
+echo include/FL/Fl_FormsBitmap.H
+echo include/FL/Fl_FormsPixmap.H
+echo include/FL/Fl_Free.H
+echo include/FL/Fl_Gl_Window.H
+echo include/FL/Fl_Group.H
+echo include/FL/Fl_Hold_Browser.H
+echo include/FL/Fl_Hor_Fill_Slider.H
+echo include/FL/Fl_Hor_Nice_Slider.H
+echo include/FL/Fl_Hor_Slider.H
+echo include/FL/Fl_Hor_Value_Slider.H
+echo include/FL/Fl_Image.H
+echo include/FL/Fl_Input.H
+echo include/FL/Fl_Input_.H
+echo include/FL/Fl_Int_Input.H
+echo include/FL/Fl_Light_Button.H
+echo include/FL/Fl_Line_Dial.H
+echo include/FL/Fl_Menu.H
+echo include/FL/Fl_Menu_.H
+echo include/FL/Fl_Menu_Bar.H
+echo include/FL/Fl_Menu_Button.H
+echo include/FL/Fl_Menu_Item.H
+echo include/FL/Fl_Menu_Window.H
+echo include/FL/Fl_Multi_Browser.H
+echo include/FL/Fl_Multi_Label.H
+echo include/FL/Fl_Multiline_Input.H
+echo include/FL/Fl_Multiline_Output.H
+echo include/FL/Fl_Nice_Slider.H
+echo include/FL/Fl_Object.H
+echo include/FL/Fl_Output.H
+echo include/FL/Fl_Overlay_Window.H
+echo include/FL/Fl_Pack.H
+echo include/FL/Fl_Pixmap.H
+echo include/FL/Fl_Positioner.H
+echo include/FL/Fl_Radio_Button.H
+echo include/FL/Fl_Radio_Light_Button.H
+echo include/FL/Fl_Radio_Round_Button.H
+echo include/FL/Fl_Repeat_Button.H
+echo include/FL/Fl_Return_Button.H
+echo include/FL/Fl_Roller.H
+echo include/FL/Fl_Round_Button.H
+echo include/FL/Fl_Round_Clock.H
+echo include/FL/Fl_Scroll.H
+echo include/FL/Fl_Scrollbar.H
+echo include/FL/Fl_Secret_Input.H
+echo include/FL/Fl_Select_Browser.H
+echo include/FL/Fl_Simple_Counter.H
+echo include/FL/Fl_Single_Window.H
+echo include/FL/Fl_Slider.H
+echo include/FL/Fl_Tabs.H
+echo include/FL/Fl_Tile.H
+echo include/FL/Fl_Timer.H
+echo include/FL/Fl_Toggle_Button.H
+echo include/FL/Fl_Toggle_Light_Button.H
+echo include/FL/Fl_Toggle_Round_Button.H
+echo include/FL/Fl_Valuator.H
+echo include/FL/Fl_Value_Input.H
+echo include/FL/Fl_Value_Output.H
+echo include/FL/Fl_Value_Slider.H
+echo include/FL/Fl_Widget.H
+echo include/FL/Fl_Window.H
+echo include/FL/dirent.h
+echo include/FL/filename.H
+echo include/FL/fl_ask.H
+echo include/FL/fl_draw.H
+echo include/FL/fl_file_chooser.H
+echo include/FL/fl_message.H
+echo include/FL/fl_show_colormap.H
+echo include/FL/fl_show_input.H
+echo include/FL/forms.H
+echo include/FL/gl.h
+echo include/FL/gl2opengl.h
+echo include/FL/gl_draw.H
+echo include/FL/glut.H
+echo include/FL/math.h
+echo include/FL/menubar.h
+echo include/FL/win32.H
+echo include/FL/x.H
+echo include/GL/glut.h
+echo include/Fl

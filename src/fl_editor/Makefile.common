@@ -1,0 +1,282 @@
+include ../../config/config.$(HOST)
+
+IDE_ALL_SRCS = \
+	librcl/src/editor/edfile.cpp\
+	librcl/src/editor/engappd.cpp\
+	librcl/src/editor/engbsdel.cpp\
+	librcl/src/editor/engclear.cpp\
+	librcl/src/editor/engcmd.cpp\
+	librcl/src/editor/engcursr.cpp\
+	librcl/src/editor/engdeol.cpp\
+	librcl/src/editor/engfind.cpp\
+	librcl/src/editor/engfmt.cpp\
+	librcl/src/editor/engine.cpp\
+	librcl/src/editor/enginsch.cpp\
+	librcl/src/editor/enginsl.cpp\
+	librcl/src/editor/englfit.cpp\
+	librcl/src/editor/engrcopy.cpp\
+	librcl/src/editor/engrdel.cpp\
+	librcl/src/editor/engreml.cpp\
+	librcl/src/editor/engrpast.cpp\
+	librcl/src/editor/engsortp.cpp\
+	librcl/src/misc/lists.cpp\
+	librcl/src/misc/powten.cpp\
+	librcl/src/string/commdel.cpp\
+	librcl/src/string/stextrac.cpp\
+	librcl/src/string/stjust.cpp\
+	librcl/src/string/strepeat.cpp\
+	librcl/src/string/strings.cpp\
+	librcl/src/string/ststrip.cpp\
+	librcl/src/string/stwords.cpp\
+	librcledit/src/Fl_Editor.cxx\
+	librcledit/src/Fl_MultiEditor.cxx\
+	librcledit/src/Fl_FancyEditor.cxx\
+	librcledit/src/Fl_FancyMultiEditor.cxx\
+	librcledit/src/Fl_ProgressBox.cxx\
+	librcledit/src/Fl_StatusPanel.cxx\
+	librcledit/test/single.cpp\
+	librcledit/test/multiple.cpp\
+	librcledit/test/multfunc.cpp
+
+all: ../../lib/arch/$(ARCH)/librcledit.a \
+	 ../../lib/arch/$(ARCH)/librcl.a
+
+clean::
+	rm -f arch/$(ARCH)/*.o;
+	rm -f ../../lib/$(ARCH)/librcl*.a;
+	rm -f `find . -name core`
+
+../../lib/arch/$(ARCH)/librcledit.a:	arch/$(ARCH)/Fl_Editor.o\
+	arch/$(ARCH)/Fl_MultiEditor.o\
+	arch/$(ARCH)/Fl_FancyEditor.o\
+	arch/$(ARCH)/Fl_FancyMultiEditor.o\
+	arch/$(ARCH)/Fl_StatusPanel.o\
+	arch/$(ARCH)/Fl_ProgressBox.o
+	$(AR) -cr $@ \
+	arch/$(ARCH)/Fl_Editor.o \
+	arch/$(ARCH)/Fl_FancyEditor.o \
+	arch/$(ARCH)/Fl_FancyMultiEditor.o \
+	arch/$(ARCH)/Fl_StatusPanel.o \
+	arch/$(ARCH)/Fl_ProgressBox.o \
+	arch/$(ARCH)/Fl_MultiEditor.o
+
+../../lib/arch/$(ARCH)/librcl.a: \
+	arch/$(ARCH)/edfile.o\
+	arch/$(ARCH)/engappd.o\
+	arch/$(ARCH)/engbsdel.o\
+	arch/$(ARCH)/engclear.o\
+	arch/$(ARCH)/engcmd.o\
+	arch/$(ARCH)/engcursr.o\
+	arch/$(ARCH)/engdeol.o\
+	arch/$(ARCH)/engfind.o\
+	arch/$(ARCH)/engfmt.o\
+	arch/$(ARCH)/engine.o\
+	arch/$(ARCH)/enginsch.o\
+	arch/$(ARCH)/enginsl.o\
+	arch/$(ARCH)/englfit.o\
+	arch/$(ARCH)/engrcopy.o\
+	arch/$(ARCH)/engrdel.o\
+	arch/$(ARCH)/engreml.o\
+	arch/$(ARCH)/engrpast.o\
+	arch/$(ARCH)/engsortp.o\
+	arch/$(ARCH)/lists.o\
+	arch/$(ARCH)/powten.o\
+	arch/$(ARCH)/commdel.o\
+	arch/$(ARCH)/stextrac.o\
+	arch/$(ARCH)/stjust.o\
+	arch/$(ARCH)/strepeat.o\
+	arch/$(ARCH)/strings.o\
+	arch/$(ARCH)/ststrip.o\
+	arch/$(ARCH)/stwords.o
+	rm -f $@; $(AR) -cr $@ \
+	arch/$(ARCH)/edfile.o \
+	arch/$(ARCH)/engappd.o \
+	arch/$(ARCH)/engbsdel.o \
+	arch/$(ARCH)/engclear.o \
+	arch/$(ARCH)/engcmd.o \
+	arch/$(ARCH)/engcursr.o \
+	arch/$(ARCH)/engdeol.o \
+	arch/$(ARCH)/engfind.o \
+	arch/$(ARCH)/engfmt.o \
+	arch/$(ARCH)/engine.o \
+	arch/$(ARCH)/enginsch.o \
+	arch/$(ARCH)/enginsl.o \
+	arch/$(ARCH)/englfit.o \
+	arch/$(ARCH)/engrcopy.o \
+	arch/$(ARCH)/engrdel.o \
+	arch/$(ARCH)/engreml.o \
+	arch/$(ARCH)/engrpast.o \
+	arch/$(ARCH)/engsortp.o \
+	arch/$(ARCH)/lists.o \
+	arch/$(ARCH)/powten.o \
+	arch/$(ARCH)/commdel.o \
+	arch/$(ARCH)/stextrac.o \
+	arch/$(ARCH)/stjust.o \
+	arch/$(ARCH)/strepeat.o \
+	arch/$(ARCH)/strings.o \
+	arch/$(ARCH)/ststrip.o \
+	arch/$(ARCH)/stwords.o
+
+arch/$(ARCH)/edfile.o : librcl/src/editor/edfile.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/edfile.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engappd.o : librcl/src/editor/engappd.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engappd.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engbsdel.o : librcl/src/editor/engbsdel.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engbsdel.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engclear.o : librcl/src/editor/engclear.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engclear.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engcmd.o : librcl/src/editor/engcmd.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engcmd.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engcursr.o : librcl/src/editor/engcursr.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engcursr.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engdeol.o : librcl/src/editor/engdeol.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engdeol.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engfind.o : librcl/src/editor/engfind.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engfind.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engfmt.o : librcl/src/editor/engfmt.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engfmt.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engine.o : librcl/src/editor/engine.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engine.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/enginsch.o : librcl/src/editor/enginsch.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/enginsch.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/enginsl.o : librcl/src/editor/enginsl.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/enginsl.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/englfit.o : librcl/src/editor/englfit.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/englfit.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engrcopy.o : librcl/src/editor/engrcopy.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engrcopy.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engrdel.o : librcl/src/editor/engrdel.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engrdel.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engreml.o : librcl/src/editor/engreml.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engreml.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engrpast.o : librcl/src/editor/engrpast.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engrpast.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/engsortp.o : librcl/src/editor/engsortp.cpp
+	$(CXX) -g -c -o $@ librcl/src/editor/engsortp.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/lists.o : librcl/src/misc/lists.cpp
+	$(CXX) -g -c -o $@ librcl/src/misc/lists.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/powten.o : librcl/src/misc/powten.cpp
+	$(CXX) -g -c -o $@ librcl/src/misc/powten.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/commdel.o : librcl/src/string/commdel.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/commdel.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/stextrac.o : librcl/src/string/stextrac.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/stextrac.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/stjust.o : librcl/src/string/stjust.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/stjust.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/strepeat.o : librcl/src/string/strepeat.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/strepeat.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/strings.o : librcl/src/string/strings.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/strings.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/ststrip.o : librcl/src/string/ststrip.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/ststrip.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/stwords.o : librcl/src/string/stwords.cpp
+	$(CXX) -g -c -o $@ librcl/src/string/stwords.cpp -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_Editor.o : librcledit/src/Fl_Editor.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_Editor.cxx -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_FancyEditor.o : librcledit/src/Fl_FancyEditor.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_FancyEditor.cxx -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_FancyMultiEditor.o : librcledit/src/Fl_FancyMultiEditor.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_FancyMultiEditor.cxx -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_StatusPanel.o : librcledit/src/Fl_StatusPanel.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_StatusPanel.cxx -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_ProgressBox.o : librcledit/src/Fl_ProgressBox.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_ProgressBox.cxx -I. -I../../include $(CXXFLAGS)
+
+
+
+arch/$(ARCH)/Fl_MultiEditor.o : librcledit/src/Fl_MultiEditor.cxx
+	$(CXX) -g -c -o $@ librcledit/src/Fl_MultiEditor.cxx -I. -I../../include $(CXXFLAGS)
+

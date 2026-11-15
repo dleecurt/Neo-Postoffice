@@ -1,0 +1,36 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.00 
+header_name {.h} 
+code_name {.cpp} 
+gridx 5 
+gridy 5 
+snap 3
+Function {make_requester()} {open
+} {
+  Fl_Window {} {
+    label Warning open
+    xywh {556 41 327 113} labelsize 12 modal visible
+  } {
+    Fl_Group {} {open
+      xywh {10 10 310 70} box DOWN_BOX color 50
+    } {
+      Fl_Box {} {
+        label {/usr/share/icons/information.xpm}
+        xywh {15 20 45 45} labeltype image
+      }
+      Fl_Box {} {
+        label {PLEASE no shake the developer while in the box. No trip on bugs while in building. Washing of hands recommended -Mgmt.}
+        xywh {65 10 255 70} labelsize 12 align 148 resizable
+      }
+    }
+    Fl_Group {} {open
+      xywh {250 85 70 20} box BORDER_FRAME color 0
+    } {
+      Fl_Button {} {
+        label OK
+        callback cb_requester_ok
+        xywh {252 87 68 18} labelsize 12
+      }
+    }
+  }
+} 
