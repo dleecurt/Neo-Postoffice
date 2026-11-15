@@ -1,76 +1,155 @@
-# PostOffice 0.7.3
+# Neo-PostOffice
 
-PostOffice is an X11 mail and Usenet client for Unix, written in C++ with the
-FLTK toolkit. This repository preserves the 0.7.3 source release (June 2000).
+Neo-PostOffice is a modernized PostOffice, the X11 mail and Usenet client
+written in C++ by **Pim van Riezen** (Mad Science Labs, Rotterdam) in
+1999–2000. It is based on the PostOffice 0.7.3 source release, which is
+preserved unchanged in
+[dleecurt/postoffice](https://github.com/dleecurt/postoffice).
 
-PostOffice was written by **Pim van Riezen**, Mad Science Labs, Rotterdam, The
-Netherlands, with sponsorship from Vuurwerk Internet, Haarlem. This is an
-archival import, not the original project home. The upstream FTP site
-(ftp.vuurwerk.nl) no longer exists.
+The modernization builds against the current FLTK 1.4 toolkit with CMake,
+compiles without warnings, and fixes bugs found along the way. The user
+interface and behavior are intentionally kept close to the original.
 
 ## Features
 
-- POP3, IMAP4, SMTP and NNTP (Usenet) support, with a background outbox
-- Mail storage in mbox files, a GDBM message store, or a MySQL database
-- MDI interface with a folder tree, message index, composer, preferences
-  panel and first-run setup wizard
-- Threaded back end (POSIX threads) for fetching mail in the background
-
-## Contents
-
-| Path | What it is |
-|---|---|
-| `src/postoffice` | The PostOffice client |
-| `src/libfltk` | FLTK 1.0.4 (bundled) |
-| `src/libgdbm` | GNU DBM 1.8.0 (bundled) |
-| `src/fl_editor` | Fl_Editor text editor widget 0.3, by Robert Kesterson |
-| `src/toggletree` | Fl_Toggle_Tree widget 0.2.4 by Maarten de Boer and James Dean Palmer, with PostOffice patches |
-| `include` | Shared headers, including the FLTK headers |
-| `config`, `pkg` | Build system: Perl configure script and package descriptions |
+- POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
+- Local mbox files as mailboxes
+- Mail storage in GDBM (optionally MySQL/MariaDB)
+- Filter rules that sort incoming mail into folders
+- Inline display of JPEG attachments, clickable links
+- Multiple message views, composer with quoting and templates
 
 ## Building
 
-The original build supports IRIX 6.2+, Solaris and Linux of the period:
+On Debian 13 (trixie):
 
-    make            # runs config/softlinks, config/configure, then builds every package
-    make clean
-    make bindist
+    sudo apt install build-essential cmake libfltk1.4-dev libgdbm-dev \
+                     libx11-dev libxext-dev
+    cmake -S . -B build
+    cmake --build build -j$(nproc)
+    ./build/postoffice
 
-The build needs Perl, a C++ compiler, X11, libjpeg and the MySQL client
-library. **It will not build unmodified on a current Linux system.** For
-example, some sources include the pre-standard `<iostream.h>` header, and the
-bundled FLTK 1.0.4 is very old. The `make update` target fetched snapshots
-from the defunct upstream FTP server and no longer works.
+Install with `sudo cmake --install build` (default prefix `/usr/local`).
 
-## Changes from the original tarball
+Requirements: a C++17 compiler, CMake 3.16+, FLTK 1.4 (with its image
+library) and GDBM. FLTK is found through its CMake package or, failing
+that, `fltk-config`. To use a self-built FLTK, add
+`-DCMAKE_PREFIX_PATH=/path/to/fltk`.
 
-The source code is unchanged except for the following cleanup for publication:
+### Build options
 
-- Removed the `CVS/` metadata directories, editor backup files (`*~`) and
-  `xv` thumbnail caches (`.xvpics/`)
-- Removed the generated `src/postoffice/version.h`, which `makeversion`
-  recreates during the build
-- In `helpdesk.fld` / `helpdesk.cpp`, replaced design-time placeholder text in
-  the About dialog (the original developer's workstation hostname and login)
-  with `(kernel)` and `(build info)`. The program replaces these labels with
-  real build information at run time, so its behavior is unchanged.
-- Added this README, `LICENSE` and `.gitignore`
+| Option | Default | Meaning |
+|---|---|---|
+| `WITH_MYSQL` | `OFF` | Build the MySQL/MariaDB mailbox back end (needs `libmariadb-dev`) |
+| `PO_WARNINGS` | `ON` | Compile with `-Wall -Wextra` |
+
+### Debug build with sanitizers
+
+    cmake -S . -B build-asan -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+    cmake --build build-asan -j$(nproc)
+    ASAN_OPTIONS=detect_leaks=0 ./build-asan/postoffice
+
+Leak detection is off because the original code does not free everything
+at exit.
+
+## Using it
+
+On first start a wizard asks for your name and e-mail address and,
+optionally, a POP3 and an NNTP server. Settings live in
+`~/.postoffice/resource.rc`. Remove or rename `~/.postoffice` to start
+over.
+
+Clicking a link runs the command in the preference
+`postoffice/gui/action/http`, with `$` replaced by the URL. The default
+is `xdg-open $`. The URL is passed to the shell as a separate argument,
+so links in messages cannot inject commands.
+
+## Source layout
+
+| Path | Contents |
+|---|---|
+| `src/postoffice/` | The application |
+| `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
+| `src/postoffice/icons/` | XPM icons and banner artwork |
+| `include/` | Application headers |
+| `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
+| `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
+
+## Editing the user interface
+
+`helpdesk.cpp/.h` and `filereq.cpp/.h` are generated by FLUID from the
+`.fld` files and are committed so that building does not require FLUID.
+After changing the interface, regenerate them from `src/postoffice`
+(FLUID is in the Debian package `fluid`):
+
+    cd src/postoffice
+    fluid -c -o helpdesk.cpp -h helpdesk.h helpdesk.fld
+    fluid -c -o filereq.cpp -h filereq.h filereq.fld
+
+Run FLUID from that directory so it finds the images under `icons/`.
+
+Two conventions in the `.fld` files:
+
+- Windows are `type Single` (unbuffered), as in the original. FLUID 1.4
+  treats windows without a type as double-buffered.
+- The localization macro takes the widget explicitly: `xloc(o, "name")`.
+
+## Changes from PostOffice 0.7.3
+
+See the git history for details. In summary:
+
+- Ported from the bundled FLTK 1.0.4 to the system FLTK 1.4; UI code
+  regenerated with FLUID 1.4.
+- CMake build replaces the Perl configure script and per-host
+  Makefiles. The bundled GNU DBM 1.8.0 was replaced by the system
+  library.
+- 64-bit fixes (pointers stored in `int`), C++17 fixes.
+- Security: links in messages could run shell commands when clicked.
+- The builder's user and host name are no longer recorded in the build
+  and sent in the `X-Mailer` header of every message.
+- Memory and logic bugs found by compiler warnings and by
+  AddressSanitizer/UBSan, among them a use-after-free when a send failed,
+  reading before buffers, non-virtual destructors on polymorphic trees,
+  `new[]`/`delete` mismatches, missing return values, and
+  File → Configure doing nothing.
+- JPEG attachments are decoded with FLTK's image support instead of
+  libjpeg through a temporary file.
+
+## Known issues and ideas
+
+Found while modernizing and left for later:
+
+- Only `http://` links are recognized (no `https://`); POP3, IMAP4,
+  NNTP and SMTP have no TLS support.
+- The MySQL protocol still appears in the preferences when the build
+  has `WITH_MYSQL=OFF`.
+- The composer's Message → Discard menu item has no action; closing the
+  window through the window manager discards the message.
+- The MIME parser ignores boundaries of three characters or fewer and
+  leaves the `--` of each boundary line at the end of the previous part.
+- `WordList::MakeGeneric()` tests `*tmp-1` instead of `*(tmp-1)`, so
+  escaped separators in preference values have never worked. It is left
+  as is because fixing it would change how existing settings are read.
+- The IMAP4 handler prints debug output to standard output.
+- `~MailMessage()` contains a store-on-destroy that never ran in the
+  original (see the comment there); it stays disabled until reviewed.
 
 ## License
 
-PostOffice is licensed under the **GNU Lesser General Public License**. The
-source headers name the license without a version number. `LICENSE` contains
-LGPL 2.1, the first version to use the "Lesser" name.
+PostOffice is licensed under the **GNU Lesser General Public License**
+(see `LICENSE`, LGPL 2.1). The bundled components keep their own
+licenses:
 
-The bundled components keep their own licenses:
-
-- **FLTK 1.0.4**: GNU LGPL with FLTK exceptions. See `src/libfltk/COPYING`.
-- **GNU DBM 1.8.0**: GNU GPL version 2. See `src/libgdbm/gdbm-1.8.0/COPYING`.
-  Binaries that statically link it are covered by the GPL.
-- **Fl_Toggle_Tree**: GNU Library General Public License. See
-  `src/toggletree/README`.
-- **Fl_Editor**: this copy contains no license statement. See
+- **Fl_Toggle_Tree**: GNU Library General Public License (see
+  `src/toggletree/README`).
+- **Fl_Editor / librcl**: this copy contains no license statement. See
   `src/fl_editor/README.TXT` for the author's contact details.
 
-Copyright (C) 1999-2000 Pim van Riezen / Mad Science Labs. Original copyright
-notices are kept in all source files.
+FLTK and GDBM are no longer bundled. Neo-PostOffice links against the
+system FLTK (LGPL with exceptions) and GDBM (GPL). Distributed binaries
+that link GDBM are therefore covered by the GPL.
+
+Copyright (C) 1999–2000 Pim van Riezen / Mad Science Labs. Original
+copyright notices are kept in all source files.
