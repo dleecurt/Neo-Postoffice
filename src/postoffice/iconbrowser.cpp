@@ -230,7 +230,7 @@ void Fl_Iconbrowser::remove (int idx)
 void Fl_Iconbrowser::cb_click (Fl_Button *b, void *vd)
 {
 	Fl_Iconbrowser *self = (Fl_Iconbrowser *) vd;
-	printf ("cb_click %08x\n", (unsigned int) self);
+	printf ("cb_click %p\n", (void *) self);
 	self->Selected = self->Contents->Find (b);
 	WidgetNode *N = self->Contents->Get (self->Selected);
 	if (N)

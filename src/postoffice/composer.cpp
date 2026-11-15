@@ -737,7 +737,7 @@ void cb_selectaddress (Fl_Browser *b, void *d)
 void cb_pasteaddress (Fl_Button *b, void *d)
 {
 	Fl_Input *I = (Fl_Input *) d;
-	dprintf ("[addressbook] callback window: %x\n", (unsigned int) d);
+	dprintf ("[addressbook] callback window: %p\n", (void *) d);
 	if (I) I->value (in_address_email->value());
 	address->hide();
 }

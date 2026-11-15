@@ -3,10 +3,10 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl.H>
 
-#include <Flek/Fl_Toggle_Node.H>
-#include <Flek/Fl_Toggle_Tree.H>
-#include <Flek/open_icon.xpm>
-#include <Flek/closed_icon.xpm>
+#include <FL/Fl_Toggle_Node.H>
+#include <FL/Fl_Toggle_Tree.H>
+#include <FL/open_icon.xpm>
+#include <FL/closed_icon.xpm>
 
 void Fl_Toggle_Tree::select_range(Fl_Toggle_Node* start,
                                  Fl_Toggle_Node* end, int add) {
@@ -218,7 +218,7 @@ void Fl_Toggle_Tree::draw_label(char* str, int indent, int x, int y, int w, int 
     */
     fl_font(font, size);
 #ifndef FLTK_2
-    if (!active_r()) lcol = inactive (lcol);
+    if (!active_r()) lcol = fl_inactive (lcol);
 #endif
     //    if (((FL_BLINE*)v)->flags & SELECTED)
     //      lcol = contrast(lcol, selection_color());

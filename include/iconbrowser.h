@@ -2,10 +2,10 @@
 #define _ICONBROWSER_H 1
 
 #include <FL/Fl.H>
-#include <Fl/fl_draw.H>
-#include <Fl/Fl_Scroll.H>
-#include <Fl/Fl_Button.H>
-#include <Fl/Fl_Pixmap.H>
+#include <FL/fl_draw.H>
+#include <FL/Fl_Scroll.H>
+#include <FL/Fl_Button.H>
+#include <FL/Fl_Pixmap.H>
 
 struct WidgetNode
 {

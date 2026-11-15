@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
@@ -750,7 +751,7 @@ int Connection::SendQ (void)
 
 unsigned long Connection::ConnID (void)
 {
-	if (Redirect) return ( ((getpid() & 0xffff) << 12) | ((int) Redirect & 0x0fff) );
+	if (Redirect) return ( ((getpid() & 0xffff) << 12) | ((uintptr_t) Redirect & 0x0fff) );
 	return ( ((getpid() & 0xffff) << 12) | (Socket & 0x0fff) );
 }
 

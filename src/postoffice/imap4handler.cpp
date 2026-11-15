@@ -24,7 +24,9 @@
 #include "chop.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <iostream.h>
+#include <iostream>
+using std::cout;
+using std::endl;
 #include <string.h>
 #if defined (SOLARIS) || defined (IRIX)
   #include <strings.h>

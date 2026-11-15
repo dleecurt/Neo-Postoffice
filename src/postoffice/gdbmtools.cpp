@@ -8,7 +8,7 @@
 
 char *gdbm_node2contenttype (const char *dat, int size)
 {
-	char *eol = strchr (dat, '\n');
+	char *eol = strchr ((char *) dat, '\n');
 	if (eol)
 	{
 		return substr ((char *) dat, eol);
@@ -19,7 +19,7 @@ char *gdbm_node2contenttype (const char *dat, int size)
 char *gdbm_node2filename (const char *dat, int size)
 {
 	char *bol, *eol;
-	bol = strchr (dat, '\n');
+	bol = strchr ((char *) dat, '\n');
 	if (bol)
 	{
 		++bol;
@@ -35,7 +35,7 @@ char *gdbm_node2filename (const char *dat, int size)
 char *gdbm_node2description (const char *dat, int size)
 {
 	char *bol, *eol;
-	bol = strchr (dat, '\n');
+	bol = strchr ((char *) dat, '\n');
 	if (bol)
 	{
 		++bol;
@@ -56,7 +56,7 @@ char *gdbm_node2description (const char *dat, int size)
 char *gdbm_nodecontents (const char *dat, int size)
 {
 	char *bol;//, *eol;
-	bol = strchr (dat, '\n');
+	bol = strchr ((char *) dat, '\n');
 	if (bol)
 	{
 		++bol;

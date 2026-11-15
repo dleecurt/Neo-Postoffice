@@ -677,7 +677,7 @@ int main (int argc, char *argv[])
 								dprintf ("ccmatch\n");
 								if (CC->node)
 								{
-									dprintf ("hasnode %08x\n", (unsigned int) CC->node);
+									dprintf ("hasnode %p\n", (void *) CC->node);
 									br_folderindex->remove (CC->node);
 									//br_folderindex->update_height ();
 									//br_folderindex_->redraw();

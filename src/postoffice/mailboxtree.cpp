@@ -214,11 +214,11 @@ void cb_selectfolder (Fl_Widget *b, void *v)
 	TREE->redraw();
 	Fl::flush();
 
-	dprintf ("callback %08x\n", (unsigned int) box);
+	dprintf ("callback %p\n", (void *) box);
 
 	if (box && currentfolder && strlen(currentfolder))
 	{
-		dprintf ("click: cf=<%s> fn=<%s> cmb=<%08x> mb=<%08x>\n", currentfolder, box->foldername, (unsigned int) currentmailbox, (unsigned int) box->mailbox);
+		dprintf ("click: cf=<%s> fn=<%s> cmb=<%p> mb=<%p>\n", currentfolder, box->foldername, (void *) currentmailbox, (void *) box->mailbox);
 		if ((strcmp (currentfolder, box->foldername) == 0) && (currentmailbox == box->mailbox))
 		{
 			if ((time (NULL) - lastclick) == 0)

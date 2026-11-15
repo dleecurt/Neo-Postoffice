@@ -316,7 +316,7 @@ void WordList::MakeGenericQuoted (char *theLine, char Seperator, char Escape)
 			}
 			while (qp && tmp && (qp < tmp))
 			{
-				dprintf ("quote found before seperator: qp=%x & tmp=%x\n", (unsigned int) qp, (unsigned int)tmp);
+				dprintf ("quote found before seperator: qp=%p & tmp=%p\n", (void *) qp, (void *) tmp);
 				qp = strchr (qp+1, '\"');
 				if (qp)
 				{

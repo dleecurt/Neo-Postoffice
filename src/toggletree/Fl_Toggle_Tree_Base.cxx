@@ -1,8 +1,8 @@
 #include <stdio.h> // printf
 #include <stdlib.h> // qsort
 
-#include <Flek/Fl_Toggle_Node_Base.H>
-#include <Flek/Fl_Toggle_Tree_Base.H>
+#include <FL/Fl_Toggle_Node_Base.H>
+#include <FL/Fl_Toggle_Tree_Base.H>
 
 Fl_Toggle_Tree_Base::Fl_Toggle_Tree_Base(int x, int y, int w, int h) : Fl_Widget(x, y, w, h) {
   first_ = 0;

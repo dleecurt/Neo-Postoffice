@@ -16,6 +16,8 @@
 // might be shared between multiple mailboxes.
 //===============================================================================
 
+#include <stdlib.h>
+
 #include "mailstorage.h"
 #include "mailbox.h"
 #include "debug.h"

@@ -102,7 +102,7 @@ long Fl_MultiEditor::NewSession(const char *name)
 		sinf->Caption = new wString;
 		sinf->SessionName = new wString;
 		sinf->SessionNumber = ++SessionCount;
-		const char *temp = name ? filename_name(name) : NULL;
+		const char *temp = name ? fl_filename_name(name) : NULL;
 		if(temp)
             *sinf->SessionName = temp;
 		else
@@ -243,7 +243,7 @@ void Fl_MultiEditor::SaveCurrent(const char *fn)
 			fclose(out);
 		}
 		*CurrentSession->FileName = filename;
-		const char *temp = filename_name(fn);
+		const char *temp = fl_filename_name(fn);
 		if(!temp)
 			temp = fn;
 		if(temp)

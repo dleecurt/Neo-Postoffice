@@ -517,7 +517,7 @@ int NNTPHandler::PostMessage (WordList *groups, MailMessage *M)
 	int i;
 	if (!(M->Flags && MMFL_INRAM)) M->LoadBody();
 	MailPart *P = M->GetPart (0);
-	dprintf ("nntp post P=%08x\n", (unsigned int) P);
+	dprintf ("nntp post P=%p\n", (void *) P);
 	if (P)
 	{
 		if (!ConnectionOpen)

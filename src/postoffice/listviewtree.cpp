@@ -248,7 +248,7 @@ void update_folder (void)
 	if (V == NULL) return;
 	Fl_Toggle_Node_Base *x;//,*y;
 
-	dprintf ("V = %08x\n", (unsigned int) V);
+	dprintf ("V = %p\n", (void *) V);
 
 	if (br_folderindex->first())
 	{

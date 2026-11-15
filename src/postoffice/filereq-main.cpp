@@ -152,7 +152,7 @@ void freq_update (void)
 
 	FREQ_UPDATE = 0;
 
-	printf ("D(%s)=%08x\n", wd, (unsigned int) D);
+	printf ("D(%s)=%p\n", wd, (void *) D);
 
 	in_freq_dir->redraw();
 

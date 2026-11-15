@@ -13,3 +13,7 @@ arch/
 # Editor backups and thumbnail caches
 *~
 .xvpics/
+
+# CMake build directories
+/build/
+/build-*/

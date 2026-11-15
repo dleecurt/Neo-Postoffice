@@ -203,15 +203,15 @@ FILE *MailMessage::OpenFile (int part, char *mode)
 
 	fnam = new char[strlen (Parent->DirectoryPrefix) + strlen (MsgID) + 32];
 
-	sprintf (fnam, "%s/%02x", Parent->DirectoryPrefix, (unsigned int) BKey & 0xff);
+	sprintf (fnam, "%s/%02x", Parent->DirectoryPrefix, BChecksum & 0xff);
 	if (stat (fnam, &mystat) != 0)
 	{
 		mkdir (fnam, 0700);
 	}
 	
 	safe_msgid = MakeSafe (MsgID);
-	if (part>=0) sprintf (fnam, "%s/%02x/%s.%02i", Parent->DirectoryPrefix, (unsigned int) BKey & 0xff, safe_msgid, part);
-	else sprintf (fnam, "%s/%02x/%s.hd", Parent->DirectoryPrefix, (unsigned int) BKey & 0xff, safe_msgid);
+	if (part>=0) sprintf (fnam, "%s/%02x/%s.%02i", Parent->DirectoryPrefix, BChecksum & 0xff, safe_msgid, part);
+	else sprintf (fnam, "%s/%02x/%s.hd", Parent->DirectoryPrefix, BChecksum & 0xff, safe_msgid);
 
 	result = fopen (fnam, mode);
 	delete[] safe_msgid;
