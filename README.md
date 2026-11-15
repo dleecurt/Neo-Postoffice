@@ -32,9 +32,11 @@ On Debian 13 (trixie):
 Install with `sudo cmake --install build` (default prefix `/usr/local`).
 
 Requirements: a C++17 compiler, CMake 3.16+, FLTK 1.4 (with its image
-library) and GDBM. FLTK is found through its CMake package or, failing
-that, `fltk-config`. To use a self-built FLTK, add
-`-DCMAKE_PREFIX_PATH=/path/to/fltk`.
+library) and GDBM. FLTK is found through `fltk-config` or, if that is not
+installed, FLTK's CMake package. (Debian 13's FLTK CMake package is
+broken, which is why `fltk-config` comes first.) To use a self-built
+FLTK, put its `bin` directory first in `PATH`, or pass
+`-DFLTK_CONFIG=/path/to/fltk/bin/fltk-config`.
 
 ### Build options
 

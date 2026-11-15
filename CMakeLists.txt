@@ -26,13 +26,16 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(X11 REQUIRED)
 
-# FLTK 1.4: prefer its CMake package, fall back to fltk-config.
-find_package(FLTK 1.4 CONFIG QUIET)
-if(FLTK_FOUND AND TARGET fltk::fltk)
+# FLTK 1.4: prefer fltk-config, fall back to FLTK's CMake package.
+# (Debian 13's FLTKConfig.cmake is broken: it defines fltk::fluid twice and
+# references a /usr/bin/fluid-shared that the package does not install, which
+# is a fatal error even for find_package(... QUIET). fltk-config works.)
+find_program(FLTK_CONFIG fltk-config)
+if(NOT FLTK_CONFIG)
+  find_package(FLTK 1.4 CONFIG REQUIRED)
   message(STATUS "Using FLTK ${FLTK_VERSION} (CMake package)")
   set(PO_FLTK_LIBS fltk::images fltk::fltk)
 else()
-  find_program(FLTK_CONFIG fltk-config REQUIRED)
   execute_process(COMMAND ${FLTK_CONFIG} --version
                   OUTPUT_VARIABLE PO_FLTK_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
   if(PO_FLTK_VERSION VERSION_LESS 1.4)
