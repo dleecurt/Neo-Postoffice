@@ -138,6 +138,16 @@ class MBoxStorage : public MailStorage
 		void			 LockR (void);
 		void			 LockRW (void);
 		void			 Unlock (void);
+
+		// Neo-PostOffice: removing a message from the mbox file itself.
+		bool			 Expunge (const char *msgid, std::string &error, bool wait = true);
+		void			 RetryPendingDeletes (void);
+		bool			 FindRecord (const char *msgid, long &start, long &size);
+		bool			 RecordMatches (long start, long size, const char *msgid);
+		bool			 DotLock (std::string &error, bool wait);
+		void			 DotUnlock (void);
+		bool			 ReadOnly;		// opened read-only: deleting only hides
+		bool			 HaveDotLock;
 		
 		ASemaphore		*Lock;
 		char			*Filename;

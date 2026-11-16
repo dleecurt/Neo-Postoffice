@@ -95,6 +95,5 @@ programs appear on the next check, and folders removed there disappear.
 ## Not yet supported
 
 - The *D* (draft) flag.
-- Deleting from mbox files (also in PostOffice 0.7.3): deleting or
-  moving a message out of an mbox mailbox only hides it in
-  Neo-PostOffice; the mbox file is not changed.
+- mbox messages without a Message-ID header are not shown (as in
+  PostOffice 0.7.3), and mbox files over 4 GB cannot be indexed.

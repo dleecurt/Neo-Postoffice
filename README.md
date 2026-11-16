@@ -200,6 +200,13 @@ See the git history for details. In summary:
   overwrite the selected mailbox's settings when typed in.
 - Deleting a message no longer hangs the program; the message list keeps
   its scroll position.
+- Deleting (or moving out) a message in an mbox mailbox removes it from
+  the mbox file (0.7.3 only hid it). The file is locked with fcntl and a
+  `.lock` file, the rest of the file is kept in a safety copy in
+  `~/.postoffice` while it is rewritten, and changes made to the file by
+  other programs are detected by Message-ID. If the file is locked by
+  another program the message is hidden and deleted at a later check;
+  a read-only mbox can be read, and deleting there only hides.
 
 ## Known issues and ideas
 
@@ -212,8 +219,6 @@ Found while modernizing and left for later:
 - After closing the Config window, Check does nothing until a folder is
   clicked. Deleting a message does not update the count next to the
   mailbox name until the next check.
-- Deleting a message in an mbox mailbox only hides it (deleting from
-  mbox files was never implemented); the same goes for moving one out.
 - SQL mailbox: messages cannot be moved between folders from the client,
   and the collection-method and expiry settings, which do not apply to
   it, are not greyed out.
