@@ -178,3 +178,29 @@ if(PO_POSTGRESQL)
 endif()
 
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# ---------------------------------------------------------------------------
+# po-sqldeliver: delivers mail into the SQL mailbox tables
+# ---------------------------------------------------------------------------
+
+if(WITH_MYSQL OR PO_POSTGRESQL)
+  add_executable(po-sqldeliver
+    src/tools/po-sqldeliver.cpp
+    src/postoffice/podb.cpp
+    src/postoffice/podb_mysql.cpp
+    src/postoffice/podb_pgsql.cpp)
+  target_include_directories(po-sqldeliver PRIVATE include)
+  if(PO_WARNINGS)
+    target_compile_options(po-sqldeliver PRIVATE -Wall -Wextra)
+  endif()
+  if(WITH_MYSQL)
+    target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_MYSQL)
+    target_link_libraries(po-sqldeliver PRIVATE PkgConfig::MYSQLCLIENT)
+  endif()
+  if(PO_POSTGRESQL)
+    target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_POSTGRESQL)
+    target_include_directories(po-sqldeliver PRIVATE ${PQ_INCLUDE_DIR})
+    target_link_libraries(po-sqldeliver PRIVATE ${PQ_LIBRARY})
+  endif()
+  install(TARGETS po-sqldeliver RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()

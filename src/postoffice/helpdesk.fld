@@ -1496,7 +1496,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {296 46 194 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
               MenuItem {} {
-                label {Post Office MySQL table}
+                label {Post Office SQL table}
                 xywh {0 0 100 20} labelsize 12
                 code0 {xloc(o, "proto_mysql");}
               }
@@ -1530,12 +1530,29 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             } {
               Fl_Input in_prefs_protocol_mysql_host {
                 callback cb_prefs_protocol_mysql
-                xywh {375 85 230 21} labelsize 12 when 1 textsize 12
+                xywh {410 85 195 21} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
-                label {MySQL Host}
+                label Server
                 xywh {225 85 80 20} box NO_BOX labelsize 12 align 20
                 code0 {xloc(o, "mysql_host");}
+              }
+              Fl_Group {} {open
+                xywh {305 85 100 21} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_protocol_mysql_driver {
+                  callback cb_prefs_protocol_mysql_driver open
+                  xywh {306 86 99 20} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
+                } {
+                  MenuItem {} {
+                    label MySQL
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                  MenuItem {} {
+                    label PostgreSQL
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                }
               }
             }
             Fl_Group {} {open

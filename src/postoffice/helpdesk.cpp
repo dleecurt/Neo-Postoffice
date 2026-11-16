@@ -5078,7 +5078,7 @@ static Fl_Image *image_eraser() {
 Fl_Choice *ch_prefs_protocol=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_protocol[] = {
- {"Post Office MySQL table", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Post Office SQL table", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"POP3 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"NNTP/Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -5089,6 +5089,14 @@ Fl_Menu_Item menu_ch_prefs_protocol[] = {
 Fl_Group *gr_prefs_protocol_mysql=(Fl_Group *)0;
 
 Fl_Input *in_prefs_protocol_mysql_host=(Fl_Input *)0;
+
+Fl_Choice *ch_prefs_protocol_mysql_driver=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_prefs_protocol_mysql_driver[] = {
+ {"MySQL", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"PostgreSQL", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
 
 Fl_Input *in_prefs_protocol_mysql_user=(Fl_Input *)0;
 
@@ -5743,18 +5751,32 @@ Fl_Window* make_prefs_window() {
             gr_prefs_protocol_mysql->color((Fl_Color)51);
             gr_prefs_protocol_mysql->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             { Fl_Group* o = new Fl_Group(220, 85, 385, 21);
-              { in_prefs_protocol_mysql_host = new Fl_Input(375, 85, 230, 21);
+              { in_prefs_protocol_mysql_host = new Fl_Input(410, 85, 195, 21);
                 in_prefs_protocol_mysql_host->labelsize(12);
                 in_prefs_protocol_mysql_host->textsize(12);
                 in_prefs_protocol_mysql_host->callback((Fl_Callback*)cb_prefs_protocol_mysql);
                 in_prefs_protocol_mysql_host->when(FL_WHEN_CHANGED);
               } // Fl_Input* in_prefs_protocol_mysql_host
-              { Fl_Button* o = new Fl_Button(225, 85, 80, 20, "MySQL Host");
+              { Fl_Button* o = new Fl_Button(225, 85, 80, 20, "Server");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
                 xloc(o, "mysql_host");
               } // Fl_Button* o
+              { Fl_Group* o = new Fl_Group(305, 85, 100, 21);
+                o->box(FL_BORDER_FRAME);
+                o->color(FL_FOREGROUND_COLOR);
+                { ch_prefs_protocol_mysql_driver = new Fl_Choice(306, 86, 99, 20);
+                  ch_prefs_protocol_mysql_driver->down_box(FL_BORDER_BOX);
+                  ch_prefs_protocol_mysql_driver->selection_color(FL_BACKGROUND2_COLOR);
+                  ch_prefs_protocol_mysql_driver->labelsize(12);
+                  ch_prefs_protocol_mysql_driver->textsize(12);
+                  ch_prefs_protocol_mysql_driver->callback((Fl_Callback*)cb_prefs_protocol_mysql_driver);
+                  ch_prefs_protocol_mysql_driver->when(FL_WHEN_CHANGED);
+                  ch_prefs_protocol_mysql_driver->menu(menu_ch_prefs_protocol_mysql_driver);
+                } // Fl_Choice* ch_prefs_protocol_mysql_driver
+                o->end();
+              } // Fl_Group* o
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(225, 115, 380, 20);

@@ -159,7 +159,12 @@ std::unique_ptr<Connection> ConnectMySQL (const std::string &host, int port,
 		return NULL;
 	}
 	mysql_options (m, MYSQL_SET_CHARSET_NAME, "utf8mb4");
-	if (!mysql_real_connect (m, host.c_str(), user.c_str(), password.c_str(),
+	// Settings not given here (an empty password, say) come from the
+	// [client] group of ~/.my.cnf.
+	mysql_options (m, MYSQL_READ_DEFAULT_GROUP, "client");
+	if (!mysql_real_connect (m, host.empty() ? NULL : host.c_str(),
+							 user.empty() ? NULL : user.c_str(),
+							 password.empty() ? NULL : password.c_str(),
 							 database.empty() ? NULL : database.c_str(),
 							 (unsigned int) (port > 0 ? port : 3306), NULL, 0))
 	{

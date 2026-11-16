@@ -12,6 +12,8 @@
 #include "podb.h"
 #include <FL/fl_ask.H>
 
+static void update_sql_driver_widgets (void);
+
 #define FL_SCREEN_BOLD_ITALIC FL_SCREEN_BOLD
 #define FL_SCREEN_ITALIC FL_SCREEN
 
@@ -157,6 +159,8 @@ void func_view_protocol (void)
 				in_prefs_protocol_mysql_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
 				in_prefs_protocol_mysql_db->value    (PREFS_CURRENTBOX->Get_char ("database"));
 				in_prefs_protocol_mysql_tab->value   (PREFS_CURRENTBOX->Get_char ("table"));
+				ch_prefs_protocol_mysql_driver->value (strcasecmp (PREFS_CURRENTBOX->Get_char ("driver"), "pgsql") == 0 ? 1 : 0);
+				update_sql_driver_widgets ();
 			}
 			break;
 
@@ -279,7 +283,9 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	{
 		make_prefs_window();
 		// Grey out database features this build does not have.
-		if (!podb::HaveMySQL()) menu_ch_prefs_protocol[0].deactivate();
+		if (!podb::HaveMySQL() && !podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
+		if (!podb::HaveMySQL()) menu_ch_prefs_protocol_mysql_driver[0].deactivate();
+		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol_mysql_driver[1].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
 	}
 	
@@ -906,6 +912,28 @@ void cb_prefs_mailfolder_folder_del (Fl_Button */*b*/, void */*v*/)
 				PREFS_MBOX_CHANGE=1;
 			}
 	}
+}
+
+// The SQL mailbox's PostgreSQL password comes from ~/.pgpass, so the
+// password field only applies to MySQL.
+static void update_sql_driver_widgets (void)
+{
+	if (ch_prefs_protocol_mysql_driver->value() == 1) in_prefs_protocol_mysql_pass->deactivate();
+	else in_prefs_protocol_mysql_pass->activate();
+}
+
+void cb_prefs_protocol_mysql_driver (Fl_Choice */*c*/, void */*v*/)
+{
+	if (!PREFS_CURRENTBOX) return;
+	int driver = ch_prefs_protocol_mysql_driver->value();
+	if ((driver == 1 && !podb::HavePostgreSQL()) || (driver == 0 && !podb::HaveMySQL()))
+	{
+		fl_alert ("This build of Neo-PostOffice has no %s support.", driver == 1 ? "PostgreSQL" : "MySQL");
+		ch_prefs_protocol_mysql_driver->value (driver == 1 ? 0 : 1);
+	}
+	PREFS_MBOX_CHANGE=1;
+	PREFS_CURRENTBOX->Set_char ("driver", ch_prefs_protocol_mysql_driver->value() == 1 ? "pgsql" : "mysql");
+	update_sql_driver_widgets ();
 }
 
 void cb_prefs_protocol_mysql (Fl_Input */*i*/, void */*v*/)

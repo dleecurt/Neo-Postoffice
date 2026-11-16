@@ -4,7 +4,7 @@
 // Neo-PostOffice: a MailStorage implementation that keeps a mailbox's
 // messages, and its index (folders, envelope, read state), in PostgreSQL.
 //
-// Tables (created on first use, see docs/postgresql.sql):
+// Tables (created on first use, see docs/postgresql-storage.sql):
 //
 //   po_messages  one row per message: index columns, stored headers
 //   po_parts     the message parts (bytea, so binary data survives exactly)

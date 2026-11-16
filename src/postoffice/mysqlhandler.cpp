@@ -11,7 +11,8 @@
 //===============================================================================
 // MySQLHandler
 // ------------
-// A mailbox type that reads mail from a MySQL table filled by another program.
+// A mailbox type that reads mail from a database table (MySQL or PostgreSQL)
+// filled by another program, such as tools/po-sqldeliver.
 // Neo-PostOffice: uses the podb database layer with query parameters instead
 // of the original dbdriver_* functions.
 //===============================================================================
@@ -45,6 +46,33 @@ static bool valid_table_name (const char *t)
 	return true;
 }
 
+// Quotes a value for a libpq connection string.
+static std::string conninfo_value (const char *v)
+{
+	std::string out = "'";
+	for (const char *p = v; *p; ++p)
+	{
+		if (*p == '\\' || *p == '\'') out += '\\';
+		out += *p;
+	}
+	return out + "'";
+}
+
+// True when this mailbox reads from PostgreSQL rather than MySQL.
+static bool uses_postgresql (Var *Parameters)
+{
+	return strcasecmp (Parameters->Get_char ("driver"), "pgsql") == 0;
+}
+
+// The table name, quoted for the database in use (it is checked by
+// valid_table_name() before it gets here).
+static std::string quoted_table (Var *Parameters)
+{
+	const char *t = Parameters->Get_char ("table");
+	if (uses_postgresql (Parameters)) return std::string ("\"") + t + "\"";
+	return std::string ("`") + t + "`";
+}
+
 MySQLHandler::MySQLHandler (MailBox *_Parent, class Var *_Parameters)
 {
 	SQL = NULL;
@@ -65,32 +93,44 @@ void MySQLHandler::OpenConnection (void)
 	char *pPass = Parameters->Get_char ("pass");
 	char *pTable = Parameters->Get_char ("table");
 	char *pDB = Parameters->Get_char ("database");
+	bool  pg = uses_postgresql (Parameters);
+	const char *dbname = pg ? "PostgreSQL" : "MySQL";
 
-	if (!pPort) pPort = 3306;
 	if (SQL) return;
 
-	if (!podb::HaveMySQL())
+	if (pg ? !podb::HavePostgreSQL() : !podb::HaveMySQL())
 	{
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler",
-								   "This build of Neo-PostOffice has no MySQL support "
-								   "(build with -DWITH_MYSQL=ON).");
+		std::string msg = std::string ("This build of Neo-PostOffice has no ") + dbname + " support.";
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler", msg.c_str());
 		return;
 	}
-	if ( (strlen (pHost) == 0) || (strlen (pUser) == 0) || !valid_table_name (pTable))
+	// PostgreSQL may use its defaults (local socket, login name), MySQL needs a host and user.
+	if ( (!pg && ((strlen (pHost) == 0) || (strlen (pUser) == 0))) || !valid_table_name (pTable))
 	{
 		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-								   "mysqlhandler", "Invalid host name, user name or table "
+								   "mysqlhandler", "Invalid server, user name or table "
 								   "(table names may only contain letters, digits and _).");
 		return;
 	}
 
-	std::string msg = std::string ("Contacting MySQL host ") + pHost;
+	std::string msg = std::string ("Contacting ") + dbname + " server " + pHost;
 	int jid = JOBQ.NewJob (Parent->Name);
 	JOBQ.Stat (jid, msg.c_str());
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 
 	std::string error;
-	SQL = podb::ConnectMySQL (pHost, pPort, pUser, pPass, pDB, error).release();
+	if (pg)
+	{
+		// The password comes from ~/.pgpass, like the PostgreSQL storage.
+		std::string conninfo;
+		if (*pHost) conninfo += "host=" + conninfo_value (pHost) + " ";
+		if (pPort)  conninfo += "port=" + std::to_string (pPort) + " ";
+		if (*pUser) conninfo += "user=" + conninfo_value (pUser) + " ";
+		if (*pDB)   conninfo += "dbname=" + conninfo_value (pDB);
+		SQL = podb::ConnectPostgreSQL (conninfo, error).release();
+	}
+	else SQL = podb::ConnectMySQL (pHost, pPort ? pPort : 3306, pUser, pPass, pDB, error).release();
+
 	if (!SQL)
 	{
 		std::string e = "Error connecting to database: " + error;
@@ -132,7 +172,7 @@ void MySQLHandler::CheckGroup (const char *groupname)
 
 	// Find all message ids the server has for us. Without a folder name,
 	// check all folders.
-	std::string table = std::string ("`") + pTable + "`";
+	std::string table = quoted_table (Parameters);
 	bool ok;
 	if (strlen (groupname) < 2)
 		ok = SQL->Exec ("SELECT msgid FROM " + table + " ORDER BY msgid", podb::Params(), &res);
@@ -199,7 +239,6 @@ void MySQLHandler::GetBody (char *x)
 {
 	long		 idx = MsgToSQL (x); // We only need the numbers of the msgid
 	podb::Result res;
-	char 		*pTable = Parameters->Get_char ("table");
 	MailMessage	*M;
 
 	M = Parent->Find (x); // Make sure there's a mailmessage to put this all in
@@ -213,7 +252,7 @@ void MySQLHandler::GetBody (char *x)
 	if (!SQL) OpenConnection (); // Open connection on demand
 	if (!SQL) return;
 
-	std::string table = std::string ("`") + pTable + "`";
+	std::string table = quoted_table (Parameters);
 	int jid = JOBQ.NewJob (Parent->Name);
 	JOBQ.Stat (jid, "Updating status");
 	JOBQ.Progress (jid, 5);
@@ -247,14 +286,13 @@ void MySQLHandler::GetBody (char *x)
 void MySQLHandler::DeleteMessage (char *msgid)
 {
 	long	 idx = MsgToSQL (msgid);
-	char	*pTable = Parameters->Get_char ("table");
 
 	if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y"))
 	{
 		if (!SQL) OpenConnection();
 		if (SQL)
 		{
-			std::string table = std::string ("`") + pTable + "`";
+			std::string table = quoted_table (Parameters);
 			CheckError (SQL->Exec ("DELETE FROM " + table + " WHERE msgid=$1", { idx }));
 		}
 	}
@@ -275,7 +313,8 @@ int MySQLHandler::CheckError (bool ok)
 	if (ok) return 1;
 	if (SQL)
 	{
-		std::string msg = "MySQL error: " + SQL->Error();
+		std::string msg = std::string (uses_postgresql (Parameters) ? "PostgreSQL" : "MySQL") +
+						  " error: " + SQL->Error();
 		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler", msg.c_str());
 	}
 	return 0;
