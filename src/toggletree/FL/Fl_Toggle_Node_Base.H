@@ -18,6 +18,10 @@ public:
     opened_ = 0;
   }
 
+  // Neo-PostOffice: read access for keeping the open state across rebuilds.
+  int is_open (void) const { return opened_; }
+  Fl_Toggle_Node_Base* next_node (void) const { return next_; }
+
 protected:
 
   Fl_Toggle_Node_Base* prev_;

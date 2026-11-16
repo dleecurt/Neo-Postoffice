@@ -32,6 +32,8 @@
 #define CLASS_ERROR			0x2004 // [2] arg1 = subsystem   arg2 = error msg
 #define CLASS_STATUS		0x2005 // [1] arg1 = status msg
 #define CLASS_GOTBODY		0x2006 // [1] arg1 = msgid
+#define CLASS_NEWFOLDER		0x2007 // [2] arg1 = mailbox     arg2 = "" (folders or counts changed: redraw the tree)
+#define CLASS_GONE			0x2008 // [2] arg1 = mailbox     arg2 = intmsgid (deleted on the server)
 
 // defines for scheduler events
 

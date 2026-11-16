@@ -132,6 +132,18 @@ void update_tree (Fl_Scroll *scr)
 	char buf[512];
 	int first = 0;
 
+	// Remember which mailboxes are open, so rebuilding the tree (when a
+	// mailbox adds a folder by itself) does not close them.
+	if (TREE)
+	{
+		int k = 0;
+		for (Fl_Toggle_Node_Base *n = TREE->first(); n && MailBoxList[k]; n = n->next_node(), ++k)
+		{
+			MailBoxList[k]->Open = n->is_open();
+			PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (MailBoxList[k]->Name)->Set_int ("open", n->is_open());
+		}
+	}
+
 	i = scr->children()-1;
 	while (i>=2)
 	{
@@ -223,7 +235,7 @@ void cb_selectfolder (Fl_Widget */*b*/, void */*v*/)
 		}
 		else
 		{
-			strcpy (currentfolder, box->foldername);
+			snprintf (currentfolder, sizeof (currentfolder), "%s", box->foldername);
 			currentmailbox = (MailBox *) box->mailbox;
 			//update_tree (current_boxlist);
 			update_folder();

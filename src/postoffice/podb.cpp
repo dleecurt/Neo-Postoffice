@@ -71,14 +71,4 @@ std::unique_ptr<Connection> ConnectPostgreSQL (const std::string &, std::string 
 }
 #endif
 
-#ifndef PO_HAVE_MYSQL
-bool HaveMySQL (void) { return false; }
-std::unique_ptr<Connection> ConnectMySQL (const std::string &, int, const std::string &,
-										  const std::string &, const std::string &, std::string &error)
-{
-	error = "this build of Neo-PostOffice has no MySQL support";
-	return NULL;
-}
-#endif
-
 }

@@ -5078,7 +5078,7 @@ static Fl_Image *image_eraser() {
 Fl_Choice *ch_prefs_protocol=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_protocol[] = {
- {"Post Office SQL table", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"SQL mailbox (PostgreSQL)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"POP3 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"NNTP/Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -5086,25 +5086,17 @@ Fl_Menu_Item menu_ch_prefs_protocol[] = {
  {0,0,0,0,0,0,0,0,0}
 };
 
-Fl_Group *gr_prefs_protocol_mysql=(Fl_Group *)0;
+Fl_Group *gr_prefs_protocol_sql=(Fl_Group *)0;
 
-Fl_Input *in_prefs_protocol_mysql_host=(Fl_Input *)0;
+Fl_Input *in_prefs_protocol_sql_host=(Fl_Input *)0;
 
-Fl_Choice *ch_prefs_protocol_mysql_driver=(Fl_Choice *)0;
+Fl_Input *in_prefs_protocol_sql_user=(Fl_Input *)0;
 
-Fl_Menu_Item menu_ch_prefs_protocol_mysql_driver[] = {
- {"MySQL", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"PostgreSQL", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
+Fl_Input *in_prefs_protocol_sql_cafile=(Fl_Input *)0;
 
-Fl_Input *in_prefs_protocol_mysql_user=(Fl_Input *)0;
+Fl_Input *in_prefs_protocol_sql_db=(Fl_Input *)0;
 
-Fl_Input *in_prefs_protocol_mysql_pass=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_mysql_db=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_mysql_tab=(Fl_Input *)0;
+Fl_Input *in_prefs_protocol_sql_tab=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_pop3=(Fl_Group *)0;
 
@@ -5746,46 +5738,32 @@ Fl_Window* make_prefs_window() {
             } // Fl_Choice* ch_prefs_protocol
             o->end();
           } // Fl_Group* o
-          { gr_prefs_protocol_mysql = new Fl_Group(210, 75, 410, 160);
-            gr_prefs_protocol_mysql->box(FL_ENGRAVED_BOX);
-            gr_prefs_protocol_mysql->color((Fl_Color)51);
-            gr_prefs_protocol_mysql->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+          { gr_prefs_protocol_sql = new Fl_Group(210, 75, 410, 160);
+            gr_prefs_protocol_sql->box(FL_ENGRAVED_BOX);
+            gr_prefs_protocol_sql->color((Fl_Color)51);
+            gr_prefs_protocol_sql->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             { Fl_Group* o = new Fl_Group(220, 85, 385, 21);
-              { in_prefs_protocol_mysql_host = new Fl_Input(410, 85, 195, 21);
-                in_prefs_protocol_mysql_host->labelsize(12);
-                in_prefs_protocol_mysql_host->textsize(12);
-                in_prefs_protocol_mysql_host->callback((Fl_Callback*)cb_prefs_protocol_mysql);
-                in_prefs_protocol_mysql_host->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_mysql_host
+              { in_prefs_protocol_sql_host = new Fl_Input(375, 85, 230, 21);
+                in_prefs_protocol_sql_host->labelsize(12);
+                in_prefs_protocol_sql_host->textsize(12);
+                in_prefs_protocol_sql_host->callback((Fl_Callback*)cb_prefs_protocol_sql);
+                in_prefs_protocol_sql_host->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_sql_host
               { Fl_Button* o = new Fl_Button(225, 85, 80, 20, "Server");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
                 xloc(o, "mysql_host");
               } // Fl_Button* o
-              { Fl_Group* o = new Fl_Group(305, 85, 100, 21);
-                o->box(FL_BORDER_FRAME);
-                o->color(FL_FOREGROUND_COLOR);
-                { ch_prefs_protocol_mysql_driver = new Fl_Choice(306, 86, 99, 20);
-                  ch_prefs_protocol_mysql_driver->down_box(FL_BORDER_BOX);
-                  ch_prefs_protocol_mysql_driver->selection_color(FL_BACKGROUND2_COLOR);
-                  ch_prefs_protocol_mysql_driver->labelsize(12);
-                  ch_prefs_protocol_mysql_driver->textsize(12);
-                  ch_prefs_protocol_mysql_driver->callback((Fl_Callback*)cb_prefs_protocol_mysql_driver);
-                  ch_prefs_protocol_mysql_driver->when(FL_WHEN_CHANGED);
-                  ch_prefs_protocol_mysql_driver->menu(menu_ch_prefs_protocol_mysql_driver);
-                } // Fl_Choice* ch_prefs_protocol_mysql_driver
-                o->end();
-              } // Fl_Group* o
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(225, 115, 380, 20);
-              { in_prefs_protocol_mysql_user = new Fl_Input(375, 115, 230, 20);
-                in_prefs_protocol_mysql_user->labelsize(12);
-                in_prefs_protocol_mysql_user->textsize(12);
-                in_prefs_protocol_mysql_user->callback((Fl_Callback*)cb_prefs_protocol_mysql);
-                in_prefs_protocol_mysql_user->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_mysql_user
+              { in_prefs_protocol_sql_user = new Fl_Input(375, 115, 230, 20);
+                in_prefs_protocol_sql_user->labelsize(12);
+                in_prefs_protocol_sql_user->textsize(12);
+                in_prefs_protocol_sql_user->callback((Fl_Callback*)cb_prefs_protocol_sql);
+                in_prefs_protocol_sql_user->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_sql_user
               { Fl_Button* o = new Fl_Button(225, 115, 90, 20, "Username");
                 o->box(FL_NO_BOX);
                 o->color((Fl_Color)48);
@@ -5796,28 +5774,29 @@ Fl_Window* make_prefs_window() {
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(225, 145, 380, 20);
-              { in_prefs_protocol_mysql_pass = new Fl_Input(375, 145, 230, 20);
-                in_prefs_protocol_mysql_pass->type(5);
-                in_prefs_protocol_mysql_pass->labelsize(12);
-                in_prefs_protocol_mysql_pass->textsize(12);
-                in_prefs_protocol_mysql_pass->callback((Fl_Callback*)cb_prefs_protocol_mysql);
-                in_prefs_protocol_mysql_pass->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_mysql_pass
-              { Fl_Button* o = new Fl_Button(225, 145, 90, 20, "Password");
+              { in_prefs_protocol_sql_cafile = new Fl_Input(375, 145, 230, 20);
+                in_prefs_protocol_sql_cafile->tooltip("Certificate (PEM) of the CA that signed the database server\'s certificate. E"
+"mpty: ~/.postgresql/root.crt");
+                in_prefs_protocol_sql_cafile->labelsize(12);
+                in_prefs_protocol_sql_cafile->textsize(12);
+                in_prefs_protocol_sql_cafile->callback((Fl_Callback*)cb_prefs_protocol_sql);
+                in_prefs_protocol_sql_cafile->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_sql_cafile
+              { Fl_Button* o = new Fl_Button(225, 145, 90, 20, "CA file");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "password");
+                xloc(o, "sql_cafile");
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(225, 175, 380, 20);
-              { in_prefs_protocol_mysql_db = new Fl_Input(375, 175, 230, 20);
-                in_prefs_protocol_mysql_db->labelsize(12);
-                in_prefs_protocol_mysql_db->textsize(12);
-                in_prefs_protocol_mysql_db->callback((Fl_Callback*)cb_prefs_protocol_mysql);
-                in_prefs_protocol_mysql_db->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_mysql_db
+              { in_prefs_protocol_sql_db = new Fl_Input(375, 175, 230, 20);
+                in_prefs_protocol_sql_db->labelsize(12);
+                in_prefs_protocol_sql_db->textsize(12);
+                in_prefs_protocol_sql_db->callback((Fl_Callback*)cb_prefs_protocol_sql);
+                in_prefs_protocol_sql_db->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_sql_db
               { Fl_Button* o = new Fl_Button(225, 175, 90, 20, "Database");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
@@ -5827,12 +5806,12 @@ Fl_Window* make_prefs_window() {
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(225, 205, 380, 20);
-              { in_prefs_protocol_mysql_tab = new Fl_Input(375, 205, 230, 20);
-                in_prefs_protocol_mysql_tab->labelsize(12);
-                in_prefs_protocol_mysql_tab->textsize(12);
-                in_prefs_protocol_mysql_tab->callback((Fl_Callback*)cb_prefs_protocol_mysql);
-                in_prefs_protocol_mysql_tab->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_mysql_tab
+              { in_prefs_protocol_sql_tab = new Fl_Input(375, 205, 230, 20);
+                in_prefs_protocol_sql_tab->labelsize(12);
+                in_prefs_protocol_sql_tab->textsize(12);
+                in_prefs_protocol_sql_tab->callback((Fl_Callback*)cb_prefs_protocol_sql);
+                in_prefs_protocol_sql_tab->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_sql_tab
               { Fl_Button* o = new Fl_Button(225, 205, 90, 20, "Table");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
@@ -5841,8 +5820,8 @@ Fl_Window* make_prefs_window() {
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
-            gr_prefs_protocol_mysql->end();
-          } // Fl_Group* gr_prefs_protocol_mysql
+            gr_prefs_protocol_sql->end();
+          } // Fl_Group* gr_prefs_protocol_sql
           { gr_prefs_protocol_pop3 = new Fl_Group(230, 75, 390, 160);
             gr_prefs_protocol_pop3->box(FL_ENGRAVED_BOX);
             gr_prefs_protocol_pop3->color((Fl_Color)51);
@@ -6635,7 +6614,6 @@ Fl_Window* make_prefs_window() {
             { Fl_Input* o = new Fl_Input(370, 84, 230, 21);
               o->labelsize(12);
               o->textsize(12);
-              o->callback((Fl_Callback*)cb_prefs_protocol_mysql);
               o->when(FL_WHEN_CHANGED);
             } // Fl_Input* o
             { Fl_Button* o = new Fl_Button(235, 84, 80, 20, "Language");
@@ -6650,7 +6628,6 @@ Fl_Window* make_prefs_window() {
             { Fl_Input* o = new Fl_Input(370, 114, 230, 21);
               o->labelsize(12);
               o->textsize(12);
-              o->callback((Fl_Callback*)cb_prefs_protocol_mysql);
               o->when(FL_WHEN_CHANGED);
             } // Fl_Input* o
             { Fl_Button* o = new Fl_Button(235, 114, 80, 20, "Author");

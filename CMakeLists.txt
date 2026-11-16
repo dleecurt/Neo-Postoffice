@@ -7,7 +7,6 @@ project(NeoPostOffice
 
 include(GNUInstallDirs)
 
-option(WITH_MYSQL "Build the MySQL/MariaDB mailbox type" OFF)
 set(WITH_POSTGRESQL AUTO CACHE STRING
     "PostgreSQL mail storage: AUTO (if libpq is found), ON or OFF")
 set_property(CACHE WITH_POSTGRESQL PROPERTY STRINGS AUTO ON OFF)
@@ -60,11 +59,6 @@ endif()
 find_path(GDBM_INCLUDE_DIR gdbm.h REQUIRED)
 find_library(GDBM_LIBRARY gdbm REQUIRED)
 
-if(WITH_MYSQL)
-  find_package(PkgConfig REQUIRED)
-  pkg_search_module(MYSQLCLIENT REQUIRED IMPORTED_TARGET libmariadb mysqlclient)
-endif()
-
 # PostgreSQL client library (Debian: libpq-dev)
 set(PO_POSTGRESQL OFF)
 if(NOT WITH_POSTGRESQL STREQUAL "OFF")
@@ -72,11 +66,11 @@ if(NOT WITH_POSTGRESQL STREQUAL "OFF")
   find_library(PQ_LIBRARY pq)
   if(PQ_INCLUDE_DIR AND PQ_LIBRARY)
     set(PO_POSTGRESQL ON)
-    message(STATUS "PostgreSQL mail storage: enabled (${PQ_LIBRARY})")
+    message(STATUS "PostgreSQL support: enabled (${PQ_LIBRARY})")
   elseif(WITH_POSTGRESQL STREQUAL "ON")
     message(FATAL_ERROR "WITH_POSTGRESQL=ON but libpq was not found (install libpq-dev)")
   else()
-    message(STATUS "PostgreSQL mail storage: disabled (libpq not found; install libpq-dev)")
+    message(STATUS "PostgreSQL support: disabled (libpq not found; install libpq-dev)")
   endif()
 endif()
 
@@ -86,9 +80,6 @@ endif()
 
 add_library(po_settings INTERFACE)
 target_compile_definitions(po_settings INTERFACE _REENTRANT LINUX USE_GDBM)
-if(WITH_MYSQL)
-  target_compile_definitions(po_settings INTERFACE PO_HAVE_MYSQL)
-endif()
 if(PO_POSTGRESQL)
   target_compile_definitions(po_settings INTERFACE PO_HAVE_POSTGRESQL)
 endif()
@@ -150,8 +141,8 @@ set(PO_BACKEND_SOURCES
   connection.cpp debug.cpp eaddr.cpp encode.cpp envelope.cpp folderxpm.cpp
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp imap4handler.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
-  mboxhandler.cpp mboxstorage.cpp mysqlhandler.cpp nntphandler.cpp
-  podb.cpp podb_mysql.cpp podb_pgsql.cpp pgstorage.cpp
+  mboxhandler.cpp mboxstorage.cpp nntphandler.cpp sqlhandler.cpp
+  podb.cpp podb_pgsql.cpp pgstorage.cpp
   outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtp.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
@@ -169,9 +160,6 @@ target_include_directories(postoffice PRIVATE
 target_link_libraries(postoffice PRIVATE
   po_settings toggletree rcledit
   ${GDBM_LIBRARY} X11::X11 X11::Xext Threads::Threads ${CMAKE_DL_LIBS} m)
-if(WITH_MYSQL)
-  target_link_libraries(postoffice PRIVATE PkgConfig::MYSQLCLIENT)
-endif()
 if(PO_POSTGRESQL)
   target_include_directories(postoffice PRIVATE ${PQ_INCLUDE_DIR})
   target_link_libraries(postoffice PRIVATE ${PQ_LIBRARY})
@@ -180,27 +168,19 @@ endif()
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # ---------------------------------------------------------------------------
-# po-sqldeliver: delivers mail into the SQL mailbox tables
+# po-sqldeliver: delivers mail into the SQL mailbox (PostgreSQL)
 # ---------------------------------------------------------------------------
 
-if(WITH_MYSQL OR PO_POSTGRESQL)
+if(PO_POSTGRESQL)
   add_executable(po-sqldeliver
     src/tools/po-sqldeliver.cpp
     src/postoffice/podb.cpp
-    src/postoffice/podb_mysql.cpp
     src/postoffice/podb_pgsql.cpp)
-  target_include_directories(po-sqldeliver PRIVATE include)
+  target_include_directories(po-sqldeliver PRIVATE include ${PQ_INCLUDE_DIR})
+  target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_POSTGRESQL)
+  target_link_libraries(po-sqldeliver PRIVATE ${PQ_LIBRARY})
   if(PO_WARNINGS)
     target_compile_options(po-sqldeliver PRIVATE -Wall -Wextra)
-  endif()
-  if(WITH_MYSQL)
-    target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_MYSQL)
-    target_link_libraries(po-sqldeliver PRIVATE PkgConfig::MYSQLCLIENT)
-  endif()
-  if(PO_POSTGRESQL)
-    target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_POSTGRESQL)
-    target_include_directories(po-sqldeliver PRIVATE ${PQ_INCLUDE_DIR})
-    target_link_libraries(po-sqldeliver PRIVATE ${PQ_LIBRARY})
   endif()
   install(TARGETS po-sqldeliver RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()

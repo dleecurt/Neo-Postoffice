@@ -148,9 +148,10 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     {
         Handler = new POP3Handler (this, PREFROOT);
     }
-    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mysql") == 0)
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "sql") == 0 ||
+             strcasecmp (PREFROOT->Get_char ("protocol"), "mysql") == 0)
     {
-        Handler = new MySQLHandler (this, PREFROOT);
+        Handler = new SQLHandler (this, PREFROOT);
     }
     else if (strcasecmp (PREFROOT->Get_char ("protocol"), "nntp") == 0)
     {
@@ -194,6 +195,11 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     // Start the collector thread
 
     Collector->Run((void *) this);
+
+    // An SQL mailbox reads its message list right away: that creates its
+    // folders and brings in changes made by other clients meanwhile.
+    if (dynamic_cast<SQLHandler *> (Handler))
+        ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
 }
 
 MailBox::MailBox (ITCPipe *ui)

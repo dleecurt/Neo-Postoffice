@@ -137,10 +137,15 @@ void Var::Load (FILE *F)
 			}
 			else if (strchr (Buffer, '{'))
 			{
+				// Neo-PostOffice: the name is everything before the opening
+				// brace, so names may contain spaces (folders from an SQL mailbox).
 				ps = 0;
 				while ((Buffer[ps])&&(Buffer[ps]<=' ')) ++ps;
+				char *brace = strrchr (Buffer, '{');
+				int end = (int) (brace - Buffer);
+				while ((end > ps) && (Buffer[end-1] <= ' ')) --end;
 				ps2=0;
-				while ((Buffer[ps]) && (Buffer[ps] > ' ')) Name[ps2++] = Buffer[ps++];
+				while ((ps < end) && (ps2 < (int) sizeof (Name) - 1)) Name[ps2++] = Buffer[ps++];
 				Name[ps2] = 0;
 				//printf ("new collection %s\n", Name);
 				Get_collection (Name)->Load (F);

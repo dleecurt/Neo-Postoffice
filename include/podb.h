@@ -4,7 +4,7 @@
 // Neo-PostOffice database layer
 // -----------------------------
 // A small driver-independent interface to SQL databases, used by the
-// PostgreSQL mail storage and the MySQL mailbox type.
+// PostgreSQL mail storage and the SQL mailbox.
 //
 // Statements use numbered placeholders, $1, $2, ..., with every driver.
 // Values are always passed as parameters, never pasted into the SQL text.
@@ -96,13 +96,7 @@ namespace podb
 	// sets error if the build has no PostgreSQL support or connecting fails.
 	std::unique_ptr<Connection>	ConnectPostgreSQL (const std::string &conninfo, std::string &error);
 
-	// Opens a MySQL/MariaDB connection.
-	std::unique_ptr<Connection>	ConnectMySQL (const std::string &host, int port,
-											  const std::string &user, const std::string &password,
-											  const std::string &database, std::string &error);
-
 	bool	HavePostgreSQL (void);
-	bool	HaveMySQL (void);
 
 	// Returns s as valid UTF-8. Text that is not valid UTF-8 (old mail in
 	// ISO-8859-1, say) is converted from ISO-8859-1.

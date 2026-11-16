@@ -14,8 +14,9 @@ interface and behavior are intentionally kept close to the original.
 
 - POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
 - Local mbox files as mailboxes
-- SQL mailboxes: mail read from a table in PostgreSQL or MySQL/MariaDB,
-  filled by the included `po-sqldeliver` tool
+- SQL mailboxes: mail read from a shared PostgreSQL database over SSL,
+  delivered by getmail/fetchmail through the included `po-sqldeliver`;
+  per-user access enforced by the database
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
 - Filter rules that sort incoming mail into folders
 - Inline display of JPEG attachments, clickable links
@@ -44,8 +45,7 @@ FLTK, put its `bin` directory first in `PATH`, or pass
 
 | Option | Default | Meaning |
 |---|---|---|
-| `WITH_POSTGRESQL` | `AUTO` | PostgreSQL support (needs `libpq-dev`). `AUTO` uses it when libpq is found |
-| `WITH_MYSQL` | `OFF` | MySQL/MariaDB support for SQL mailboxes (needs `libmariadb-dev`) |
+| `WITH_POSTGRESQL` | `AUTO` | PostgreSQL support: SQL mailboxes, PostgreSQL storage and `po-sqldeliver` (needs `libpq-dev`). `AUTO` uses it when libpq is found |
 | `PO_WARNINGS` | `ON` | Compile with `-Wall -Wextra` |
 
 ### Debug build with sanitizers
@@ -83,41 +83,18 @@ several mailboxes and users can share one database.
 
 ## SQL mailboxes
 
-The *Post Office SQL table* protocol reads mail from a database table
-instead of a mail server. Some other program puts the mail there; the
-original PostOffice expected a mail server feeding a shared MySQL
-database. Neo-PostOffice supports this with PostgreSQL or MySQL/MariaDB.
+The *SQL mailbox (PostgreSQL)* protocol reads mail from a table in a
+PostgreSQL database, usually on another machine, over SSL with full
+certificate checking. A fetcher such as getmail collects the mail over
+TLS and hands it to `po-sqldeliver`, which stores it in the table.
+Several people can share the database: each logs in as their own
+PostgreSQL user and row-level security shows them only their own mail.
+Folders are created automatically from the database, and read state and
+deletions are shared between computers.
 
-1. Create the tables with `docs/sql-mailbox-postgresql.sql` or
-   `docs/sql-mailbox-mysql.sql`.
-2. Deliver mail into them with `po-sqldeliver`, which reads one message
-   on standard input:
-
-       po-sqldeliver pgsql "host=dbhost dbname=postoffice"  < message
-       po-sqldeliver mysql dbhost myuser postoffice         < message
-
-   Options: `-t TABLE` (default `messages`), `-f FOLDER` (default
-   `Inbox`), `-H` to also fill the `headers` table. Exit status is 0 on
-   success, 75 on a temporary error (the mail server should retry), 64
-   for bad usage and 65 for unusable input. For example, from a
-   `~/.forward` or a procmail rule:
-
-       |/usr/local/bin/po-sqldeliver pgsql "dbname=postoffice"
-
-3. In Config → Mailboxes, add a mailbox with the protocol *Post Office
-   SQL table*, choose PostgreSQL or MySQL next to *Server*, and fill in
-   the server, user, database and table. Name its folders as in the
-   `folder` column (`Inbox` by default).
-
-Passwords: PostgreSQL reads `~/.pgpass` (the password field is greyed
-out), MySQL reads the `[client]` section of `~/.my.cnf` when the field is
-left empty. The server can be a host name or, for PostgreSQL, a socket
-directory.
-
-The table layout is reconstructed from the queries in PostOffice 0.7.3;
-the original schema was never published. Message bodies are stored in
-the original encoding: every byte except letters, digits, space and
-`.,:;/!?` is written as `@` followed by two hex digits.
+Setup (database, roles, SSL, getmail and the client) is described in
+[docs/sql-mailbox.md](docs/sql-mailbox.md); the schema is
+`docs/sql-mailbox-postgresql.sql`.
 
 ## Source layout
 
@@ -127,7 +104,7 @@ the original encoding: every byte except letters, digits, space and
 | `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
 | `src/postoffice/icons/` | XPM icons and banner artwork |
 | `src/tools/po-sqldeliver.cpp` | Delivery tool for SQL mailboxes |
-| `docs/` | Database schemas |
+| `docs/` | SQL mailbox guide and database schemas |
 | `include/` | Application headers |
 | `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
 | `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
@@ -171,8 +148,13 @@ See the git history for details. In summary:
   File → Configure doing nothing.
 - JPEG attachments are decoded with FLTK's image support instead of
   libjpeg through a temporary file.
-- PostgreSQL support: mail storage and SQL mailboxes, through a small
-  database layer shared with MySQL, and the `po-sqldeliver` tool.
+- PostgreSQL support: mail storage, and the SQL mailbox rebuilt for
+  PostgreSQL (multi-user with row-level security, SSL, automatic
+  folders) with the `po-sqldeliver` delivery tool. MySQL support was
+  removed; the original MySQL table layout is not supported.
+- The settings file accepts names with spaces (folders from the
+  database). Two fields on the unfinished Language tab no longer
+  overwrite the selected mailbox's settings when typed in.
 - Deleting a message no longer hangs the program; the message list keeps
   its scroll position.
 
@@ -185,6 +167,14 @@ Found while modernizing and left for later:
 - Messages with 8-bit headers or text and no declared character set
   show `?` instead of accented letters in the message view (seen with a
   Latin-1 test message).
+- Header lines with encoded words (`=?UTF-8?B?...?=`) are shown
+  undecoded in the message view (SQL mailbox message lists are decoded
+  by `po-sqldeliver`).
+- After closing the Config window, Check does nothing until a folder is
+  clicked.
+- SQL mailbox: messages cannot be moved between folders from the client,
+  and the collection-method and expiry settings, which do not apply to
+  it, are not greyed out.
 - The tools in `src/postoffice/update.cpp` and `checkmail.cpp` are not
   built; they contain the original author's database server and login.
 - The composer's Message → Discard menu item has no action; closing the

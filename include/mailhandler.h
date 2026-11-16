@@ -91,11 +91,11 @@ private:
 	void					SendCmd(const char*);
 	
 };
-class MySQLHandler : public MailHandler
+class SQLHandler : public MailHandler
 {
 public:
-	MySQLHandler (MailBox *, Var *);
-	~MySQLHandler (void);
+	SQLHandler (MailBox *, Var *);
+	~SQLHandler (void);
 	
 	void					 OpenConnection (void);
 	void					 CloseConnection (void);
@@ -110,7 +110,12 @@ private:
 	
 	podb::Connection		*SQL;
 	int						 CheckError (bool ok);
-	long					 MsgToSQL (char *);
+	std::string				 ConnInfo (void);
+	std::string				 Table (void);
+	std::string				 MsgID (long long);
+	long long				 MsgToSQL (const char *);
+	void					 EnsureFolder (const std::string &);
+	bool					 FoldersChanged;
 };
 
 class OutBoxHandler : public MailHandler

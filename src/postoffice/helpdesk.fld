@@ -1496,7 +1496,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {296 46 194 19} down_box BORDER_BOX labelsize 12 textsize 12
             } {
               MenuItem {} {
-                label {Post Office SQL table}
+                label {SQL mailbox (PostgreSQL)}
                 xywh {0 0 100 20} labelsize 12
                 code0 {xloc(o, "proto_mysql");}
               }
@@ -1522,44 +1522,27 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               }
             }
           }
-          Fl_Group gr_prefs_protocol_mysql {
+          Fl_Group gr_prefs_protocol_sql {
             xywh {210 75 410 160} box ENGRAVED_BOX color 51 align 5
           } {
             Fl_Group {} {open
               xywh {220 85 385 21}
             } {
-              Fl_Input in_prefs_protocol_mysql_host {
-                callback cb_prefs_protocol_mysql
-                xywh {410 85 195 21} labelsize 12 when 1 textsize 12
+              Fl_Input in_prefs_protocol_sql_host {
+                callback cb_prefs_protocol_sql
+                xywh {375 85 230 21} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
                 label Server
                 xywh {225 85 80 20} box NO_BOX labelsize 12 align 20
                 code0 {xloc(o, "mysql_host");}
               }
-              Fl_Group {} {open
-                xywh {305 85 100 21} box BORDER_FRAME color 0
-              } {
-                Fl_Choice ch_prefs_protocol_mysql_driver {
-                  callback cb_prefs_protocol_mysql_driver open
-                  xywh {306 86 99 20} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
-                } {
-                  MenuItem {} {
-                    label MySQL
-                    xywh {0 0 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label PostgreSQL
-                    xywh {0 0 100 20} labelsize 12
-                  }
-                }
-              }
             }
             Fl_Group {} {open
               xywh {225 115 380 20}
             } {
-              Fl_Input in_prefs_protocol_mysql_user {
-                callback cb_prefs_protocol_mysql
+              Fl_Input in_prefs_protocol_sql_user {
+                callback cb_prefs_protocol_sql
                 xywh {375 115 230 20} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
@@ -1571,21 +1554,21 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Group {} {open
               xywh {225 145 380 20}
             } {
-              Fl_Input in_prefs_protocol_mysql_pass {
-                callback cb_prefs_protocol_mysql
-                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+              Fl_Input in_prefs_protocol_sql_cafile {
+                callback cb_prefs_protocol_sql
+                tooltip {Certificate (PEM) of the CA that signed the database server's certificate. Empty: ~/.postgresql/root.crt} xywh {375 145 230 20} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
-                label Password
+                label {CA file}
                 xywh {225 145 90 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "password");}
+                code0 {xloc(o, "sql_cafile");}
               }
             }
             Fl_Group {} {open
               xywh {225 175 380 20}
             } {
-              Fl_Input in_prefs_protocol_mysql_db {
-                callback cb_prefs_protocol_mysql
+              Fl_Input in_prefs_protocol_sql_db {
+                callback cb_prefs_protocol_sql
                 xywh {375 175 230 20} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
@@ -1597,8 +1580,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Group {} {open
               xywh {225 205 380 20}
             } {
-              Fl_Input in_prefs_protocol_mysql_tab {
-                callback cb_prefs_protocol_mysql
+              Fl_Input in_prefs_protocol_sql_tab {
+                callback cb_prefs_protocol_sql
                 xywh {375 205 230 20} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
@@ -2323,7 +2306,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {230 84 370 21}
           } {
             Fl_Input {} {
-              callback cb_prefs_protocol_mysql
               xywh {370 84 230 21} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
@@ -2336,7 +2318,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {230 114 370 21}
           } {
             Fl_Input {} {
-              callback cb_prefs_protocol_mysql
               xywh {370 114 230 21} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {

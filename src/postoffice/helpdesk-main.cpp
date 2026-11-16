@@ -668,6 +668,27 @@ int main (int argc, char *argv[])
 					}
 					break;
 
+				case CLASS_NEWFOLDER:
+					// A mailbox (the SQL mailbox) created folders by itself or
+					// lost messages: rebuild the tree for the folders and counts.
+					update_tree (current_boxlist);
+					break;
+
+				case CLASS_GONE:
+					// A message was deleted on the server (by another client).
+					for (int k=0; k<16 && MailBoxList[k]; ++k)
+					{
+						MailBox *B = MailBoxList[k];
+						if (strcmp (B->Name, M->Message->Get(0)) != 0) continue;
+						if (B->Find (M->Message->Get(1)))
+						{
+							B->RemoveMessage (M->Message->Get(1));
+							if (B == currentmailbox) update_folder();
+						}
+						break;
+					}
+					break;
+
 				case CLASS_ERROR :
 					errorstring = new char [strlen (M->Message->Get(0)) + strlen (M->Message->Get(1)) + 64];
 					sprintf (errorstring, "Error in [%s]\n%s", M->Message->Get(0), M->Message->Get(1));

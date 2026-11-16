@@ -12,7 +12,6 @@
 #include "podb.h"
 #include <FL/fl_ask.H>
 
-static void update_sql_driver_widgets (void);
 
 #define FL_SCREEN_BOLD_ITALIC FL_SCREEN_BOLD
 #define FL_SCREEN_ITALIC FL_SCREEN
@@ -146,26 +145,25 @@ void func_view_protocol (void)
 	switch (val)
 	{
 		case 0:
-			gr_prefs_protocol_mysql->show();
+			gr_prefs_protocol_sql->show();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->hide();
 			gr_prefs_protocol_imap4->hide();
 			if (PREFS_CURRENTBOX)
 			{
-				PREFS_CURRENTBOX->Set_char ("protocol","mysql");
-				in_prefs_protocol_mysql_host->value (PREFS_CURRENTBOX->Get_char ("host"));
-				in_prefs_protocol_mysql_user->value (PREFS_CURRENTBOX->Get_char ("user"));
-				in_prefs_protocol_mysql_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
-				in_prefs_protocol_mysql_db->value    (PREFS_CURRENTBOX->Get_char ("database"));
-				in_prefs_protocol_mysql_tab->value   (PREFS_CURRENTBOX->Get_char ("table"));
-				ch_prefs_protocol_mysql_driver->value (strcasecmp (PREFS_CURRENTBOX->Get_char ("driver"), "pgsql") == 0 ? 1 : 0);
-				update_sql_driver_widgets ();
+				PREFS_CURRENTBOX->Set_char ("protocol","sql");
+				if (!*PREFS_CURRENTBOX->Get_char ("table")) PREFS_CURRENTBOX->Set_char ("table", "po_mail");
+				in_prefs_protocol_sql_host->value   (PREFS_CURRENTBOX->Get_char ("host"));
+				in_prefs_protocol_sql_user->value   (PREFS_CURRENTBOX->Get_char ("user"));
+				in_prefs_protocol_sql_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
+				in_prefs_protocol_sql_db->value     (PREFS_CURRENTBOX->Get_char ("database"));
+				in_prefs_protocol_sql_tab->value    (PREFS_CURRENTBOX->Get_char ("table"));
 			}
 			break;
 
 		case 1:
-			gr_prefs_protocol_mysql->hide();
+			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->show();
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->hide();
@@ -180,7 +178,7 @@ void func_view_protocol (void)
 			break;
 
 		case 2:
-			gr_prefs_protocol_mysql->hide();
+			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->show();
@@ -195,7 +193,7 @@ void func_view_protocol (void)
 			break;
 
 		case 3:
-			gr_prefs_protocol_mysql->hide();
+			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_nntp->hide();
 			gr_prefs_protocol_mbox->show();
@@ -216,7 +214,7 @@ void func_view_protocol (void)
 			break;
 			
 		case 4:
-			gr_prefs_protocol_mysql->hide();
+			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->hide();
@@ -231,7 +229,7 @@ void func_view_protocol (void)
 			break;
 
 		default:
-			gr_prefs_protocol_mysql->hide();
+			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_nntp->hide();
 			gr_prefs_protocol_mbox->hide();
@@ -283,9 +281,7 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	{
 		make_prefs_window();
 		// Grey out database features this build does not have.
-		if (!podb::HaveMySQL() && !podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
-		if (!podb::HaveMySQL()) menu_ch_prefs_protocol_mysql_driver[0].deactivate();
-		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol_mysql_driver[1].deactivate();
+		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
 	}
 	
@@ -387,7 +383,7 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		in_prefs_mailboxname->value (br_prefs_mailboxes->text(val));
 		
 		proto = PREFS_CURRENTBOX->Get_char ("protocol");
-		if (strcasecmp (proto, "mysql") == 0)
+		if (strcasecmp (proto, "sql") == 0 || strcasecmp (proto, "mysql") == 0)
 		{
 			ch_prefs_protocol->value (0);
 		}
@@ -914,38 +910,16 @@ void cb_prefs_mailfolder_folder_del (Fl_Button */*b*/, void */*v*/)
 	}
 }
 
-// The SQL mailbox's PostgreSQL password comes from ~/.pgpass, so the
-// password field only applies to MySQL.
-static void update_sql_driver_widgets (void)
-{
-	if (ch_prefs_protocol_mysql_driver->value() == 1) in_prefs_protocol_mysql_pass->deactivate();
-	else in_prefs_protocol_mysql_pass->activate();
-}
-
-void cb_prefs_protocol_mysql_driver (Fl_Choice */*c*/, void */*v*/)
-{
-	if (!PREFS_CURRENTBOX) return;
-	int driver = ch_prefs_protocol_mysql_driver->value();
-	if ((driver == 1 && !podb::HavePostgreSQL()) || (driver == 0 && !podb::HaveMySQL()))
-	{
-		fl_alert ("This build of Neo-PostOffice has no %s support.", driver == 1 ? "PostgreSQL" : "MySQL");
-		ch_prefs_protocol_mysql_driver->value (driver == 1 ? 0 : 1);
-	}
-	PREFS_MBOX_CHANGE=1;
-	PREFS_CURRENTBOX->Set_char ("driver", ch_prefs_protocol_mysql_driver->value() == 1 ? "pgsql" : "mysql");
-	update_sql_driver_widgets ();
-}
-
-void cb_prefs_protocol_mysql (Fl_Input */*i*/, void */*v*/)
+void cb_prefs_protocol_sql (Fl_Input */*i*/, void */*v*/)
 {
 	if (PREFS_CURRENTBOX)
 	{
 		PREFS_MBOX_CHANGE=1;
-		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_mysql_host->value());
-		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_mysql_user->value());
-		PREFS_CURRENTBOX->Set_char ("pass", (char *) in_prefs_protocol_mysql_pass->value());
-		PREFS_CURRENTBOX->Set_char ("database", (char *) in_prefs_protocol_mysql_db->value());
-		PREFS_CURRENTBOX->Set_char ("table", (char *) in_prefs_protocol_mysql_tab->value());
+		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_sql_host->value());
+		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_sql_user->value());
+		PREFS_CURRENTBOX->Set_char ("cafile", (char *) in_prefs_protocol_sql_cafile->value());
+		PREFS_CURRENTBOX->Set_char ("database", (char *) in_prefs_protocol_sql_db->value());
+		PREFS_CURRENTBOX->Set_char ("table", (char *) in_prefs_protocol_sql_tab->value());
 		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
 	}
 }

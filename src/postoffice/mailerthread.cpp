@@ -76,7 +76,7 @@ void *MailerThread::MailerMain (void *_box)
 					[[fallthrough]];
 				
 				case CLASS_CHECKGROUP:
-					strcpy (currentgroup, M->Message->Get(0));
+					snprintf (currentgroup, sizeof (currentgroup), "%s", M->Message->Get(0));
 					//printf ("class_checkgroup handler=%08x m=%08x m->message=%08x\n", Box->Handler, M, M->Message);
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->CloseConnection();
