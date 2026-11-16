@@ -1,6 +1,9 @@
 #ifndef _MAILHANDLER_H
 #define _MAILHANDLER_H 1
 
+#include <map>
+#include <string>
+#include <vector>
 #include "var.h"
 #include "mailbox.h"
 #include "mailmessage.h"
@@ -23,6 +26,8 @@ public:
 	virtual void			 Expire (void);
 	virtual int				 PostMessage (WordList *, MailMessage *);
 //	virtual WordList		*ServerGrouplist (void);
+	// The user opened a message whose body was already here (Neo-PostOffice).
+	virtual void			 MarkRead (char *) {}
 
 	WordList				*GroupList (void);
 		
@@ -114,8 +119,45 @@ private:
 	std::string				 Table (void);
 	std::string				 MsgID (long long);
 	long long				 MsgToSQL (const char *);
-	void					 EnsureFolder (const std::string &);
 	bool					 FoldersChanged;
+};
+
+class MaildirHandler : public MailHandler
+{
+public:
+							 MaildirHandler (MailBox *, Var *);
+							~MaildirHandler (void);
+
+	void					 OpenConnection (void);
+	void					 CloseConnection (void);
+	void					 GetBody (char *);
+	void					 CheckGroup (const char *);
+	void					 DeleteMessage (char *);
+	void					 Expire (void);
+	int						 PostMessage (WordList *, MailMessage *);
+	void					 MarkRead (char *);
+
+private:
+
+	struct Entry
+	{
+		std::string			 Dir;	// "" (top level) or ".Work"
+		std::string			 Sub;	// "new" or "cur"
+		std::string			 File;	// file name, with ":2,flags"
+		std::string			 Flags;	// "FS"
+	};
+
+	std::string				 Root (void);
+	std::string				 Path (const Entry &);
+	std::string				 MsgID (const std::string &dir, const std::string &uniq);
+	bool					 Scan (void);
+	Entry					*Locate (const char *msgid);
+	bool					 MarkSeen (Entry &);
+
+	std::map<std::string, Entry> Files;	// msgid -> file, as of the last scan
+	std::vector<std::string> Dirs;		// "" and the Maildir++ subfolders
+	bool					 FoldersChanged;
+	bool					 ReportedMissing;
 };
 
 class OutBoxHandler : public MailHandler

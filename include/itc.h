@@ -20,6 +20,7 @@
 #define CLASS_OPENSERVER	0x1005 // [0]
 #define CLASS_CLOSESERVER	0x1006 // [0]
 #define CLASS_EXPIRE		0x1007 // [0]
+#define CLASS_MARKREAD		0x1008 // [1] arg1 = intmsgid (opened from the local copy)
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]

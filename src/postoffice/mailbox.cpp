@@ -157,6 +157,10 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     {
         Handler = new NNTPHandler (this, PREFROOT);
     }
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "maildir") == 0)
+    {
+        Handler = new MaildirHandler (this, PREFROOT);
+    }
     else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mbox") == 0)
     {
         Handler = new MBoxHandler (this, PREFROOT);
@@ -196,9 +200,9 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 
     Collector->Run((void *) this);
 
-    // An SQL mailbox reads its message list right away: that creates its
-    // folders and brings in changes made by other clients meanwhile.
-    if (dynamic_cast<SQLHandler *> (Handler))
+    // SQL and Maildir mailboxes read their message list right away: that
+    // creates their folders and brings in changes made elsewhere meanwhile.
+    if (dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<MaildirHandler *> (Handler))
         ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
 }
 
@@ -629,6 +633,47 @@ int MailBox::Have (char *msgid)
         if (Root->Find (msgid)) result = 1;
     Lock->UnlockR();
     return (result);
+}
+
+// The client's name for a folder: the settings file cannot store
+// = { } " or control characters in a name, and folder names are kept in
+// 64-byte buffers.
+static std::string folder_view_name (const std::string &folder)
+{
+    std::string out;
+    for (char c : folder)
+    {
+        if ((unsigned char) c < ' ' || strchr ("={}\"", c)) out += '_';
+        else out += c;
+    }
+    if (out.size() > 63)
+    {
+        out.resize (63);
+        while (!out.empty() && ((unsigned char) out.back() & 0xC0) == 0x80) out.pop_back();
+        if (!out.empty() && ((unsigned char) out.back() & 0x80)) out.pop_back();
+    }
+    return out.empty() ? "_" : out;
+}
+
+bool MailBox::EnsureFolder (const std::string &value)
+{
+    std::string name = folder_view_name (value);
+    if (GetView (name.c_str())) return false;
+
+    // New folders get a filter that takes exactly the messages whose folder
+    // field (ENVELOPE_GROUPS) is value, and are saved with the settings at
+    // exit. The filter list is separated by commas, so a comma in the name
+    // is matched by the wildcard '?'.
+    Var *box = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name);
+    Var *F = box->Get_collection ("folders")->Get_collection (name.c_str());
+    if (!*F->Get_char ("filters"))
+    {
+        std::string pattern = value;
+        for (char &c : pattern) if (c == ',') c = '?';
+        F->Set_char ("filters", ("7,glob,accept,0," + pattern).c_str());
+    }
+    CreateMailView (name.c_str());
+    return true;
 }
 
 void MailBox::CreateMailView (const char *name)

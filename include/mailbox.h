@@ -1,6 +1,7 @@
 #ifndef _MAILBOX_H
 #define _MAILBOX_H 1
 
+#include <string>
 #include "wordlist.h"
 #include "var.h"
 #include "mailerthread.h"
@@ -33,6 +34,10 @@ class MailBox
 		int					 Have (char *);
 
 		void				 CreateMailView (const char *);
+		// For mailboxes whose folders come from the source (SQL, Maildir):
+		// makes sure there is a folder taking exactly the messages whose
+		// folder field is value. Returns true if it had to be created.
+		bool				 EnsureFolder (const std::string &value);
 		void				 DestroyMailView (char *);
 		void				 RenameMailView (char *, char *);
 		

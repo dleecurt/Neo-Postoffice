@@ -142,6 +142,13 @@ void func_view_protocol (void)
 		in_prefs_interval->value (PREFS_CURRENTBOX->Get_char ("interval"));
 	}
 	
+	gr_prefs_protocol_sql->hide();
+	gr_prefs_protocol_pop3->hide();
+	gr_prefs_protocol_nntp->hide();
+	gr_prefs_protocol_mbox->hide();
+	gr_prefs_protocol_imap4->hide();
+	gr_prefs_protocol_maildir->hide();
+
 	switch (val)
 	{
 		case 0:
@@ -228,11 +235,17 @@ void func_view_protocol (void)
 			}
 			break;
 
+		case 5:
+			gr_prefs_protocol_maildir->show();
+			if (PREFS_CURRENTBOX)
+			{
+				PREFS_CURRENTBOX->Set_char ("protocol","maildir");
+				if (!*PREFS_CURRENTBOX->Get_char ("path")) PREFS_CURRENTBOX->Set_char ("path", "~/Maildir");
+				in_prefs_protocol_maildir_path->value (PREFS_CURRENTBOX->Get_char ("path"));
+			}
+			break;
+
 		default:
-			gr_prefs_protocol_sql->hide();
-			gr_prefs_protocol_pop3->hide();
-			gr_prefs_protocol_nntp->hide();
-			gr_prefs_protocol_mbox->hide();
 			break;
 	}
 	if (PREFS_CURRENTBOX)
@@ -402,6 +415,10 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		else if (strcasecmp (proto, "imap4") == 0)
 		{
 			ch_prefs_protocol->value (4);
+		}
+		else if (strcasecmp (proto, "maildir") == 0)
+		{
+			ch_prefs_protocol->value (5);
 		}
 		else
 		{
@@ -908,6 +925,12 @@ void cb_prefs_mailfolder_folder_del (Fl_Button */*b*/, void */*v*/)
 				PREFS_MBOX_CHANGE=1;
 			}
 	}
+}
+
+void cb_prefs_protocol_maildir (Fl_Input */*i*/, void */*v*/)
+{
+	if (PREFS_CURRENTBOX)
+		PREFS_CURRENTBOX->Set_char ("path", (char *) in_prefs_protocol_maildir_path->value());
 }
 
 void cb_prefs_protocol_sql (Fl_Input */*i*/, void */*v*/)

@@ -1520,6 +1520,10 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 xywh {30 30 100 20} labelsize 12
                 code0 {xloc(o, "proto_imap4");}
               }
+              MenuItem {} {
+                label Maildir
+                xywh {30 30 100 20} labelsize 12
+              }
             }
           }
           Fl_Group gr_prefs_protocol_sql {
@@ -1740,6 +1744,27 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Button bt_prefs_mboxfile_erase {
               callback cb_prefs_mboxfile_delete
               image {icons/eraser.xpm} compress_image 1 xywh {570 210 20 20} labelsize 12
+            }
+          }
+          Fl_Group gr_prefs_protocol_maildir {open
+            xywh {210 75 410 160} box ENGRAVED_BOX color 51 align 5 hide
+          } {
+            Fl_Group {} {open
+              xywh {225 85 380 21}
+            } {
+              Fl_Input in_prefs_protocol_maildir_path {
+                callback cb_prefs_protocol_maildir
+                tooltip {The Maildir to read, e.g. ~/Maildir (it contains cur, new and tmp).} xywh {375 85 230 21} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {Maildir folder}
+                xywh {225 85 120 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc(o, "maildir_path");}
+              }
+            }
+            Fl_Box {} {
+              label {Maildir++ subfolders (.Work, .Lists.2025) appear as folders by themselves. Opening a message marks it seen in the Maildir; deleting it removes the file.}
+              xywh {225 120 380 60} labelsize 11 align 149
             }
           }
           Fl_Input in_prefs_interval {

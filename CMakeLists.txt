@@ -141,7 +141,8 @@ set(PO_BACKEND_SOURCES
   connection.cpp debug.cpp eaddr.cpp encode.cpp envelope.cpp folderxpm.cpp
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp imap4handler.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
-  mboxhandler.cpp mboxstorage.cpp nntphandler.cpp sqlhandler.cpp
+  maildirhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
+  nntphandler.cpp sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtp.cpp status.cpp storagelist.cpp
@@ -174,6 +175,7 @@ install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 if(PO_POSTGRESQL)
   add_executable(po-sqldeliver
     src/tools/po-sqldeliver.cpp
+    src/postoffice/mailheaders.cpp
     src/postoffice/podb.cpp
     src/postoffice/podb_pgsql.cpp)
   target_include_directories(po-sqldeliver PRIVATE include ${PQ_INCLUDE_DIR})

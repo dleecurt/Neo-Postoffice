@@ -1,5 +1,7 @@
 #include <pthread.h>
 #include <signal.h>
+#include "mailheaders.h"
+#include <string>
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -171,7 +173,12 @@ void new_folderitem (MailMessage *M)
 
 	// build up line for indexview
 
-	sprintf (buf, "%s\t%s\t%s", M->Envelope->Get (ENVELOPE_SUBJECT), from, M->Envelope->Get (ENVELOPE_DATE));
+	// Neo-PostOffice: decoded (RFC 2047) and bounded; tabs would split columns.
+	std::string subject = mailheaders::Decode (M->Envelope->Get (ENVELOPE_SUBJECT));
+	std::string sender = mailheaders::Decode (from);
+	for (char &c : subject) if (c == '\t') c = ' ';
+	for (char &c : sender) if (c == '\t') c = ' ';
+	snprintf (buf, sizeof (buf), "%.300s\t%.120s\t%.60s", subject.c_str(), sender.c_str(), M->Envelope->Get (ENVELOPE_DATE));
 
 	// do threading if that's what the user wants
 

@@ -9,6 +9,9 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include <string>
+#include <vector>
+#include "mailheaders.h"
 #include "mailbox.h"
 #include "substr.h"
 #include "eaddr.h"
@@ -347,7 +350,11 @@ void MailMessage::ProcessHeaders (char *Hdr)
 
 	if (strlen (Header ("Newsgroups"))) Envelope->Set (ENVELOPE_NEWSGROUPS, Header ("Newsgroups"));
 	Envelope->Set (ENVELOPE_DATE, Header ("Date"));
-	tmp = eaddr2name (Header ("From"));
+	// Neo-PostOffice: names and subjects are shown decoded (RFC 2047) as UTF-8.
+	std::string from_decoded = mailheaders::Decode (Header ("From"));
+	std::vector<char> from_copy (from_decoded.begin(), from_decoded.end());
+	from_copy.push_back (0);
+	tmp = eaddr2name (from_copy.data());
 	Envelope->Set (ENVELOPE_NAMEFROM, tmp);
 	delete[] (tmp);
 	
@@ -371,7 +378,7 @@ void MailMessage::ProcessHeaders (char *Hdr)
 		if (strlen (tmp) > 0) Envelope->Set (ENVELOPE_MAILFROM, tmp);
 		delete[] (tmp);
 	}
-	Envelope->Set (ENVELOPE_SUBJECT, Header ("Subject"));
+	Envelope->Set (ENVELOPE_SUBJECT, mailheaders::Decode (Header ("Subject")).c_str());
 	SaveHeaders();
 }
 

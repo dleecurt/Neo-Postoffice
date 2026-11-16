@@ -3,6 +3,8 @@
 
 #include "btree.h"
 
+#include <mutex>
+
 class StringToken : public BTreeNode
 {
 	public:
@@ -23,6 +25,7 @@ class StringTokenList
 		
 	protected:
 		StringToken	*root;
+		std::mutex	 Mutex;	// envelopes are made by several mailbox threads at once
 };
 
 extern StringTokenList TOKEN;

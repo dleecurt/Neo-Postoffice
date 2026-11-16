@@ -94,6 +94,12 @@ void *MailerThread::MailerMain (void *_box)
 					Box->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get(0));
 					break;
 					
+				case CLASS_MARKREAD:
+					Box->Handler->Lock.LockOnce();
+					Box->Handler->MarkRead (M->Message->Get(0));
+					Box->Handler->Lock.UnlockOnce();
+					break;
+
 				case CLASS_DELETE:
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->DeleteMessage (M->Message->Get(0));

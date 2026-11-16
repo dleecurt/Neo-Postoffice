@@ -13,10 +13,10 @@ interface and behavior are intentionally kept close to the original.
 ## Features
 
 - POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
-- Local mbox files as mailboxes
-- SQL mailboxes: mail read from a shared PostgreSQL database over SSL,
-  delivered by getmail/fetchmail through the included `po-sqldeliver`;
-  per-user access enforced by the database
+- Local mbox files and Maildir (with Maildir++ folders) as mailboxes;
+  Maildir changes are shared with other programs
+- SQL mailboxes (experimental, on hold): mail read from a shared
+  PostgreSQL database over SSL
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
 - Filter rules that sort incoming mail into folders
 - Inline display of JPEG attachments, clickable links
@@ -81,7 +81,21 @@ put it in `~/.pgpass`. The tables (`po_messages`, `po_parts`) are created
 on first use; `docs/postgresql-storage.sql` shows them. Messages from
 several mailboxes and users can share one database.
 
+## Maildir mailboxes
+
+The *Maildir* protocol reads a Maildir on this computer, such as
+`~/Maildir` filled by getmail. Maildir++ subfolders (`.Work`,
+`.Lists.2025`) appear as folders by themselves. Opening a message sets
+its seen flag in the Maildir, deleting it deletes the file, and changes
+made by other programs show up on the next check. See
+[docs/maildir.md](docs/maildir.md).
+
 ## SQL mailboxes
+
+*Development of the SQL mailbox is on hold* (too little is known about
+how the original was used); Maildir is the recommended way to read mail
+fetched by getmail. The code below works as described but may change.
+
 
 The *SQL mailbox (PostgreSQL)* protocol reads mail from a table in a
 PostgreSQL database, usually on another machine, over SSL with full
@@ -104,7 +118,7 @@ Setup (database, roles, SSL, getmail and the client) is described in
 | `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
 | `src/postoffice/icons/` | XPM icons and banner artwork |
 | `src/tools/po-sqldeliver.cpp` | Delivery tool for SQL mailboxes |
-| `docs/` | SQL mailbox guide and database schemas |
+| `docs/` | Maildir and SQL mailbox guides, database schemas |
 | `include/` | Application headers |
 | `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
 | `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
@@ -152,6 +166,16 @@ See the git history for details. In summary:
   PostgreSQL (multi-user with row-level security, SSL, automatic
   folders) with the `po-sqldeliver` delivery tool. MySQL support was
   removed; the original MySQL table layout is not supported.
+- Maildir mailboxes with Maildir++ folders and two-way flag sync.
+- Encoded words in headers (`=?UTF-8?B?...?=`) are decoded in the
+  message list, the message view and the window tabs; 8-bit headers
+  without a character set are read as ISO-8859-1.
+- The window handles up to 500 waiting notices per pass instead of one,
+  so thousands of new messages arrive in seconds instead of minutes.
+- The shared string table of message envelopes counted references from
+  0, so freeing two messages with an identical sender, subject or date
+  freed the text while one still used it; it also had no lock although
+  every mailbox thread uses it.
 - The settings file accepts names with spaces (folders from the
   database). Two fields on the unfinished Language tab no longer
   overwrite the selected mailbox's settings when typed in.
@@ -164,14 +188,13 @@ Found while modernizing and left for later:
 
 - Only `http://` links are recognized (no `https://`); POP3, IMAP4,
   NNTP and SMTP have no TLS support.
-- Messages with 8-bit headers or text and no declared character set
-  show `?` instead of accented letters in the message view (seen with a
-  Latin-1 test message).
-- Header lines with encoded words (`=?UTF-8?B?...?=`) are shown
-  undecoded in the message view (SQL mailbox message lists are decoded
-  by `po-sqldeliver`).
+- Message text in 8-bit without a declared character set shows `?`
+  instead of accented letters in the message view (headers are fine).
 - After closing the Config window, Check does nothing until a folder is
-  clicked.
+  clicked. Deleting a message does not update the count next to the
+  mailbox name until the next check.
+- Maildir: messages cannot be moved between folders, and a folder
+  deleted on disk stays in the list until removed in Config.
 - SQL mailbox: messages cannot be moved between folders from the client,
   and the collection-method and expiry settings, which do not apply to
   it, are not greyed out.

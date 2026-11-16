@@ -41,7 +41,6 @@
 #include "debug.h"
 
 extern JobList JOBQ;
-extern Var PREFERENCES;
 
 // The table name comes from the mailbox settings and cannot be a query
 // parameter, so only plain identifiers are accepted.
@@ -65,26 +64,6 @@ static std::string conninfo_value (const std::string &v)
 		out += c;
 	}
 	return out + "'";
-}
-
-// The client's name for a folder: the settings file cannot store
-// = { } " or control characters in a name, and folder names are kept in
-// 64-byte buffers.
-static std::string view_name (const std::string &folder)
-{
-	std::string out;
-	for (char c : folder)
-	{
-		if ((unsigned char) c < ' ' || strchr ("={}\"", c)) out += '_';
-		else out += c;
-	}
-	if (out.size() > 63)
-	{
-		out.resize (63);
-		while (!out.empty() && ((unsigned char) out.back() & 0xC0) == 0x80) out.pop_back();
-		if (!out.empty() && ((unsigned char) out.back() & 0x80)) out.pop_back();
-	}
-	return out.empty() ? "_" : out;
 }
 
 SQLHandler::SQLHandler (MailBox *_Parent, class Var *_Parameters)
@@ -204,28 +183,6 @@ long long SQLHandler::MsgToSQL (const char *msgid)
 	return atoll (msgid + 1);
 }
 
-// Makes sure the client has a folder for this value of the folder column.
-// New folders get a filter that takes exactly the messages of that folder
-// and are saved with the settings at exit.
-void SQLHandler::EnsureFolder (const std::string &folder)
-{
-	std::string name = view_name (folder);
-	if (Parent->GetView (name.c_str())) return;
-
-	Var *box = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Parent->Name);
-	Var *F = box->Get_collection ("folders")->Get_collection (name.c_str());
-	if (!*F->Get_char ("filters"))
-	{
-		// Match the folder column exactly. The filter list is separated by
-		// commas, so a comma in the name is matched by the wildcard '?'.
-		std::string pattern = folder;
-		for (char &c : pattern) if (c == ',') c = '?';
-		F->Set_char ("filters", ("7,glob,accept,0," + pattern).c_str());
-	}
-	Parent->CreateMailView (name.c_str());
-	FoldersChanged = true;
-}
-
 // Reads the message list of the whole mailbox (whatever folder is
 // selected): creates missing folders, adds new messages, takes over the
 // "seen" state, and reports messages that were deleted in the database.
@@ -255,7 +212,7 @@ void SQLHandler::CheckGroup (const char */*groupname*/)
 	FoldersChanged = false;
 	std::set<std::string> folders;
 	for (int i = 0; i < res.Rows(); ++i) folders.insert (res.Get (i, 1));
-	for (const std::string &f : folders) EnsureFolder (f);
+	for (const std::string &f : folders) if (Parent->EnsureFolder (f)) FoldersChanged = true;
 
 	// 2. Messages that are gone from the database. The window removes
 	//    them, as it does for its own Delete button.

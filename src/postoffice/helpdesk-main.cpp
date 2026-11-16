@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <signal.h>
+#include "mailheaders.h"
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -582,7 +583,10 @@ int main (int argc, char *argv[])
 		if ((PIPE->Queue() > 2) && (wait_time > 0.02)) wait_time = 0.6 * wait_time;
 		if ((PIPE->Queue() < 1) && (wait_time < 0.7)) wait_time = 1.2 * wait_time;
 		if (wait_time < 0.02) wait_time = 0.02;
-		if ((M = PIPE->GetNextMessage()))
+		// Neo-PostOffice: handle everything that is waiting (up to a limit, so
+		// the window stays responsive), not one message per pass: a mailbox
+		// that brings in thousands of messages posts one notice for each.
+		for (int drained = 0; drained < 500 && (M = PIPE->GetNextMessage()); ++drained)
 		{
 			CCacheNode *CC;
 			
@@ -823,6 +827,8 @@ void cb_selectmessage (Fl_Widget */*w*/, void */*v*/)
 						M->LoadBody();
 
 					displaymessage (M);
+					// Let the mailbox record it too (the Maildir's seen flag).
+					currentmailbox->ToCollector->PostMessage (CLASS_MARKREAD, NO_SUBCLASS, M->MsgID);
 				}
 				else
 				{
@@ -847,7 +853,9 @@ void cb_selectmessage (Fl_Widget */*w*/, void */*v*/)
 
 void addheader (const char *headername, const char *headervalue)
 {
-	mdi_views[mdi_current]->add_header ((char *) headername, (char *) headervalue);
+	// Neo-PostOffice: shown decoded (RFC 2047 encoded words) as UTF-8.
+	std::string value = mailheaders::Decode (headervalue ? headervalue : "");
+	mdi_views[mdi_current]->add_header ((char *) headername, value.c_str());
 }
 
 //===============================================================================
@@ -912,7 +920,7 @@ void displaymessage (MailMessage *M)
 
 	const char *t_winfrom = M->Envelope->Get (ENVELOPE_NAMEFROM);
 	if (strlen (t_winfrom)<1) t_winfrom = M->Envelope->Get (ENVELOPE_MAILFROM);
-	mdi_title (t_winfrom);
+	mdi_title (mailheaders::Decode (t_winfrom).c_str());
 
 	// display the headers
 
