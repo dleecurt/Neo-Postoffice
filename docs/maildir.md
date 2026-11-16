@@ -37,15 +37,26 @@ ending in `Maildir/`).
 - **Folders.** The top-level Maildir is *Inbox*. Each Maildir++
   subfolder is a folder: `.Work` is *Work*, `.Lists.2025` is
   *Lists/2025*. New subfolders appear on the next check; empty ones are
-  shown too. The mailbox is read once when the program starts, and on
-  every Check (or at the interval set in Config).
+  shown too, and a folder deleted on disk disappears from the list.
+  Folders you make yourself in Config → Mailfolders (with your own
+  filters) are left alone. The mailbox is read once when the program
+  starts, and on every Check (or at the interval set in Config).
+- **Moving.** Drag messages from the message list onto a folder of the
+  same mailbox, or use *Message → Move to folder...* (Alt+M), which
+  pops up a list of the other folders. The file moves to that folder and
+  keeps its flags. Select several messages with Shift-click or
+  Ctrl-click to move them together.
+- **Flags.** *Mark* on the toolbar or *Message → Flag / unflag* (Alt+G)
+  flags or unflags the selected messages (Maildir flag *F*); flagged
+  messages show a red flag in the list. Sending a reply sets *R*
+  (replied) on the original, sending a forward sets *P* (passed). Flags
+  set by other programs are shown after the next check.
 - **Reading.** Opening a message gives it the Maildir *seen* flag: a file
-  in `new/` moves to `cur/` as `name:2,S`, and other flags (for example
-  *F*, flagged) are kept.
+  in `new/` moves to `cur/` as `name:2,S`, and its other flags are kept.
 - **Deleting.** Deleting a message in Neo-PostOffice deletes its file.
 - **Other programs.** The Maildir is the authority. A message read,
-  marked unread or deleted by another program (mutt, Dovecot, a webmail)
-  is shown that way after the next check.
+  marked unread, flagged, moved or deleted by another program (mutt,
+  Dovecot, a webmail) is shown that way after the next check.
 - **Trashed messages** (flag *T*, used by IMAP servers for messages
   waiting to be expunged) are not shown.
 
@@ -55,7 +66,7 @@ for the other mailbox types.
 
 ## Not yet supported
 
-- Moving messages between folders, and creating or deleting Maildir
-  folders, from Neo-PostOffice. A folder deleted on disk stays in the
-  folder list (empty) until you remove it in Config → Mailfolders.
-- Setting other flags (flagged, replied).
+- Creating, renaming or deleting Maildir folders from Neo-PostOffice
+  (make or remove the `.Name` directory; the list follows).
+- Moving messages to a folder of another mailbox.
+- Marking a message unread, and the *D* (draft) flag.

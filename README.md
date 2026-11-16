@@ -14,7 +14,8 @@ interface and behavior are intentionally kept close to the original.
 
 - POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
 - Local mbox files and Maildir (with Maildir++ folders) as mailboxes;
-  Maildir changes are shared with other programs
+  Maildir read state, flags, moves and deletions are shared with other
+  programs
 - SQL mailboxes (experimental, on hold): mail read from a shared
   PostgreSQL database over SSL
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
@@ -87,8 +88,10 @@ The *Maildir* protocol reads a Maildir on this computer, such as
 `~/Maildir` filled by getmail. Maildir++ subfolders (`.Work`,
 `.Lists.2025`) appear as folders by themselves. Opening a message sets
 its seen flag in the Maildir, deleting it deletes the file, and changes
-made by other programs show up on the next check. See
-[docs/maildir.md](docs/maildir.md).
+made by other programs show up on the next check. Messages can be
+dragged onto another folder or moved with *Message → Move to folder*,
+and flagged with *Mark*; replies and forwards set the replied/passed
+flags. See [docs/maildir.md](docs/maildir.md).
 
 ## SQL mailboxes
 
@@ -166,7 +169,15 @@ See the git history for details. In summary:
   PostgreSQL (multi-user with row-level security, SSL, automatic
   folders) with the `po-sqldeliver` delivery tool. MySQL support was
   removed; the original MySQL table layout is not supported.
-- Maildir mailboxes with Maildir++ folders and two-way flag sync.
+- Maildir mailboxes with Maildir++ folders and two-way flag sync;
+  moving messages by drag and drop or the Message menu; flagged,
+  replied and passed flags; folders deleted on disk leave the list.
+- Replies use the original's Message-ID header for In-Reply-To and
+  References (they used the internal id, which is not a Message-ID for
+  Maildir and SQL messages).
+- Ctrl-click in the message list adds to the selection (it cleared it:
+  the Ctrl bit was passed where 1 was expected). Clearing an empty list
+  no longer crashes.
 - Encoded words in headers (`=?UTF-8?B?...?=`) are decoded in the
   message list, the message view and the window tabs; 8-bit headers
   without a character set are read as ISO-8859-1.
@@ -193,8 +204,8 @@ Found while modernizing and left for later:
 - After closing the Config window, Check does nothing until a folder is
   clicked. Deleting a message does not update the count next to the
   mailbox name until the next check.
-- Maildir: messages cannot be moved between folders, and a folder
-  deleted on disk stays in the list until removed in Config.
+- Maildir: messages cannot be moved to another mailbox, and folders
+  cannot be created or deleted from the program.
 - SQL mailbox: messages cannot be moved between folders from the client,
   and the collection-method and expiry settings, which do not apply to
   it, are not greyed out.

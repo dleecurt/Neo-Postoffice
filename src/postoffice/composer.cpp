@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "formatter.h"
 #include "mailbox.h"
+#include "mailhandler.h"
 #include "checksum.h"
 #include "var.h"
 #include "reg.h"
@@ -92,7 +93,32 @@ struct Composer_Window
 		char				 msgid[256];
 		char				*references;
 		char				 outbox[256];
+
+		// Neo-PostOffice: the message replied to or forwarded, so its
+		// mailbox can flag it (Maildir R / P) when this one is sent.
+		char				 origbox[64];
+		char				 origid[256];
+		char				 origflag;
 };
+
+// Remembers the shown message as the original of W (flag is 'R' for a
+// reply, 'P' for a forward) and puts its real Message-ID header in W->msgid
+// for In-Reply-To/References. The internal id is not a Message-ID for
+// every mailbox type (Maildir, SQL).
+static void set_original (Composer_Window *W, char flag)
+{
+	snprintf (W->msgid, sizeof (W->msgid), "%s", currentmsgid[mdi_current]);
+	W->origbox[0] = 0;
+	snprintf (W->origid, sizeof (W->origid), "%s", currentmsgid[mdi_current]);
+	W->origflag = flag;
+	if (!currentmailbox) return;
+	snprintf (W->origbox, sizeof (W->origbox), "%s", currentmailbox->Name);
+	MailMessage *M = currentmailbox->Find (currentmsgid[mdi_current]);
+	if (!M) return;
+	if (M->HeaderNames->Count == 0) M->LoadHeaders();
+	const char *mid = M->Header ("Message-ID");
+	if (mid && *mid) snprintf (W->msgid, sizeof (W->msgid), "%s", mid);
+}
 
 Composer_Window *create_composer_window (void)
 {
@@ -110,6 +136,9 @@ Composer_Window *create_composer_window (void)
 	//win_main->redraw();
 	
 	Composer_Window *W 	= new Composer_Window;
+	W->origbox[0]		= 0;
+	W->origid[0]		= 0;
+	W->origflag			= 0;
 	W->bt_address 		= compose_bt_address;
 	W->bt_address2		= compose_bt_address2;
 	W->bt_menu_expand	= bt_compose_menu_expand;
@@ -213,7 +242,7 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 	
 	Composer_Window *W = create_composer_window();
 
-	strcpy (W->msgid, currentmsgid[mdi_current]);
+	set_original (W, 'R');
 	W->references = strdupp (currentreferences[mdi_current]);
 
 	// Quote the original message
@@ -283,7 +312,7 @@ void doforward (bool fullhdr)
 
 	Composer_Window *W = create_composer_window();
 
-	strcpy (W->msgid, currentmsgid[mdi_current]);
+	set_original (W, 'P');
 	W->references = strdupp (currentreferences[mdi_current]);
 
 	// Quote the original message
@@ -552,6 +581,21 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	// Announce the world the birth of a new message
 
 	OUTBOX->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, OUTBOX->VFirst->Name, M->MsgID);
+
+	// Flag the original message as replied to / forwarded (Maildir).
+	if (W->origflag && W->origbox[0])
+	{
+		for (int k = 0; k < 16 && MailBoxList[k]; ++k)
+		{
+			if (strcmp (MailBoxList[k]->Name, W->origbox) != 0) continue;
+			if (MailBoxList[k]->Handler && MailBoxList[k]->Handler->KeepsFlags())
+			{
+				char flag[3] = { '+', W->origflag, 0 };
+				MailBoxList[k]->ToCollector->PostMessage (CLASS_SETFLAG, NO_SUBCLASS, W->origid, flag);
+			}
+			break;
+		}
+	}
 
 	// Clean up the Window and it's structure.
 	

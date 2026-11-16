@@ -7,6 +7,7 @@ MailEnvelope::MailEnvelope (void)
 {
 	ENV_MAILFROM = ENV_PARENTID = ENV_NAMEFROM = ENV_SUBJECT = ENV_DATE = ENV_GROUPS = NULL;
 	ENV_I_READ = 0;
+	ENV_I_FLAGS = 0;
 }
 
 MailEnvelope::~MailEnvelope (void)
@@ -16,6 +17,7 @@ MailEnvelope::~MailEnvelope (void)
 	enuke(ENV_SUBJECT);
 	enuke(ENV_DATE);
 	enuke(ENV_GROUPS);
+	enuke(ENV_PARENTID);
 }
 
 void MailEnvelope::Set (int id, const char *value)
@@ -69,6 +71,10 @@ void MailEnvelope::SetInt (int id, int value)
 			ENV_I_READ = value;
 			break;
 		
+		case ENVELOPE_I_FLAGS:
+			ENV_I_FLAGS = value;
+			break;
+		
 		default:
 			break;
 	}
@@ -120,6 +126,8 @@ int MailEnvelope::GetInt (int id)
 	{
 		case ENVELOPE_I_READ:
 			return ENV_I_READ;
+		case ENVELOPE_I_FLAGS:
+			return ENV_I_FLAGS;
 		default:
 			return 0;
 	}

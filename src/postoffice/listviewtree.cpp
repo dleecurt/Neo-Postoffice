@@ -52,10 +52,12 @@
 #include "icons/envelope_ghost.xpm"
 #include "icons/envelope_open.xpm"
 #include "icons/envelope_closed.xpm"
+#include "icons/flagged.xpm"
 
 Fl_Pixmap pix_envelope_ghost (envelope_ghost_xpm);
 Fl_Pixmap pix_envelope_open (envelope_open_xpm);
 Fl_Pixmap pix_envelope_closed (envelope_closed_xpm);
+Fl_Pixmap pix_flagged (flagged_xpm);
 
 int mysort (Fl_Toggle_Node_Base *, Fl_Toggle_Node_Base *);
 
@@ -159,6 +161,10 @@ void new_folderitem (MailMessage *M)
 	// Show ghosted envelope for messages that have not been downloaded
 	
 	if (! (M->Flags & MMFL_HAVEBODY)) fpm = &pix_envelope_ghost;
+
+	// Flagged messages (Maildir F flag) show a flag instead
+	
+	if (M->Envelope->GetInt (ENVELOPE_I_FLAGS) & EFLAG_FLAGGED) fpm = &pix_flagged;
 	
 	// Mark recent messages
 	
@@ -235,26 +241,10 @@ void new_folderitem (MailMessage *M)
 	CCACHE.Add (M, (Fl_Toggle_Node_Base *) br_folderindex->current());
 }
 
-//===============================================================================
-// FUNCTION		update_folder
-// SYNOPSIS		(Re-) draws the currently selected folder in the indexview pane
-//
-// RETURNS		Function returns no data
-//===============================================================================
-
-void update_folder (void)
+// Empties the message list (and frees its row data and cache).
+void clear_folder_index (void)
 {
-	int i;
-	int flip = 0;
-	
-	MailMessage *M;
-    if (currentmailbox == NULL) return;
-	MailView *V = currentmailbox->GetView (currentfolder);
-	if (V == NULL) return;
-	Fl_Toggle_Node_Base *x;//,*y;
-
-	dprintf ("V = %p\n", (void *) V);
-
+	Fl_Toggle_Node_Base *x;
 	if (br_folderindex->first())
 	{
 		x = br_folderindex->traverse_start();
@@ -280,6 +270,27 @@ void update_folder (void)
 		br_folderindex_->scroll_to (0,0); // FLTK 1.0 Fl_Scroll::position() scrolled; in 1.4 it moves the widget
 		br_folderindex_->redraw();
 	}
+}
+
+//===============================================================================
+// FUNCTION		update_folder
+// SYNOPSIS		(Re-) draws the currently selected folder in the indexview pane
+//
+// RETURNS		Function returns no data
+//===============================================================================
+
+void update_folder (void)
+{
+	int i;
+	int flip = 0;
+	
+	MailMessage *M;
+    if (currentmailbox == NULL) return;
+	MailView *V = currentmailbox->GetView (currentfolder);
+	if (V == NULL) return;
+	dprintf ("V = %p\n", (void *) V);
+
+	clear_folder_index();
 
 	dprintf ("count = %i\n", V->Count());
 

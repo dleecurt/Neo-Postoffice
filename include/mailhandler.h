@@ -28,6 +28,11 @@ public:
 //	virtual WordList		*ServerGrouplist (void);
 	// The user opened a message whose body was already here (Neo-PostOffice).
 	virtual void			 MarkRead (char *) {}
+	// Mailboxes that keep flags and real folders (Maildir).
+	virtual bool			 KeepsFlags (void) { return false; }
+	virtual bool			 CanMove (void) { return false; }
+	virtual void			 SetFlag (char * /*msgid*/, char /*flag*/, bool /*on*/) {}
+	virtual void			 MoveMessage (char * /*msgid*/, const char * /*folder*/) {}
 
 	WordList				*GroupList (void);
 		
@@ -136,6 +141,10 @@ public:
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
 	void					 MarkRead (char *);
+	bool					 KeepsFlags (void) { return true; }
+	bool					 CanMove (void) { return true; }
+	void					 SetFlag (char *, char, bool);
+	void					 MoveMessage (char *, const char *);
 
 private:
 
@@ -153,6 +162,8 @@ private:
 	bool					 Scan (void);
 	Entry					*Locate (const char *msgid);
 	bool					 MarkSeen (Entry &);
+	bool					 ChangeFlags (Entry &, const std::string &add, const std::string &remove);
+	bool					 ApplyFlags (MailMessage *, const Entry &);
 
 	std::map<std::string, Entry> Files;	// msgid -> file, as of the last scan
 	std::vector<std::string> Dirs;		// "" and the Maildir++ subfolders

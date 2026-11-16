@@ -16,6 +16,10 @@
 #include <FL/Fl_Pixmap.H>
 #include <FL/Fl_Multi_Browser.H>
 #include <FL/x.H>
+#include <FL/Fl_Menu_Item.H>
+#include <algorithm>
+#include <string>
+#include <vector>
 #include <FL/fl_ask.H>
 #include <string.h>
 #include "var.h"
@@ -119,6 +123,7 @@ void cb_viewall (Fl_Menu_ *, void *);
 void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
+void clear_folder_index (void);
 void new_folderitem (MailMessage *);
 
 void set_status (const char *);
@@ -197,6 +202,121 @@ void cb_hdrpart (Fl_Menu_ */*w*/, void */*b*/)
 // SENDER		"message" menu (or [Delete] shortcut)
 // SYNOPSIS		prototype stub
 //===============================================================================
+
+//===============================================================================
+// Neo-PostOffice: moving and flagging messages (Maildir mailboxes)
+//===============================================================================
+
+bool tree_folder_at_pointer (MailBox *&box, const char *&folder);
+
+// The internal ids of the selected messages (one, or a multiple selection).
+static std::vector<std::string> selected_msgids (void)
+{
+	std::vector<std::string> ids;
+	Fl_Toggle_Node *S = br_folderindex->selected();
+	if (S) ids.push_back (((FolderData *) S->data())->msgid);
+	else while ((S = br_folderindex->selection()))
+		ids.push_back (((FolderData *) S->data())->msgid);
+	return ids;
+}
+
+static void move_messages (const std::vector<std::string> &ids, MailBox *box, const char *folder)
+{
+	if (ids.empty() || !currentmailbox) return;
+	if (!currentmailbox->Handler || !currentmailbox->Handler->CanMove())
+	{
+		fl_alert ("Messages can only be moved in Maildir mailboxes.");
+		return;
+	}
+	if (box != currentmailbox)
+	{
+		fl_alert ("Messages can only be moved to a folder of the same mailbox.");
+		return;
+	}
+	if (strcmp (folder, currentfolder) == 0) return;
+	for (const std::string &id : ids)
+		currentmailbox->ToCollector->PostMessage (CLASS_MOVE, NO_SUBCLASS, id.c_str(), folder);
+	// One check after the moves shows the result.
+	currentmailbox->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
+}
+
+// Messages dragged from the message list and dropped on a folder.
+static void drop_messages (void)
+{
+	Fl_Toggle_Node *dragged = br_folderindex->drag_node();
+	MailBox *box;
+	const char *folder;
+	if (!dragged || !dragged->data() || !tree_folder_at_pointer (box, folder)) return;
+
+	// The whole selection if the dragged message is part of it, else just it.
+	std::string dragged_id = ((FolderData *) dragged->data())->msgid;
+	std::vector<std::string> ids = selected_msgids();
+	if (std::find (ids.begin(), ids.end(), dragged_id) == ids.end())
+		ids.assign (1, dragged_id);
+	move_messages (ids, box, folder);
+}
+
+void cb_move_m (Fl_Menu_ */*w*/, void */*d*/)
+{
+	if (!currentmailbox) return;
+	std::vector<std::string> ids = selected_msgids();
+	if (ids.empty()) return;
+	if (!currentmailbox->Handler || !currentmailbox->Handler->CanMove())
+	{
+		fl_alert ("Messages can only be moved in Maildir mailboxes.");
+		return;
+	}
+
+	// A popup menu of the mailbox's other folders.
+	std::vector<std::string> names;
+	currentmailbox->VLock->LockR();
+	for (MailView *V = currentmailbox->VFirst; V; V = V->Next)
+		if (strcmp (V->Name, currentfolder) != 0) names.push_back (V->Name);
+	currentmailbox->VLock->UnlockR();
+	if (names.empty()) return;
+
+	std::vector<Fl_Menu_Item> items (names.size() + 1);
+	for (size_t i = 0; i < names.size(); ++i)
+	{
+		memset (&items[i], 0, sizeof (Fl_Menu_Item));
+		items[i].text = names[i].c_str();
+		items[i].labelsize_ = 12;
+	}
+	memset (&items[names.size()], 0, sizeof (Fl_Menu_Item));
+	const Fl_Menu_Item *m = items[0].popup (Fl::event_x(), Fl::event_y(), "Move to folder");
+	if (m) move_messages (ids, currentmailbox, m->text);
+}
+
+// Flag / unflag the selected messages (the Maildir F flag).
+void cb_mark (Fl_Button */*w*/, void */*d*/)
+{
+	if (!currentmailbox) return;
+	std::vector<std::string> ids = selected_msgids();
+	if (ids.empty()) return;
+	if (!currentmailbox->Handler || !currentmailbox->Handler->KeepsFlags())
+	{
+		fl_alert ("Flags are kept for Maildir mailboxes only.");
+		return;
+	}
+	// Flag them all, unless the first one is flagged: then unflag them all.
+	MailMessage *first = currentmailbox->Find ((char *) ids[0].c_str());
+	bool on = !(first && (first->Envelope->GetInt (ENVELOPE_I_FLAGS) & EFLAG_FLAGGED));
+	for (const std::string &id : ids)
+	{
+		if (MailMessage *M = currentmailbox->Find ((char *) id.c_str()))
+		{
+			int f = M->Envelope->GetInt (ENVELOPE_I_FLAGS);
+			M->Envelope->SetInt (ENVELOPE_I_FLAGS, on ? (f | EFLAG_FLAGGED) : (f & ~EFLAG_FLAGGED));
+		}
+		currentmailbox->ToCollector->PostMessage (CLASS_SETFLAG, NO_SUBCLASS, id.c_str(), on ? "+F" : "-F");
+	}
+	update_folder();
+}
+
+void cb_mark_m (Fl_Menu_ *w, void *d)
+{
+	cb_mark ((Fl_Button *) w, d);
+}
 
 void cb_delete_m (Fl_Menu_*w, void *d)
 {
@@ -558,6 +678,7 @@ int main (int argc, char *argv[])
 	br_folderindex->trim_color (br_folderindex->color());
 	br_folderindex->draw_lines (1);
 	br_folderindex->callback ((Fl_Callback *) cb_selectmessage);
+	br_folderindex->drag_enable (1);	// drag messages onto folders
 	br_folderindex_->end();
 	br_folderindex_->resizable (br_folderindex);
 	br_folderindex_->type (Fl_Scroll::VERTICAL);
@@ -673,9 +794,30 @@ int main (int argc, char *argv[])
 					break;
 
 				case CLASS_NEWFOLDER:
-					// A mailbox (the SQL mailbox) created folders by itself or
-					// lost messages: rebuild the tree for the folders and counts.
+					// A mailbox (SQL, Maildir) created or removed folders, or its
+					// messages changed: rebuild the tree (folders, counts) and the
+					// message list if it is the one shown.
 					update_tree (current_boxlist);
+					if (currentmailbox && *currentfolder && strcmp (currentmailbox->Name, M->Message->Get(0)) == 0)
+						update_folder();
+					break;
+
+				case CLASS_FOLDERGONE:
+					// A folder disappeared at the source (a Maildir folder deleted
+					// on disk): remove it and its settings.
+					for (int k=0; k<16 && MailBoxList[k]; ++k)
+					{
+						MailBox *B = MailBoxList[k];
+						if (strcmp (B->Name, M->Message->Get(0)) != 0) continue;
+						if (B == currentmailbox && strcmp (currentfolder, M->Message->Get(1)) == 0)
+						{
+							currentfolder[0] = 0;
+							clear_folder_index();
+						}
+						B->DestroyMailView (M->Message->Get(1));
+						PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (B->Name)->Get_collection ("folders")->Delete (M->Message->Get(1));
+						break;
+					}
 					break;
 
 				case CLASS_GONE:
@@ -805,6 +947,11 @@ void cb_thr_close (Fl_Menu_ */*b*/, void */*v*/)
 
 void cb_selectmessage (Fl_Widget */*w*/, void */*v*/)
 {
+	if (br_folderindex->state() == FL_TOGGLE_DROP)
+	{
+		drop_messages();
+		return;
+	}
 	if (!br_folderindex->selected()) return;
 	
 	char			*msgid =  ((FolderData *) br_folderindex->selected()->data())->msgid;

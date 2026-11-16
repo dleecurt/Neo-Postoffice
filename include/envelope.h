@@ -12,6 +12,11 @@
 #define ENVELOPE_HOSTS			6
 #define ENVELOPE_NEWSGROUPS		7
 #define ENVELOPE_GROUPS			7
+// Neo-PostOffice: message flags (as far as the mailbox keeps them; Maildir)
+#define ENVELOPE_I_FLAGS		8
+#define EFLAG_FLAGGED			0x01
+#define EFLAG_REPLIED			0x02
+#define EFLAG_PASSED			0x04
 
 class MailEnvelope
 {
@@ -32,6 +37,7 @@ class MailEnvelope
 		const char  *ENV_PARENTID;
 		
 		int			 ENV_I_READ;
+		int			 ENV_I_FLAGS;
 };
 
 #endif

@@ -94,6 +94,24 @@ void *MailerThread::MailerMain (void *_box)
 					Box->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get(0));
 					break;
 					
+				case CLASS_SETFLAG:
+					if (M->Message->Count >= 2 && strlen (M->Message->Get(1)) == 2)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->Handler->SetFlag (M->Message->Get(0), M->Message->Get(1)[1], M->Message->Get(1)[0] == '+');
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
+				case CLASS_MOVE:
+					if (M->Message->Count >= 2)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->Handler->MoveMessage (M->Message->Get(0), M->Message->Get(1));
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
 				case CLASS_MARKREAD:
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->MarkRead (M->Message->Get(0));
@@ -107,9 +125,7 @@ void *MailerThread::MailerMain (void *_box)
 					//Box->ToUI->PostMessage (CLASS_DELETE, NO_SUBCLASS, M->Message->Get(0));
 					break;
 					
-				case CLASS_MOVE:
-					//Box->Handler->MoveMessage (M->Message->Get(0), M->Message->Get(1), M->Message->Get(2));
-					break;
+
 				
 				case CLASS_OPENSERVER:
 					Box->Handler->Lock.LockOnce();

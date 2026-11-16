@@ -302,7 +302,7 @@ void MailMessage::ProcessMessage (char *Message)
 	}
 }
 
-inline char *MailMessage::Header (const char *name)
+char *MailMessage::Header (const char *name)
 {
 	int x = HeaderNames->Find (name);
 	if (x>=0) return (HeaderValues->Get (x));

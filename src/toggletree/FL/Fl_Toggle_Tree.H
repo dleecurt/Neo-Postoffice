@@ -38,7 +38,8 @@ enum Fl_ToggleState {
   FL_TOGGLE_SELECT_MASK = 3,
   FL_TOGGLE_OPENED = 4,
   FL_TOGGLE_CLOSED = 8,
-  FL_TOGGLE_HIT = 16
+  FL_TOGGLE_HIT = 16,
+  FL_TOGGLE_DROP = 32   // Neo-PostOffice: a node was dragged and released
 };
 
 class Fl_Input;
@@ -59,6 +60,15 @@ public:
   virtual ~Fl_Toggle_Tree();
 
   virtual int handle(int event);
+
+  /**
+   * Neo-PostOffice: drag and drop. When enabled, pressing on a node and
+   * moving the mouse more than a few pixels starts a drag; releasing calls
+   * the callback with state() == FL_TOGGLE_DROP and drag_node() set. The
+   * callback finds the drop target from Fl::event_x()/event_y().
+   */
+  void drag_enable(int e) { drag_enabled_ = e; }
+  Fl_Toggle_Node* drag_node(void) { return drag_node_; }
 
   /**
    * Returns the current node (as set with the traversal functions).
@@ -498,6 +508,11 @@ protected:
   Fl_Pixmap* closed_pixmap_;
   static Fl_Pixmap* s_opened_pixmap_;
   static Fl_Pixmap* s_closed_pixmap_;
+
+  int drag_enabled_;
+  int dragging_;
+  int push_x_, push_y_;
+  Fl_Toggle_Node* drag_node_;
 
   int selection_i_;
   int selection_count_;

@@ -38,6 +38,8 @@ class MailBox
 		// makes sure there is a folder taking exactly the messages whose
 		// folder field is value. Returns true if it had to be created.
 		bool				 EnsureFolder (const std::string &value);
+		// True for folders EnsureFolder made (not the user's own filter folders).
+		bool				 IsAutoFolder (const char *name);
 		void				 DestroyMailView (char *);
 		void				 RenameMailView (char *, char *);
 		

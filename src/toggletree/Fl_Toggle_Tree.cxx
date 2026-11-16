@@ -1,7 +1,9 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Group.H>
 #include <FL/Fl.H>
+#include <FL/Fl_Window.H>
 
 #include <FL/Fl_Toggle_Node.H>
 #include <FL/Fl_Toggle_Tree.H>
@@ -52,6 +54,10 @@ Fl_Toggle_Tree::Fl_Toggle_Tree(int x, int y, int w, int h) : Fl_Toggle_Tree_Base
   label_offset_ = 40;
   current_ = 0;
   state_ = FL_TOGGLE_NONE;
+  drag_enabled_ = 0;
+  dragging_ = 0;
+  push_x_ = push_y_ = 0;
+  drag_node_ = 0;
   closed_pixmap_ = 0;
   opened_pixmap_ = 0;
   if (s_closed_pixmap_ == 0) {
@@ -302,15 +308,40 @@ int Fl_Toggle_Tree::handle(int event) {
   case FL_ENTER:
     return 1;
   case FL_PUSH: {
+    dragging_ = 0;
+    drag_node_ = 0;
+    if (drag_enabled_) {
+      int depth, cy;
+      push_x_ = Fl::event_x();
+      push_y_ = Fl::event_y();
+      drag_node_ = (Fl_Toggle_Node*) Fl_Toggle_Tree_Base::find(Fl::event_y(), depth, cy);
+    }
+    return 1;
+  }
+  case FL_DRAG: {
+    if (drag_enabled_ && drag_node_ && !dragging_ &&
+        (abs(Fl::event_x() - push_x_) > 5 || abs(Fl::event_y() - push_y_) > 5)) {
+      dragging_ = 1;
+      if (window()) window()->cursor(FL_CURSOR_MOVE);
+    }
     return 1;
   }
   case FL_RELEASE: {
+      if (dragging_) {
+        dragging_ = 0;
+        if (window()) window()->cursor(FL_CURSOR_DEFAULT);
+        state_ = FL_TOGGLE_DROP;
+        do_callback();
+        drag_node_ = 0;
+        return 1;
+      }
       if (edit_input_->visible()) {
         end_edit();
       }
       int depth;
       int cy;
       Fl_Toggle_Node* tnode = (Fl_Toggle_Node*) Fl_Toggle_Tree_Base::find(Fl::event_y(), depth, cy);
+      if (!tnode) return 1;   // below the last node
       if (Fl::event_x() < x() + depth*16 + 16) {
         if (tnode->opened_) {
           current_ = tnode;
@@ -332,7 +363,7 @@ int Fl_Toggle_Tree::handle(int event) {
           do_callback();
         } else if (Fl::event_state(FL_CTRL)) {
           if (!tnode->selected_)
-            select_range(tnode, tnode, Fl::event_state(FL_CTRL));
+            select_range(tnode, tnode, 1);   // add (was the FL_CTRL bit, which "&=" turned into 0)
           else {
 	    selection_current_ = NULL;
             tnode->selected_ = 0;

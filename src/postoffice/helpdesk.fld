@@ -138,6 +138,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           code0 {xloc(o, "delete");}
         }
         MenuItem {} {
+          label {Move to folder...}
+          callback cb_move_m
+          tooltip {Move the selected messages to another folder (Maildir). You can also drag them onto a folder.} xywh {0 0 100 20} shortcut 0x8006d labelsize 12
+        }
+        MenuItem {} {
+          label {Flag / unflag}
+          callback cb_mark_m
+          tooltip {Flag or unflag the selected messages (Maildir)} xywh {0 0 100 20} shortcut 0x80067 labelsize 12
+        }
+        MenuItem {} {
           label Refilter
           callback cb_refilter
           xywh {0 0 100 20} labelsize 12 deactivate
@@ -327,7 +337,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {460 20 75 20}
           } {
             Fl_Button {} {
-              xywh {460 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              callback cb_mark
+              tooltip {Flag or unflag the selected messages (Maildir)} xywh {460 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
               image {icons/stamp.xpm} compress_image 1 xywh {461 21 29 18} align 20
@@ -743,7 +754,8 @@ Function {make_menuwindow()} {} {
         }
         Fl_Button {} {
           label Mark
-          xywh {0 120 115 20} box NO_BOX labelsize 12 align 24
+          callback cb_mark
+          tooltip {Flag or unflag the selected messages (Maildir)} xywh {0 120 115 20} box NO_BOX labelsize 12 align 24
         }
       }
       Fl_Group {} {

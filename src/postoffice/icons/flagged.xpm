@@ -1,0 +1,25 @@
+/* XPM */
+/* Neo-PostOffice: a flagged message (16x16) */
+static const char * flagged_xpm[] = {
+"16 16 5 1",
+" 	c None",
+".	c #303030",
+"r	c #E02828",
+"R	c #9C1414",
+"w	c #F08080",
+"                ",
+"   .            ",
+"   .wwrrr       ",
+"   .wrrrrrrrr   ",
+"   .rrrrrrrrrR  ",
+"   .rrrrrrrrrR  ",
+"   .rrrrrrrrrR  ",
+"   .rrrrrrrrR   ",
+"   .RRrrrrrRR   ",
+"   .   RRRR     ",
+"   .            ",
+"   .            ",
+"   .            ",
+"   .            ",
+"  ...           ",
+"                "};

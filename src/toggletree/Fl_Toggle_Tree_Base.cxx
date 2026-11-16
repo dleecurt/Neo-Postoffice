@@ -419,6 +419,7 @@ int Fl_Toggle_Tree_Base::remove (Fl_Toggle_Node_Base * a) {
 }
 
 int Fl_Toggle_Tree_Base::clear() {
+  if (!first_) return 0;   // Neo-PostOffice: empty tree
   return remove(first_);
 }
 

@@ -14,6 +14,9 @@
 //   moves it from new/ to cur/; deleting it here removes the file; a message
 //   read or deleted by another program is read or gone here after the next
 //   check. Messages with the T (trashed) flag are not shown.
+// - Flags F (flagged), R (replied) and P (passed/forwarded) are kept in the
+//   file name too, and messages can be moved between folders (the file
+//   moves). A folder that disappears from disk is removed from the list.
 //
 // GNU LGPL like PostOffice itself.
 //===============================================================================
@@ -100,6 +103,15 @@ static std::string folder_name (const std::string &dir)
 	return name;
 }
 
+// The inverse: "Inbox" -> "", "Lists/2025" -> ".Lists.2025".
+static std::string folder_dir (const std::string &name)
+{
+	if (name == "Inbox") return "";
+	std::string dir = "." + name;
+	std::replace (dir.begin(), dir.end(), '/', '.');
+	return dir;
+}
+
 std::string MaildirHandler::MsgID (const std::string &dir, const std::string &uniq)
 {
 	return "<" + (dir.empty() ? std::string ("INBOX") : dir) + "/" + uniq + "@maildir>";
@@ -158,16 +170,18 @@ std::string MaildirHandler::Path (const Entry &f)
 	return Root() + (f.Dir.empty() ? "" : "/" + f.Dir) + "/" + f.Sub + "/" + f.File;
 }
 
-// Gives a message the S flag: new/uniq -> cur/uniq:2,S, or adds S to the
-// flags of a file in cur/ (flags stay in ASCII order, as the format wants).
-bool MaildirHandler::MarkSeen (Entry &f)
+// Changes a message's flags by renaming its file: new/uniq -> cur/uniq:2,FLAGS
+// or cur/uniq:2,OLD -> cur/uniq:2,NEW (flags in ASCII order, as the format
+// wants). Files with flags always live in cur/.
+bool MaildirHandler::ChangeFlags (Entry &f, const std::string &add, const std::string &remove)
 {
-	if (f.Sub == "cur" && f.Flags.find ('S') != std::string::npos) return true;
 	std::string uniq, flags;
 	split_filename (f.File, uniq, flags);
-	flags += 'S';
+	flags += add;
+	for (char c : remove) flags.erase (std::remove (flags.begin(), flags.end(), c), flags.end());
 	std::sort (flags.begin(), flags.end());
 	flags.erase (std::unique (flags.begin(), flags.end()), flags.end());
+	if (f.Sub == "cur" && flags == f.Flags) return true;		// nothing to do
 
 	Entry n = f;
 	n.Sub = "cur";
@@ -179,6 +193,24 @@ bool MaildirHandler::MarkSeen (Entry &f)
 		return false;
 	}
 	f = n;
+	return true;
+}
+
+bool MaildirHandler::MarkSeen (Entry &f)
+{
+	return ChangeFlags (f, "S", "");
+}
+
+// Copies the F, R and P flags of the file to the message's envelope.
+// Returns true if they changed.
+bool MaildirHandler::ApplyFlags (MailMessage *M, const Entry &f)
+{
+	int flags = 0;
+	if (f.Flags.find ('F') != std::string::npos) flags |= EFLAG_FLAGGED;
+	if (f.Flags.find ('R') != std::string::npos) flags |= EFLAG_REPLIED;
+	if (f.Flags.find ('P') != std::string::npos) flags |= EFLAG_PASSED;
+	if (M->Envelope->GetInt (ENVELOPE_I_FLAGS) == flags) return false;
+	M->Envelope->SetInt (ENVELOPE_I_FLAGS, flags);
 	return true;
 }
 
@@ -207,6 +239,16 @@ void MaildirHandler::CheckGroup (const char */*groupname*/)
 	for (const std::string &dir : Dirs)
 		if (Parent->EnsureFolder (folder_name (dir))) FoldersChanged = true;
 
+	//    Folders this mailbox made whose Maildir folder is gone from disk.
+	//    The window removes them (after the messages in them, below).
+	std::vector<std::string> gone_folders;
+	Parent->VLock->LockR();
+	for (MailView *V = Parent->VFirst; V; V = V->Next)
+		if (Parent->IsAutoFolder (V->Name) &&
+			std::find (Dirs.begin(), Dirs.end(), folder_dir (V->Name)) == Dirs.end())
+			gone_folders.push_back (V->Name);
+	Parent->VLock->UnlockR();
+
 	// 2. Messages that are gone (deleted or moved by another program). The
 	//    window removes them, as it does for its own Delete button.
 	std::vector<std::string> gone;
@@ -217,9 +259,12 @@ void MaildirHandler::CheckGroup (const char */*groupname*/)
 	Parent->Lock->UnlockR();
 	for (const std::string &id : gone)
 		Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, id.c_str());
+	for (const std::string &name : gone_folders)
+		Parent->ToUI->PostMessage (CLASS_FOLDERGONE, NO_SUBCLASS, Parent->Name, name.c_str());
+	if (!gone_folders.empty()) FoldersChanged = true;
 
-	// 3. New messages, and the read state of known ones.
-	int added = 0, i = 0;
+	// 3. New messages, and the read state and flags of known ones.
+	int added = 0, i = 0, changed = 0;
 	for (auto &kv : Files)
 	{
 		const std::string &msgid = kv.first;
@@ -232,7 +277,11 @@ void MaildirHandler::CheckGroup (const char */*groupname*/)
 			// The Maildir decides: opening a message here sets its S flag at
 			// once, so a difference means another program changed it.
 			if (M->Envelope->GetInt (ENVELOPE_I_READ) != (seen ? 1 : 0))
+			{
 				M->Envelope->SetInt (ENVELOPE_I_READ, seen ? 1 : 0);
+				++changed;
+			}
+			if (ApplyFlags (M, f)) ++changed;
 			continue;
 		}
 
@@ -279,6 +328,7 @@ void MaildirHandler::CheckGroup (const char */*groupname*/)
 		M->Envelope->Set (ENVELOPE_DATE,     date);
 		M->Envelope->Set (ENVELOPE_GROUPS,   folder_name (f.Dir).c_str());
 		M->Envelope->SetInt (ENVELOPE_I_READ, seen ? 1 : 0);
+		ApplyFlags (M, f);
 		M->ReceiveDate = delivered;
 		Parent->Deliver (M);
 		++added;
@@ -295,7 +345,7 @@ void MaildirHandler::CheckGroup (const char */*groupname*/)
 	if (added || !gone.empty()) Parent->SaveMailBox();
 	// Redraw the folder tree (new folders, message counts) after the window
 	// has handled the removals posted above.
-	if (FoldersChanged || added || !gone.empty())
+	if (FoldersChanged || added || changed || !gone.empty())
 		Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
 	JOBQ.EndJob (jid);
 }
@@ -349,6 +399,51 @@ void MaildirHandler::GetBody (char *msgid)
 void MaildirHandler::MarkRead (char *msgid)
 {
 	if (Entry *f = Locate (msgid)) MarkSeen (*f);
+}
+
+void MaildirHandler::SetFlag (char *msgid, char flag, bool on)
+{
+	Entry *f = Locate (msgid);
+	if (!f) return;
+	std::string letter (1, flag);
+	if (!ChangeFlags (*f, on ? letter : "", on ? "" : letter))
+	{
+		std::string msg = "Cannot change the flags of " + Path (*f) + ": " + strerror (errno);
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "maildir", msg.c_str());
+		return;
+	}
+	if (MailMessage *M = Parent->Find (msgid))
+		if (ApplyFlags (M, *f))
+			Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+}
+
+// Moves the message's file to another folder of this Maildir. The message
+// gets a new id there; the window sends a check after the moves, which
+// shows the result.
+void MaildirHandler::MoveMessage (char *msgid, const char *folder)
+{
+	Entry *f = Locate (msgid);
+	if (!f) return;
+	std::string dir = folder_dir (folder);
+	if (dir == f->Dir) return;
+	if (std::find (Dirs.begin(), Dirs.end(), dir) == Dirs.end())
+	{
+		std::string msg = std::string ("There is no Maildir folder \"") + folder + "\".";
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "maildir", msg.c_str());
+		return;
+	}
+	Entry n = *f;
+	n.Dir = dir;
+	if (rename (Path (*f).c_str(), Path (n).c_str()) != 0)
+	{
+		std::string msg = "Cannot move " + Path (*f) + ": " + strerror (errno);
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "maildir", msg.c_str());
+		return;
+	}
+	std::string uniq, flags;
+	split_filename (n.File, uniq, flags);
+	Files.erase (msgid);
+	Files[MsgID (dir, uniq)] = n;
 }
 
 void MaildirHandler::DeleteMessage (char *msgid)

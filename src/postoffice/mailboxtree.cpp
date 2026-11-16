@@ -82,6 +82,21 @@ class BoxData
 		char			*foldername;
 };
 
+// Neo-PostOffice: the mailbox and folder of the tree node under the pointer
+// (for dropping messages on a folder). False if it is not over a folder.
+bool tree_folder_at_pointer (MailBox *&box, const char *&folder)
+{
+	if (!TREE || !TREE->parent() || !Fl::event_inside (TREE->parent())) return false;
+	int depth, cy;
+	Fl_Toggle_Node *n = (Fl_Toggle_Node *) TREE->Fl_Toggle_Tree_Base::find (Fl::event_y(), depth, cy);
+	if (!n || !n->data()) return false;
+	BoxData *B = (BoxData *) n->data();
+	if (!B->mailbox || !B->foldername || !B->mailbox->GetView (B->foldername)) return false;
+	box = B->mailbox;
+	folder = B->foldername;
+	return true;
+}
+
 BoxData::BoxData (MailBox *m, char *f)
 {
 	mailbox = m;

@@ -671,9 +671,22 @@ bool MailBox::EnsureFolder (const std::string &value)
         std::string pattern = value;
         for (char &c : pattern) if (c == ',') c = '?';
         F->Set_char ("filters", ("7,glob,accept,0," + pattern).c_str());
+        F->Set_int ("autofolder", 1);
     }
     CreateMailView (name.c_str());
     return true;
+}
+
+bool MailBox::IsAutoFolder (const char *name)
+{
+    Var *folders = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name)->Get_collection ("folders");
+    if (!folders->Exists (name)) return false;
+    Var *F = folders->Get_collection (name);
+    if (F->Get_int ("autofolder")) return true;
+    // Made before the marker existed: it has the exact-match filter.
+    std::string pattern = name;
+    for (char &c : pattern) if (c == ',') c = '?';
+    return strcmp (F->Get_char ("filters"), ("7,glob,accept,0," + pattern).c_str()) == 0;
 }
 
 void MailBox::CreateMailView (const char *name)

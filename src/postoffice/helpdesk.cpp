@@ -36,6 +36,8 @@ Fl_Menu_Item menu_[] = {
  {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Redirect", 0,  0, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0xffff,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Move to folder...", FL_ALT|'m',  (Fl_Callback*)cb_move_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Flag / unflag", FL_ALT|'g',  (Fl_Callback*)cb_mark_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Refilter", 0,  (Fl_Callback*)cb_refilter, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"View", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -685,25 +687,25 @@ Fl_Window* make_window() {
       { Fl_Menu_Item* o = &menu_[19];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[22];
+      { Fl_Menu_Item* o = &menu_[24];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[24];
+      { Fl_Menu_Item* o = &menu_[26];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[25];
+      { Fl_Menu_Item* o = &menu_[27];
         xloc(o, "unread_messages");
       }
-      { Fl_Menu_Item* o = &menu_[28];
+      { Fl_Menu_Item* o = &menu_[30];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[29];
+      { Fl_Menu_Item* o = &menu_[31];
         xloc(o, "unread_messages");
       }
-      { Fl_Menu_Item* o = &menu_[32];
+      { Fl_Menu_Item* o = &menu_[34];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[33];
+      { Fl_Menu_Item* o = &menu_[35];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);
@@ -819,8 +821,10 @@ Fl_Window* make_window() {
           } // Fl_Group* o
           { Fl_Group* o = new Fl_Group(460, 20, 75, 20);
             { Fl_Button* o = new Fl_Button(460, 20, 75, 20);
+              o->tooltip("Flag or unflag the selected messages (Maildir)");
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
+              o->callback((Fl_Callback*)cb_mark);
             } // Fl_Button* o
             { Fl_Box* o = new Fl_Box(461, 21, 29, 18);
               o->image( image_stamp() );
@@ -1380,8 +1384,10 @@ Fl_Window* make_menuwindow() {
           o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(0, 120, 115, 20, "Mark");
+          o->tooltip("Flag or unflag the selected messages (Maildir)");
           o->box(FL_NO_BOX);
           o->labelsize(12);
+          o->callback((Fl_Callback*)cb_mark);
           o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         o->end();

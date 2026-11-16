@@ -16,11 +16,12 @@
 #define CLASS_CHECKGROUP	0x1001 // [1] arg1 = groupname
 #define CLASS_GETBODY		0x1002 // [1] arg1 = intmsgid
 #define CLASS_DELETE		0x1003 // [1] arg1 = intmsgid
-#define CLASS_MOVE			0x1004 // [3] arg1 = intmsgid    arg2 = foldername
+#define CLASS_MOVE			0x1004 // [2] arg1 = intmsgid    arg2 = target folder name
 #define CLASS_OPENSERVER	0x1005 // [0]
 #define CLASS_CLOSESERVER	0x1006 // [0]
 #define CLASS_EXPIRE		0x1007 // [0]
 #define CLASS_MARKREAD		0x1008 // [1] arg1 = intmsgid (opened from the local copy)
+#define CLASS_SETFLAG		0x1009 // [2] arg1 = intmsgid     arg2 = "+F" / "-F" (Maildir flag letter)
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]
@@ -35,6 +36,7 @@
 #define CLASS_GOTBODY		0x2006 // [1] arg1 = msgid
 #define CLASS_NEWFOLDER		0x2007 // [2] arg1 = mailbox     arg2 = "" (folders or counts changed: redraw the tree)
 #define CLASS_GONE			0x2008 // [2] arg1 = mailbox     arg2 = intmsgid (deleted on the server)
+#define CLASS_FOLDERGONE	0x2009 // [2] arg1 = mailbox     arg2 = foldername (removed at the source)
 
 // defines for scheduler events
 
