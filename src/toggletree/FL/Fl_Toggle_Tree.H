@@ -39,7 +39,8 @@ enum Fl_ToggleState {
   FL_TOGGLE_OPENED = 4,
   FL_TOGGLE_CLOSED = 8,
   FL_TOGGLE_HIT = 16,
-  FL_TOGGLE_DROP = 32   // Neo-PostOffice: a node was dragged and released
+  FL_TOGGLE_DROP = 32,   // Neo-PostOffice: a node was dragged and released
+  FL_TOGGLE_CONTEXT = 64 // Neo-PostOffice: right-click; see context_node()
 };
 
 class Fl_Input;
@@ -69,6 +70,8 @@ public:
    */
   void drag_enable(int e) { drag_enabled_ = e; }
   Fl_Toggle_Node* drag_node(void) { return drag_node_; }
+  /** The node right-clicked (state() == FL_TOGGLE_CONTEXT), or 0. */
+  Fl_Toggle_Node* context_node(void) { return context_node_; }
 
   /**
    * Returns the current node (as set with the traversal functions).
@@ -513,6 +516,7 @@ protected:
   int dragging_;
   int push_x_, push_y_;
   Fl_Toggle_Node* drag_node_;
+  Fl_Toggle_Node* context_node_;
 
   int selection_i_;
   int selection_count_;

@@ -89,9 +89,12 @@ The *Maildir* protocol reads a Maildir on this computer, such as
 `.Lists.2025`) appear as folders by themselves. Opening a message sets
 its seen flag in the Maildir, deleting it deletes the file, and changes
 made by other programs show up on the next check. Messages can be
-dragged onto another folder or moved with *Message → Move to folder*,
-and flagged with *Mark*; replies and forwards set the replied/passed
-flags. See [docs/maildir.md](docs/maildir.md).
+dragged onto another folder (Ctrl+drag copies) or moved or copied with
+the *Message* menu or a right-click, also from other mailboxes into a
+Maildir; they can be flagged with *Mark* and marked unread, and replies
+and forwards set the replied/passed flags. Folders can be created,
+renamed and deleted with a right-click in the folder tree or *File →
+Folder*. See [docs/maildir.md](docs/maildir.md).
 
 ## SQL mailboxes
 
@@ -172,6 +175,11 @@ See the git history for details. In summary:
 - Maildir mailboxes with Maildir++ folders and two-way flag sync;
   moving messages by drag and drop or the Message menu; flagged,
   replied and passed flags; folders deleted on disk leave the list.
+- Moving and copying messages between mailboxes into Maildir (exact
+  copies, fetched again from the source; rebuilt from the local copy
+  only if the source no longer has it); folder management for Maildir;
+  Mark as unread; right-click menus on messages and folders. Selecting
+  a mailbox itself makes it the current mailbox for Check.
 - Replies use the original's Message-ID header for In-Reply-To and
   References (they used the internal id, which is not a Message-ID for
   Maildir and SQL messages).
@@ -204,8 +212,8 @@ Found while modernizing and left for later:
 - After closing the Config window, Check does nothing until a folder is
   clicked. Deleting a message does not update the count next to the
   mailbox name until the next check.
-- Maildir: messages cannot be moved to another mailbox, and folders
-  cannot be created or deleted from the program.
+- Deleting a message in an mbox mailbox only hides it (deleting from
+  mbox files was never implemented); the same goes for moving one out.
 - SQL mailbox: messages cannot be moved between folders from the client,
   and the collection-method and expiry settings, which do not apply to
   it, are not greyed out.

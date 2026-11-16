@@ -22,6 +22,8 @@
 #define CLASS_EXPIRE		0x1007 // [0]
 #define CLASS_MARKREAD		0x1008 // [1] arg1 = intmsgid (opened from the local copy)
 #define CLASS_SETFLAG		0x1009 // [2] arg1 = intmsgid     arg2 = "+F" / "-F" (Maildir flag letter)
+#define CLASS_TRANSFER		0x100A // [5] msgid, target mailbox, target folder, "move"/"copy", "1" if last
+#define CLASS_FOLDEROP		0x100B // [3] "create"/"rename"/"delete", name, new name
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]

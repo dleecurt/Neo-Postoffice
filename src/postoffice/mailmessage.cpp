@@ -85,6 +85,7 @@ MailMessage::MailMessage (MailBox *M, const char *msgid) : BTreeNode (msgid, M->
 	Parent = M;
 	Count = 0;
 	Envelope = new MailEnvelope;
+	CaptureRaw = NULL;
 	First = Last = NULL;
 	ReceiveDate = time (NULL);
     Parent->Count++;
@@ -280,6 +281,8 @@ void MailMessage::ProcessMessage (char *Message)
 {
 	char *headers;
 	char *body;
+	
+	if (CaptureRaw) CaptureRaw->assign (Message);
 	
 	Count = 0;
 	

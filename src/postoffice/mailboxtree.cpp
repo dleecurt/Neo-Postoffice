@@ -8,6 +8,11 @@
 #include "buffer.h"
 #include "formatter.h"
 #include "mailbox.h"
+#include <strings.h>
+#include <string>
+#include <FL/Fl_Menu_Item.H>
+#include "itc.h"
+#include "mailhandler.h"
 #include "checksum.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +73,7 @@ void update_tree (Fl_Scroll *);
 void cb_selectfolder (Fl_Widget *, void *);
 void cb_selectfolder2 (Fl_Button *, void *);
 void update_folder (void);
+void clear_folder_index (void);
 
 void tree_clear_newmessages (MailBox *);
 void tree_new_messages (MailBox *, const char *);
@@ -95,6 +101,148 @@ bool tree_folder_at_pointer (MailBox *&box, const char *&folder)
 	box = B->mailbox;
 	folder = B->foldername;
 	return true;
+}
+
+//===============================================================================
+// Neo-PostOffice: managing Maildir folders (right-click menu and File menu)
+//===============================================================================
+
+extern MailBox *currentmailbox;
+extern char currentfolder[64];
+
+static bool can_manage_folders (MailBox *box)
+{
+	if (box && box->Handler && box->Handler->CanManageFolders()) return true;
+	fl_alert ("The folders of this mailbox are filters; change them in Config, Mailfolders.");
+	return false;
+}
+
+// Folder names: "/" separates subfolders. Not allowed: "." (the Maildir++
+// separator), characters the settings file cannot store, and the Inbox name.
+static bool check_folder_name (MailBox *box, std::string &name)
+{
+	size_t a = name.find_first_not_of (" \t"), b = name.find_last_not_of (" \t");
+	name = a == std::string::npos ? "" : name.substr (a, b - a + 1);
+	const char *why = NULL;
+	if (name.empty()) why = "The name is empty.";
+	else if (name.size() > 63) why = "The name is too long (at most 63 bytes).";
+	else if (name.find_first_of (".={}\",") != std::string::npos)
+		why = "Folder names cannot contain . = { } \" or ,";
+	else if (name.front() == '/' || name.back() == '/' || name.find ("//") != std::string::npos)
+		why = "Use / only between folder names, as in Lists/2025.";
+	else if (strcasecmp (name.c_str(), "Inbox") == 0) why = "Inbox is the name of the top folder.";
+	else if (box->GetView (name.c_str())) why = "There is already a folder with that name.";
+	else for (char c : name) if ((unsigned char) c < ' ') why = "The name contains a control character.";
+	if (why) fl_alert ("%s", why);
+	return !why;
+}
+
+static void post_folder_op (MailBox *box, const char *op, const char *a, const char *b)
+{
+	WordList *W = new WordList;
+	W->Add (op);
+	W->Add (a);
+	W->Add (b);
+	box->ToCollector->PostMessage (CLASS_FOLDEROP, NO_SUBCLASS, W);
+}
+
+void folder_new (MailBox *box, const char *parent)
+{
+	if (!can_manage_folders (box)) return;
+	std::string def = (parent && *parent && strcmp (parent, "Inbox") != 0) ? std::string (parent) + "/" : "";
+	const char *in = fl_input ("Name of the new folder (use / for a subfolder, e.g. Lists/2025):", def.c_str());
+	if (!in) return;
+	std::string name = in;
+	if (!check_folder_name (box, name)) return;
+	post_folder_op (box, "create", name.c_str(), "");
+}
+
+void folder_rename (MailBox *box, const char *folder)
+{
+	if (!can_manage_folders (box)) return;
+	if (!folder || !*folder || !box->GetView (folder) || strcmp (folder, "Inbox") == 0)
+	{
+		fl_alert ("Select a folder other than the Inbox to rename.");
+		return;
+	}
+	std::string old = folder;
+	const char *in = fl_input ("Rename the folder \"%s\" (and its subfolders) to:", old.c_str(), old.c_str());
+	if (!in || old == in) return;
+	std::string name = in;
+	if (!check_folder_name (box, name)) return;
+	post_folder_op (box, "rename", old.c_str(), name.c_str());
+}
+
+void folder_delete (MailBox *box, const char *folder)
+{
+	if (!can_manage_folders (box)) return;
+	if (!folder || !*folder || !box->GetView (folder) || strcmp (folder, "Inbox") == 0)
+	{
+		fl_alert ("Select a folder other than the Inbox to delete.");
+		return;
+	}
+	std::string name = folder;
+	// Messages in the folder and its subfolders.
+	int count = 0;
+	box->VLock->LockR();
+	for (MailView *V = box->VFirst; V; V = V->Next)
+		if (name == V->Name || strncmp (V->Name, (name + "/").c_str(), name.size() + 1) == 0)
+			count += V->Count();
+	box->VLock->UnlockR();
+	bool trash = name == "Trash" || name.compare (0, 6, "Trash/") == 0;
+	char what[64];
+	if (count == 0) snprintf (what, sizeof (what), "They contain no messages.");
+	else if (count == 1) snprintf (what, sizeof (what), "The message in them will be %s.",
+								   trash ? "deleted permanently" : "moved to the Trash");
+	else snprintf (what, sizeof (what), "The %d messages in them will be %s.", count,
+				   trash ? "deleted permanently" : "moved to the Trash");
+	int r = fl_choice ("Delete the folder \"%s\" and its subfolders?\n%s",
+					   "Cancel", "Delete", NULL, name.c_str(), what);
+	if (r != 1) return;
+	post_folder_op (box, "delete", name.c_str(), "");
+}
+
+void cb_folder_new_m (Fl_Menu_ *, void *)
+{
+	if (!currentmailbox) { fl_alert ("Select a mailbox or folder first."); return; }
+	folder_new (currentmailbox, currentfolder);
+}
+
+void cb_folder_rename_m (Fl_Menu_ *, void *)
+{
+	if (!currentmailbox) { fl_alert ("Select a folder first."); return; }
+	folder_rename (currentmailbox, currentfolder);
+}
+
+void cb_folder_delete_m (Fl_Menu_ *, void *)
+{
+	if (!currentmailbox) { fl_alert ("Select a folder first."); return; }
+	folder_delete (currentmailbox, currentfolder);
+}
+
+// Right-click on a mailbox or folder in the tree.
+static void tree_context_menu (Fl_Toggle_Node *n)
+{
+	if (!n || !n->data()) return;
+	BoxData *B = (BoxData *) n->data();
+	MailBox *box = B->mailbox;
+	if (!box) return;
+	bool is_folder = B->foldername && box->GetView (B->foldername);
+	bool fixed = !is_folder || strcmp (B->foldername, "Inbox") == 0;
+	bool manage = box->Handler && box->Handler->CanManageFolders();
+
+	Fl_Menu_Item items[] = {
+		{ "New folder...",    0, 0, 0, manage ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
+		{ "Rename folder...", 0, 0, 0, (manage && !fixed) ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
+		{ "Delete folder...", 0, 0, 0, (manage && !fixed) ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
+		{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	};
+	const Fl_Menu_Item *m = items[0].popup (Fl::event_x(), Fl::event_y(), manage ? box->Name : "Folders are set in Config");
+	if (!m) return;
+	std::string folder = is_folder ? B->foldername : "";
+	if (m == &items[0]) folder_new (box, folder.c_str());
+	else if (m == &items[1]) folder_rename (box, folder.c_str());
+	else if (m == &items[2]) folder_delete (box, folder.c_str());
 }
 
 BoxData::BoxData (MailBox *m, char *f)
@@ -188,7 +336,9 @@ void update_tree (Fl_Scroll *scr)
 			Fl_Toggle_Node *nod;
 			
 			sprintf (buf, "%s (%d)", MailBoxList[x]->Name, MailBoxList[x]->Count);
-			nod = TREE->add_next (buf, 1, &pixmap_folder, NULL /*(void *) MailBoxList[x] */);
+			// Neo-PostOffice: mailbox nodes carry their mailbox (folder "") for
+			// the right-click menu and so selecting one makes it current.
+			nod = TREE->add_next (buf, 1, &pixmap_folder, (void *) new BoxData (MailBoxList[x], (char *) ""));
 			if (MailBoxList[x]->Open) TREE->open (nod);
 			else TREE->close (nod);
 			
@@ -227,6 +377,11 @@ void update_tree (Fl_Scroll *scr)
 
 void cb_selectfolder (Fl_Widget */*b*/, void */*v*/)
 {
+	if (TREE->state() == FL_TOGGLE_CONTEXT)
+	{
+		tree_context_menu (TREE->context_node());
+		return;
+	}
 	if (!TREE->selected()) return;
 	BoxData *box = (BoxData *) TREE->selected()->data();
 
@@ -235,7 +390,16 @@ void cb_selectfolder (Fl_Widget */*b*/, void */*v*/)
 
 	dprintf ("callback %p\n", (void *) box);
 
-	if (box && currentfolder[0])
+	if (box && !*box->foldername)
+	{
+		// A mailbox itself: it becomes the current mailbox (Check works on
+		// it), no folder is shown.
+		currentmailbox = (MailBox *) box->mailbox;
+		currentfolder[0] = 0;
+		clear_folder_index();
+		return;
+	}
+	if (box)
 	{
 		dprintf ("click: cf=<%s> fn=<%s> cmb=<%p> mb=<%p>\n", currentfolder, box->foldername, (void *) currentmailbox, (void *) box->mailbox);
 		if ((strcmp (currentfolder, box->foldername) == 0) && (currentmailbox == box->mailbox))

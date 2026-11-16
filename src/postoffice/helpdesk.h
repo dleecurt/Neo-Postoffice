@@ -11,6 +11,9 @@ extern Fl_Window *win_main;
 extern void cb_compose(Fl_Menu_*, void*);
 extern void cb_expire(Fl_Menu_*, void*);
 extern void cb_check_mail_m(Fl_Menu_*, void*);
+extern void cb_folder_new_m(Fl_Menu_*, void*);
+extern void cb_folder_rename_m(Fl_Menu_*, void*);
+extern void cb_folder_delete_m(Fl_Menu_*, void*);
 extern void cb_quit_m(Fl_Menu_*, void*);
 extern void cb_select_all(Fl_Menu_*, void*);
 extern void cb_reply_m(Fl_Menu_*, void*);
@@ -18,6 +21,8 @@ extern void cb_forward_m(Fl_Menu_*, void*);
 extern void cb_forwardfull_m(Fl_Menu_*, void*);
 extern void cb_delete_m(Fl_Menu_*, void*);
 extern void cb_move_m(Fl_Menu_*, void*);
+extern void cb_copy_m(Fl_Menu_*, void*);
+extern void cb_markunread_m(Fl_Menu_*, void*);
 extern void cb_mark_m(Fl_Menu_*, void*);
 extern void cb_refilter(Fl_Menu_*, void*);
 extern void cb_viewall(Fl_Menu_*, void*);
@@ -98,8 +103,8 @@ extern void cb_sortby_date(Fl_Button*, void*);
 extern Fl_Button *bt_date;
 Fl_Window* make_window();
 extern Fl_Menu_Item menu_[];
-#define rad_viewall (menu_+26)
-#define rad_viewunread (menu_+27)
+#define rad_viewall (menu_+33)
+#define rad_viewunread (menu_+34)
 extern Fl_Menu_Item menu_popup_msgwin[];
 extern Fl_Window *win_menu;
 Fl_Window* make_menuwindow();

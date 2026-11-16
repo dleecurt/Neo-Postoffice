@@ -112,6 +112,26 @@ void *MailerThread::MailerMain (void *_box)
 					}
 					break;
 
+				case CLASS_TRANSFER:
+					if (M->Message->Count >= 5)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->TransferMessage (M->Message->Get(0), M->Message->Get(1), M->Message->Get(2),
+											  strcmp (M->Message->Get(3), "move") == 0,
+											  strcmp (M->Message->Get(4), "1") == 0);
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
+				case CLASS_FOLDEROP:
+					if (M->Message->Count >= 3)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->Handler->FolderOp (M->Message->Get(0), M->Message->Get(1), M->Message->Get(2));
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
 				case CLASS_MARKREAD:
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->MarkRead (M->Message->Get(0));

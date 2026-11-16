@@ -65,8 +65,16 @@ void MBoxHandler::CloseConnection (void)
 	//unlink( lock_filename );
 }
 
-void MBoxHandler::GetBody (char */*msgid*/)
+// Messages are read whole during the check, so the window never asks for a
+// body. Neo-PostOffice uses it to read a message again from its mbox file
+// (to copy it into a Maildir exactly).
+void MBoxHandler::GetBody (char *msgid)
 {
+	MailMessage *M = Parent->Find (msgid);
+	if (!M) return;
+	WordList *MBFiles = Parameters->Get_wordlist ("files");
+	for (int ix = 0; ix < MBFiles->Count; ++ix)
+		if (MBStorage[ix] && MBStorage[ix]->Retrieve (M)) return;
 }
 
 // The groupname is irrelevant. All mbox-files will be queried when this method is called.

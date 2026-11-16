@@ -28,6 +28,9 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <ftw.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +39,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -413,8 +417,216 @@ void MaildirHandler::SetFlag (char *msgid, char flag, bool on)
 		return;
 	}
 	if (MailMessage *M = Parent->Find (msgid))
-		if (ApplyFlags (M, *f))
-			Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	{
+		bool changed = ApplyFlags (M, *f);
+		if (flag == 'S' && M->Envelope->GetInt (ENVELOPE_I_READ) != (on ? 1 : 0))
+		{
+			M->Envelope->SetInt (ENVELOPE_I_READ, on ? 1 : 0);
+			changed = true;
+		}
+		if (changed) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	}
+}
+
+bool MaildirHandler::ExportRaw (char *msgid, std::string &raw, std::string &flags)
+{
+	Entry *f = Locate (msgid);
+	if (!f) return false;
+	FILE *F = fopen (Path (*f).c_str(), "rb");
+	if (!F) return false;
+	raw.clear();
+	char buf[65536];
+	size_t n;
+	while ((n = fread (buf, 1, sizeof (buf), F)) > 0) raw.append (buf, n);
+	fclose (F);
+	flags = f->Flags;
+	return true;
+}
+
+// Stores a message in a folder of this Maildir the way the format wants:
+// written under tmp/ with a unique name, then renamed into new/ (no flags)
+// or cur/ (with flags). Uses only the file system and the settings, so
+// other mailboxes' threads may call it.
+bool MaildirHandler::DeliverRaw (const std::string &raw, const char *folder, const std::string &flags_in,
+								 std::string &err)
+{
+	static std::atomic<unsigned> counter (0);
+	std::string root = Root();
+	std::string dir = folder_dir (folder);
+	std::string base = root + (dir.empty() ? "" : "/" + dir);
+	if (!is_maildir (base))
+	{
+		err = std::string ("there is no Maildir folder \"") + folder + "\"";
+		return false;
+	}
+
+	char host[256] = "localhost";
+	gethostname (host, sizeof (host) - 1);
+	std::string h;
+	for (const char *p = host; *p; ++p)
+	{
+		if (*p == '/') h += "\\057";
+		else if (*p == ':') h += "\\072";
+		else h += *p;
+	}
+	struct timeval tv;
+	gettimeofday (&tv, NULL);
+	char name[512];
+	snprintf (name, sizeof (name), "%ld.M%ldP%dQ%u.%s", (long) tv.tv_sec, (long) tv.tv_usec,
+			  (int) getpid(), ++counter, h.c_str());
+
+	std::string flags;
+	for (char c : flags_in) if (c >= 'A' && c <= 'Z' && c != 'T') flags += c;
+	std::sort (flags.begin(), flags.end());
+	flags.erase (std::unique (flags.begin(), flags.end()), flags.end());
+
+	std::string tmp = base + "/tmp/" + name;
+	std::string final_path = flags.empty() ? base + "/new/" + name : base + "/cur/" + name + ":2," + flags;
+
+	int fd = open (tmp.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600);
+	if (fd < 0)
+	{
+		err = "cannot create " + tmp + ": " + strerror (errno);
+		return false;
+	}
+	size_t done = 0;
+	while (done < raw.size())
+	{
+		ssize_t w = write (fd, raw.data() + done, raw.size() - done);
+		if (w < 0)
+		{
+			if (errno == EINTR) continue;
+			err = "cannot write " + tmp + ": " + strerror (errno);
+			close (fd);
+			unlink (tmp.c_str());
+			return false;
+		}
+		done += (size_t) w;
+	}
+	if (fsync (fd) != 0 || close (fd) != 0)
+	{
+		err = "cannot write " + tmp + ": " + strerror (errno);
+		unlink (tmp.c_str());
+		return false;
+	}
+	if (rename (tmp.c_str(), final_path.c_str()) != 0)
+	{
+		err = "cannot store " + final_path + ": " + strerror (errno);
+		unlink (tmp.c_str());
+		return false;
+	}
+	return true;
+}
+
+static int remove_entry (const char *path, const struct stat *, int, struct FTW *)
+{
+	return remove (path);
+}
+
+static bool make_maildir (const std::string &path)
+{
+	if (!is_dir (path) && mkdir (path.c_str(), 0700) != 0) return false;
+	for (const char *sub : { "cur", "new", "tmp" })
+	{
+		std::string p = path + "/" + sub;
+		if (!is_dir (p) && mkdir (p.c_str(), 0700) != 0) return false;
+	}
+	// Maildir++ marks subfolders with an empty "maildirfolder" file.
+	if (FILE *F = fopen ((path + "/maildirfolder").c_str(), "a")) fclose (F);
+	return true;
+}
+
+// Folder management (the window asks for names and confirmation):
+//   create NAME          make .NAME (and missing parents for "A/B")
+//   rename OLD NEW       rename .OLD and its subfolders .OLD.* to .NEW(.*)
+//   delete NAME          move the messages of .NAME and .NAME.* to .Trash,
+//                        then remove those folders (deleting Trash itself
+//                        deletes its messages)
+void MaildirHandler::FolderOp (const char *op, const char *a, const char *b)
+{
+	std::string root = Root();
+	std::string error;
+	Scan();
+
+	if (strcmp (op, "create") == 0)
+	{
+		std::string dir = folder_dir (a);
+		// parents first: ".Lists" for ".Lists.2025"
+		for (size_t dot = dir.find ('.', 1); dot != std::string::npos; dot = dir.find ('.', dot + 1))
+			if (!make_maildir (root + "/" + dir.substr (0, dot)))
+				error = "Cannot create the folder " + dir.substr (1, dot - 1) + ": " + strerror (errno);
+		if (error.empty() && std::find (Dirs.begin(), Dirs.end(), dir) != Dirs.end())
+			error = std::string ("The folder \"") + a + "\" already exists.";
+		else if (error.empty() && !make_maildir (root + "/" + dir))
+			error = std::string ("Cannot create the folder \"") + a + "\": " + strerror (errno);
+	}
+	else if (strcmp (op, "rename") == 0)
+	{
+		std::string from = folder_dir (a), to = folder_dir (b);
+		if (from.empty() || to.empty()) error = "The Inbox cannot be renamed.";
+		else if (is_dir (root + "/" + to)) error = std::string ("The folder \"") + b + "\" already exists.";
+		else
+		{
+			std::vector<std::string> dirs = Dirs;
+			// the folder itself before its subfolders, so names stay valid
+			for (const std::string &d : dirs)
+			{
+				if (d != from && d.compare (0, from.size() + 1, from + ".") != 0) continue;
+				std::string nd = to + d.substr (from.size());
+				if (rename ((root + "/" + d).c_str(), (root + "/" + nd).c_str()) != 0)
+				{
+					error = "Cannot rename " + d + " to " + nd + ": " + strerror (errno);
+					break;
+				}
+			}
+		}
+	}
+	else if (strcmp (op, "delete") == 0)
+	{
+		std::string del = folder_dir (a);
+		if (del.empty()) error = "The Inbox cannot be deleted.";
+		else
+		{
+			bool is_trash = del == ".Trash" || del.compare (0, 7, ".Trash.") == 0;
+			std::string trash = root + "/.Trash";
+			if (!is_trash && !make_maildir (trash))
+				error = "Cannot create the Trash folder: " + std::string (strerror (errno));
+			std::vector<std::string> dirs = Dirs;
+			for (const std::string &d : dirs)
+			{
+				if (!error.empty()) break;
+				if (d != del && d.compare (0, del.size() + 1, del + ".") != 0) continue;
+				// messages to the Trash (or gone, for the Trash itself)
+				for (const char *sub : { "new", "cur" })
+				{
+					std::string path = root + "/" + d + "/" + sub;
+					DIR *dh = opendir (path.c_str());
+					if (!dh) continue;
+					std::vector<std::string> files;
+					while (struct dirent *e = readdir (dh))
+						if (e->d_name[0] != '.') files.push_back (e->d_name);
+					closedir (dh);
+					for (const std::string &file : files)
+					{
+						int r = is_trash ? unlink ((path + "/" + file).c_str())
+										 : rename ((path + "/" + file).c_str(),
+												   (trash + "/" + sub + "/" + file).c_str());
+						if (r != 0)
+						{
+							error = "Cannot move " + path + "/" + file + " to the Trash: " + strerror (errno);
+							break;
+						}
+					}
+				}
+				if (error.empty() && nftw ((root + "/" + d).c_str(), remove_entry, 16, FTW_DEPTH | FTW_PHYS) != 0)
+					error = "Cannot remove the folder " + d + ": " + strerror (errno);
+			}
+		}
+	}
+
+	if (!error.empty())
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "maildir", error.c_str());
+	CheckGroup (NULL);	// show the result: new, renamed and removed folders
 }
 
 // Moves the message's file to another folder of this Maildir. The message

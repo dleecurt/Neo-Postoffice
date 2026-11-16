@@ -33,6 +33,16 @@ public:
 	virtual bool			 CanMove (void) { return false; }
 	virtual void			 SetFlag (char * /*msgid*/, char /*flag*/, bool /*on*/) {}
 	virtual void			 MoveMessage (char * /*msgid*/, const char * /*folder*/) {}
+	// The exact original message and its Maildir flags, if this mailbox can
+	// give it directly (Maildir). Others are fetched again with GetBody.
+	virtual bool			 ExportRaw (char * /*msgid*/, std::string & /*raw*/, std::string & /*flags*/) { return false; }
+	// Stores a message in a folder of this mailbox (Maildir). Called from
+	// other mailboxes' threads: must only use the file system and settings.
+	virtual bool			 DeliverRaw (const std::string &, const char *, const std::string &, std::string &err)
+							 { err = "this mailbox cannot store messages"; return false; }
+	// Folder management (Maildir): op is "create", "rename" or "delete".
+	virtual bool			 CanManageFolders (void) { return false; }
+	virtual void			 FolderOp (const char * /*op*/, const char * /*a*/, const char * /*b*/) {}
 
 	WordList				*GroupList (void);
 		
@@ -145,6 +155,10 @@ public:
 	bool					 CanMove (void) { return true; }
 	void					 SetFlag (char *, char, bool);
 	void					 MoveMessage (char *, const char *);
+	bool					 ExportRaw (char *, std::string &, std::string &);
+	bool					 DeliverRaw (const std::string &, const char *, const std::string &, std::string &);
+	bool					 CanManageFolders (void) { return true; }
+	void					 FolderOp (const char *, const char *, const char *);
 
 private:
 

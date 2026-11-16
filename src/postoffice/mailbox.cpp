@@ -852,3 +852,117 @@ void MailBox::ClearBiff (void)
 		}
 	VLock->UnlockR();
 }
+
+//===============================================================================
+// Neo-PostOffice: copying and moving messages into a Maildir mailbox
+//===============================================================================
+
+extern MailBox *MailBoxList[16];
+
+// Best-effort rebuild of a message from the local copy, for when its source
+// no longer has it (e.g. deleted from a POP3 server after downloading).
+// The local copy keeps the headers and the body split into parts, but not
+// each part's transfer encoding, so the result may differ from the original.
+static std::string rebuild_raw (MailMessage *M)
+{
+    if (!M || !(M->Flags & MMFL_HAVEBODY)) return "";
+    if (!(M->Flags & MMFL_INRAM)) M->LoadBody();
+    if (!(M->Flags & MMFL_INRAM)) return "";
+    if (M->HeaderNames->Count == 0) M->LoadHeaders();
+
+    bool multi = M->Count > 1;
+    std::string out = "X-Neo-PostOffice-Rebuilt: the original was no longer available; rebuilt from the local copy\n";
+    for (int i = 0; i < M->HeaderNames->Count; ++i)
+    {
+        const char *n = M->HeaderNames->Get (i);
+        if (multi && (strcasecmp (n, "Content-Type") == 0 || strcasecmp (n, "Content-Transfer-Encoding") == 0 ||
+                      strcasecmp (n, "MIME-Version") == 0 || strcasecmp (n, "Content-Length") == 0))
+            continue;
+        out += std::string (n) + ": " + M->HeaderValues->Get (i) + "\n";
+    }
+    if (!multi)
+    {
+        out += "\n";
+        if (MailPart *P = M->GetPart (0)) out.append (P->Contents, P->ContentSize);
+        return out;
+    }
+
+    char boundary[64];
+    snprintf (boundary, sizeof (boundary), "neo-postoffice-%lx-%x", (long) time (NULL), (unsigned) rand());
+    out += "MIME-Version: 1.0\n";
+    out += std::string ("Content-Type: multipart/mixed; boundary=\"") + boundary + "\"\n\n";
+    for (int i = 0; i < M->Count; ++i)
+    {
+        MailPart *P = M->GetPart (i);
+        if (!P) break;
+        std::string body (P->Contents, P->ContentSize);
+        // The 0.7.3 parser leaves the closing boundary's "--" at the end of
+        // the last part; drop it and trailing blank lines.
+        while (!body.empty() && (body.back() == '\n' || body.back() == '\r' || body.back() == ' ')) body.pop_back();
+        if (body.size() >= 2 && body.compare (body.size() - 2, 2, "--") == 0 &&
+            (body.size() == 2 || body[body.size() - 3] == '\n'))
+            body.erase (body.size() - 2);
+        while (!body.empty() && (body.back() == '\n' || body.back() == '\r')) body.pop_back();
+        body += "\n";
+        out += std::string ("--") + boundary + "\n";
+        out += std::string ("Content-Type: ") + (P->ContentType && *P->ContentType ? P->ContentType : "text/plain") + "\n";
+        if (P->FileName && *P->FileName)
+            out += std::string ("Content-Disposition: attachment; filename=\"") + P->FileName + "\"\n";
+        // A non-text part that is all base64 was base64 in the original.
+        bool text = !P->ContentType || !*P->ContentType || strncasecmp (P->ContentType, "text/", 5) == 0;
+        if (!text && !body.empty() &&
+            body.find_first_not_of ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n") == std::string::npos)
+            out += "Content-Transfer-Encoding: base64\n";
+        out += "\n" + body;
+        if (body.empty() || body.back() != '\n') out += "\n";
+    }
+    out += std::string ("--") + boundary + "--\n";
+    return out;
+}
+
+void MailBox::TransferMessage (const char *msgid, const char *target, const char *folder, bool move, bool last)
+{
+    std::string raw, flags, error;
+    MailBox *T = NULL;
+    for (int k = 0; k < 16 && MailBoxList[k]; ++k)
+        if (strcmp (MailBoxList[k]->Name, target) == 0) T = MailBoxList[k];
+
+    if (!T || !T->Handler)
+        error = std::string ("The mailbox \"") + target + "\" does not exist.";
+    else if (!Handler->ExportRaw ((char *) msgid, raw, flags))
+    {
+        // Not a Maildir: fetch the message again and keep the raw text.
+        MailMessage *M = Find ((char *) msgid);
+        if (!M) error = "The message is no longer in this mailbox.";
+        else
+        {
+            if (M->Envelope->GetInt (ENVELOPE_I_READ)) flags += 'S';
+            int ef = M->Envelope->GetInt (ENVELOPE_I_FLAGS);
+            if (ef & EFLAG_FLAGGED) flags += 'F';
+            if (ef & EFLAG_REPLIED) flags += 'R';
+            if (ef & EFLAG_PASSED) flags += 'P';
+
+            M->CaptureRaw = &raw;
+            Handler->GetBody ((char *) msgid);
+            if ((M = Find ((char *) msgid))) M->CaptureRaw = NULL;
+            if (raw.empty()) raw = rebuild_raw (M);
+            if (raw.empty())
+                error = "The original of this message is not available (it is no longer at its source "
+                        "and was not downloaded).";
+        }
+    }
+
+    std::string err;
+    if (error.empty() && !T->Handler->DeliverRaw (raw, folder, flags, err))
+        error = "Cannot store the message in " + std::string (target) + ": " + err;
+
+    if (!error.empty())
+        ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "transfer", error.c_str());
+    else if (move)
+    {
+        // Only now that the copy is safe: remove the original, as Delete does.
+        Handler->DeleteMessage ((char *) msgid);
+        ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Name, msgid);
+    }
+    if (last && T) T->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
+}

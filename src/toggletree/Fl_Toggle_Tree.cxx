@@ -58,6 +58,7 @@ Fl_Toggle_Tree::Fl_Toggle_Tree(int x, int y, int w, int h) : Fl_Toggle_Tree_Base
   dragging_ = 0;
   push_x_ = push_y_ = 0;
   drag_node_ = 0;
+  context_node_ = 0;
   closed_pixmap_ = 0;
   opened_pixmap_ = 0;
   if (s_closed_pixmap_ == 0) {
@@ -310,6 +311,14 @@ int Fl_Toggle_Tree::handle(int event) {
   case FL_PUSH: {
     dragging_ = 0;
     drag_node_ = 0;
+    if (Fl::event_button() == FL_RIGHT_MOUSE) {
+      int depth, cy;
+      context_node_ = (Fl_Toggle_Node*) Fl_Toggle_Tree_Base::find(Fl::event_y(), depth, cy);
+      state_ = FL_TOGGLE_CONTEXT;
+      do_callback();
+      context_node_ = 0;
+      return 1;
+    }
     if (drag_enabled_) {
       int depth, cy;
       push_x_ = Fl::event_x();
@@ -327,6 +336,7 @@ int Fl_Toggle_Tree::handle(int event) {
     return 1;
   }
   case FL_RELEASE: {
+      if (Fl::event_button() == FL_RIGHT_MOUSE) return 1;   // handled on push
       if (dragging_) {
         dragging_ = 0;
         if (window()) window()->cursor(FL_CURSOR_DEFAULT);

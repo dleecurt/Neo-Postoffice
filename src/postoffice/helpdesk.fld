@@ -65,6 +65,26 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {20 20 100 20} shortcut 0x8006c labelsize 12 divider
           code0 {xloc(o, "check_mail");}
         }
+        Submenu {} {
+          label Folder open
+          xywh {0 0 100 20} labelsize 12 divider
+        } {
+          MenuItem {} {
+            label {New folder...}
+            callback cb_folder_new_m
+            tooltip {Create a folder in the selected Maildir mailbox} xywh {0 0 100 20} labelsize 12
+          }
+          MenuItem {} {
+            label {Rename folder...}
+            callback cb_folder_rename_m
+            tooltip {Rename the selected Maildir folder} xywh {0 0 100 20} labelsize 12
+          }
+          MenuItem {} {
+            label {Delete folder...}
+            callback cb_folder_delete_m
+            tooltip {Delete the selected Maildir folder; its messages go to the Trash} xywh {0 0 100 20} labelsize 12
+          }
+        }
         MenuItem {} {
           label Configure
           callback {cb_configure (NULL, NULL);}
@@ -141,6 +161,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           label {Move to folder...}
           callback cb_move_m
           tooltip {Move the selected messages to another folder (Maildir). You can also drag them onto a folder.} xywh {0 0 100 20} shortcut 0x8006d labelsize 12
+        }
+        MenuItem {} {
+          label {Copy to folder...}
+          callback cb_copy_m
+          tooltip {Copy the selected messages to a folder of a Maildir mailbox. You can also Ctrl+drag them onto a folder.} xywh {0 0 100 20} shortcut 0x8006b labelsize 12
+        }
+        MenuItem {} {
+          label {Mark as unread}
+          callback cb_markunread_m
+          tooltip {Mark the selected messages as not read} xywh {0 0 100 20} shortcut 0x80075 labelsize 12
         }
         MenuItem {} {
           label {Flag / unflag}

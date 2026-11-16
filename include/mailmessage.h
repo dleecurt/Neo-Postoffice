@@ -1,6 +1,7 @@
 #ifndef _MAILMESSAGE_H
 #define _MAILMESSAGE_H 1
 
+#include <string>
 #include "wordlist.h"
 #include "envelope.h"
 #include "viewlist.h"
@@ -72,6 +73,9 @@ class MailMessage : public BTreeNode
 		WordList		*HeaderNames;
 		WordList		*HeaderValues;
 		MailEnvelope	*Envelope;
+		// Neo-PostOffice: when set, ProcessMessage copies the raw message
+		// here (used to move a message into a Maildir).
+		std::string		*CaptureRaw;
 		
 		void			 StoreFile (void);
 		void			 Flush (void);

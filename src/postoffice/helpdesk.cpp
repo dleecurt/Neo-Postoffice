@@ -21,6 +21,11 @@ Fl_Menu_Item menu_[] = {
  {"New Query", 0,  0, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Expire", 0,  (Fl_Callback*)cb_expire, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Check Mail", FL_ALT|'l',  (Fl_Callback*)cb_check_mail_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Folder", 0,  0, 0, 192, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"New folder...", 0,  (Fl_Callback*)cb_folder_new_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Rename folder...", 0,  (Fl_Callback*)cb_folder_rename_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Delete folder...", 0,  (Fl_Callback*)cb_folder_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0},
  {"Configure", 0,  (Fl_Callback*)cb_Configure, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Quit", FL_ALT|'q',  (Fl_Callback*)cb_quit_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
@@ -37,6 +42,8 @@ Fl_Menu_Item menu_[] = {
  {"Redirect", 0,  0, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0xffff,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Move to folder...", FL_ALT|'m',  (Fl_Callback*)cb_move_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Copy to folder...", FL_ALT|'k',  (Fl_Callback*)cb_copy_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Mark as unread", FL_ALT|'u',  (Fl_Callback*)cb_markunread_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Flag / unflag", FL_ALT|'g',  (Fl_Callback*)cb_mark_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Refilter", 0,  (Fl_Callback*)cb_refilter, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
@@ -654,58 +661,58 @@ Fl_Window* make_window() {
       { Fl_Menu_Item* o = &menu_[4];
         xloc(o, "check_mail");
       }
-      { Fl_Menu_Item* o = &menu_[5];
+      { Fl_Menu_Item* o = &menu_[10];
         xloc(o, "configure");
       }
-      { Fl_Menu_Item* o = &menu_[6];
+      { Fl_Menu_Item* o = &menu_[11];
         xloc(o, "quit");
       }
-      { Fl_Menu_Item* o = &menu_[8];
+      { Fl_Menu_Item* o = &menu_[13];
         xloc(o, "edit");
       }
-      { Fl_Menu_Item* o = &menu_[9];
+      { Fl_Menu_Item* o = &menu_[14];
         xloc(o, "cut");
       }
-      { Fl_Menu_Item* o = &menu_[10];
+      { Fl_Menu_Item* o = &menu_[15];
         xloc(o, "copy");
       }
-      { Fl_Menu_Item* o = &menu_[11];
+      { Fl_Menu_Item* o = &menu_[16];
         xloc(o, "paste");
       }
-      { Fl_Menu_Item* o = &menu_[14];
+      { Fl_Menu_Item* o = &menu_[19];
         xloc(o, "message");
       }
-      { Fl_Menu_Item* o = &menu_[15];
+      { Fl_Menu_Item* o = &menu_[20];
         xloc(o, "reply");
       }
-      { Fl_Menu_Item* o = &menu_[16];
+      { Fl_Menu_Item* o = &menu_[21];
         xloc(o, "forward");
       }
-      { Fl_Menu_Item* o = &menu_[18];
+      { Fl_Menu_Item* o = &menu_[23];
         xloc(o, "redirect");
       }
-      { Fl_Menu_Item* o = &menu_[19];
+      { Fl_Menu_Item* o = &menu_[24];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[24];
+      { Fl_Menu_Item* o = &menu_[31];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[26];
+      { Fl_Menu_Item* o = &menu_[33];
         xloc(o, "all_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[27];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[30];
-        xloc(o, "all_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[31];
-        xloc(o, "unread_messages");
       }
       { Fl_Menu_Item* o = &menu_[34];
+        xloc(o, "unread_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[37];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[35];
+      { Fl_Menu_Item* o = &menu_[38];
+        xloc(o, "unread_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[41];
+        xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[42];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);

@@ -40,6 +40,10 @@ class MailBox
 		bool				 EnsureFolder (const std::string &value);
 		// True for folders EnsureFolder made (not the user's own filter folders).
 		bool				 IsAutoFolder (const char *name);
+		// Copies or moves a message into a folder of a Maildir mailbox
+		// (runs in this mailbox's collector thread).
+		void				 TransferMessage (const char *msgid, const char *target, const char *folder,
+											  bool move, bool last);
 		void				 DestroyMailView (char *);
 		void				 RenameMailView (char *, char *);
 		
