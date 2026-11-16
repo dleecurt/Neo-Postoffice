@@ -5379,7 +5379,18 @@ Fl_Button *bt_prefs_inserttext=(Fl_Button *)0;
 
 Fl_Group *gr_prefs_network=(Fl_Group *)0;
 
+Fl_Choice *ch_prefs_delivery=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_prefs_delivery[] = {
+ {"Built-in SMTP client", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"System MTA (sendmail)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"msmtp", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
 Fl_Input *in_prefs_smtpserver=(Fl_Input *)0;
+
+Fl_Input *in_prefs_sendprogram=(Fl_Input *)0;
 
 Fl_Choice *ch_prefs_directoryservice=(Fl_Choice *)0;
 
@@ -6606,13 +6617,37 @@ Fl_Window* make_prefs_window() {
           o->color((Fl_Color)51);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
           { Fl_Group* o = new Fl_Group(30, 65, 575, 20);
-            { in_prefs_smtpserver = new Fl_Input(230, 65, 375, 20);
+            { Fl_Button* o = new Fl_Button(30, 65, 105, 20, "Send mail with");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            { Fl_Group* o = new Fl_Group(230, 65, 235, 20);
+              o->box(FL_BORDER_FRAME);
+              o->color(FL_FOREGROUND_COLOR);
+              { ch_prefs_delivery = new Fl_Choice(231, 66, 234, 19);
+                ch_prefs_delivery->tooltip("How outgoing mail is delivered. The system MTA and msmtp get the sender with "
+"-f and the recipients as arguments, and read the message from standard input.");
+                ch_prefs_delivery->down_box(FL_BORDER_BOX);
+                ch_prefs_delivery->labelsize(12);
+                ch_prefs_delivery->textsize(12);
+                ch_prefs_delivery->callback((Fl_Callback*)cb_prefs_delivery);
+                ch_prefs_delivery->menu(menu_ch_prefs_delivery);
+              } // Fl_Choice* ch_prefs_delivery
+              o->end();
+            } // Fl_Group* o
+            o->end();
+          } // Fl_Group* o
+          { Fl_Group* o = new Fl_Group(30, 95, 575, 20);
+            { in_prefs_smtpserver = new Fl_Input(230, 95, 375, 20);
+              in_prefs_smtpserver->tooltip("The mail server the built-in SMTP client sends to (port 25, no encryption or "
+"login): use localhost with a local MTA.");
               in_prefs_smtpserver->labelsize(12);
               in_prefs_smtpserver->textsize(12);
               in_prefs_smtpserver->callback((Fl_Callback*)cb_prefs_smtpserver);
               in_prefs_smtpserver->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_smtpserver
-            { Fl_Button* o = new Fl_Button(30, 65, 105, 20, "SMTP Server");
+            { Fl_Button* o = new Fl_Button(30, 95, 105, 20, "SMTP Server");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
@@ -6620,13 +6655,30 @@ Fl_Window* make_prefs_window() {
             } // Fl_Button* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 155, 575, 20);
-            { Fl_Input* o = new Fl_Input(230, 155, 375, 20);
+          { Fl_Group* o = new Fl_Group(30, 125, 575, 20);
+            { in_prefs_sendprogram = new Fl_Input(230, 125, 375, 20);
+              in_prefs_sendprogram->tooltip("The program that delivers the mail: /usr/sbin/sendmail for the system MTA, ms"
+"mtp (found in PATH) for msmtp. msmtp uses the account whose from address is th"
+"e sender\'s.");
+              in_prefs_sendprogram->labelsize(12);
+              in_prefs_sendprogram->textsize(12);
+              in_prefs_sendprogram->callback((Fl_Callback*)cb_prefs_sendprogram);
+              in_prefs_sendprogram->when(FL_WHEN_CHANGED);
+            } // Fl_Input* in_prefs_sendprogram
+            { Fl_Button* o = new Fl_Button(30, 125, 105, 20, "Program");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            o->end();
+          } // Fl_Group* o
+          { Fl_Group* o = new Fl_Group(30, 185, 575, 20);
+            { Fl_Input* o = new Fl_Input(230, 185, 375, 20);
               o->labelsize(12);
               o->textsize(12);
               o->deactivate();
             } // Fl_Input* o
-            { Fl_Button* o = new Fl_Button(30, 155, 120, 20, "MySQL Host");
+            { Fl_Button* o = new Fl_Button(30, 185, 120, 20, "MySQL Host");
               o->box(FL_NO_BOX);
               o->color((Fl_Color)48);
               o->labelsize(12);
@@ -6635,17 +6687,17 @@ Fl_Window* make_prefs_window() {
             } // Fl_Button* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 125, 470, 20);
-            { Fl_Button* o = new Fl_Button(30, 125, 105, 20, "Directory Service");
+          { Fl_Group* o = new Fl_Group(30, 155, 470, 20);
+            { Fl_Button* o = new Fl_Button(30, 155, 105, 20, "Directory Service");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               xloc(o, "directory_service");
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(230, 125, 235, 20);
+            { Fl_Group* o = new Fl_Group(230, 155, 235, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_directoryservice = new Fl_Choice(231, 126, 234, 19);
+              { ch_prefs_directoryservice = new Fl_Choice(231, 156, 234, 19);
                 ch_prefs_directoryservice->down_box(FL_BORDER_BOX);
                 ch_prefs_directoryservice->labelsize(12);
                 ch_prefs_directoryservice->textsize(12);
@@ -6661,15 +6713,15 @@ Fl_Window* make_prefs_window() {
             } // Fl_Group* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 185, 575, 20);
-            { Fl_Button* o = new Fl_Button(30, 185, 120, 20, "MySQL Database");
+          { Fl_Group* o = new Fl_Group(30, 215, 575, 20);
+            { Fl_Button* o = new Fl_Button(30, 215, 120, 20, "MySQL Database");
               o->box(FL_NO_BOX);
               o->color((Fl_Color)48);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               o->deactivate();
             } // Fl_Button* o
-            { Fl_Input* o = new Fl_Input(230, 185, 375, 20);
+            { Fl_Input* o = new Fl_Input(230, 215, 375, 20);
               o->labelsize(12);
               o->textsize(12);
               o->deactivate();

@@ -50,6 +50,8 @@ void start_wizard (void)
 					Delete ("Usenet");
 	}
 	PREFERENCES.Set_char_tree ("postoffice/network/smtp","smtp");
+	// New setups send through the system's MTA (/usr/sbin/sendmail).
+	PREFERENCES.Set_char_tree ("postoffice/network/delivery","sendmail");
 	PREFERENCES.Set_char_tree ("postoffice/identities/001/shortname","Default Identity");
 }
 

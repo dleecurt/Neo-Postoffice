@@ -132,6 +132,8 @@ PrefJournal JOURNAL;
 //										a guideline.
 //===============================================================================
 
+void show_delivery (void);
+
 void func_view_protocol (void)
 {
 	int val = ch_prefs_protocol->value();
@@ -348,6 +350,7 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		br_prefs_identities->add (LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (W->Get(i))->Get_char ("shortname"), &pixmap_identity, NULL );
 	}
 	in_prefs_smtpserver->value (LPREFERENCES.Get_char_tree ("postoffice/network/smtp"));
+	show_delivery ();
 	gr_identities_set->deactivate();
 	gr_mailboxes_set->deactivate();
 	gr_prefs_filters->deactivate();
@@ -1307,6 +1310,51 @@ void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 		delete[] decsignature;
 		delete[] signature;
 	}
+}
+
+// Config -> Network: how mail is sent. "delivery" is smtp (or empty: the
+// built-in client), sendmail or msmtp; each program has its own path.
+static const char *delivery_path_key (void)
+{
+	const char *method = LPREFERENCES.Get_char_tree ("postoffice/network/delivery");
+	if (strcasecmp (method, "sendmail") == 0) return "sendmail_path";
+	if (strcasecmp (method, "msmtp") == 0) return "msmtp_path";
+	return NULL;
+}
+
+void show_delivery (void)
+{
+	const char *method = LPREFERENCES.Get_char_tree ("postoffice/network/delivery");
+	const char *key = delivery_path_key ();
+	ch_prefs_delivery->value (strcasecmp (method, "sendmail") == 0 ? 1 : strcasecmp (method, "msmtp") == 0 ? 2 : 0);
+	if (key)
+	{
+		const char *path = LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Get_char (key);
+		in_prefs_sendprogram->value (*path ? path : (strcmp (key, "msmtp_path") == 0 ? "msmtp" : "/usr/sbin/sendmail"));
+		in_prefs_sendprogram->activate ();
+		in_prefs_smtpserver->deactivate ();
+	}
+	else
+	{
+		in_prefs_sendprogram->value ("");
+		in_prefs_sendprogram->deactivate ();
+		in_prefs_smtpserver->activate ();
+	}
+}
+
+void cb_prefs_delivery (Fl_Choice *c, void */*v*/)
+{
+	static const char *methods[] = { "smtp", "sendmail", "msmtp" };
+	int v = c->value ();
+	if (v < 0 || v > 2) return;
+	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ("delivery", (char *) methods[v]);
+	show_delivery ();
+}
+
+void cb_prefs_sendprogram (Fl_Input *i, void */*v*/)
+{
+	if (const char *key = delivery_path_key ())
+		LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ((char *) key, (char *) i->value ());
 }
 
 void cb_prefs_smtpserver (Fl_Input */*w*/, void */*v*/)

@@ -12,7 +12,9 @@ interface and behavior are intentionally kept close to the original.
 
 ## Features
 
-- POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
+- POP3, IMAP4 and NNTP (Usenet) support; outgoing mail is queued in the
+  outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
+  client
 - Local mbox files, Maildir (with Maildir++ folders) and MH folders
   (nmh) as mailboxes; read state, flags, moves and deletions are shared
   with other programs
@@ -66,6 +68,31 @@ On first start a wizard asks for your name and e-mail address and,
 optionally, a POP3 and an NNTP server. Settings live in
 `~/.postoffice/resource.rc`. Remove or rename `~/.postoffice` to start
 over.
+
+## Sending mail
+
+Sent messages wait in the outbox, which is emptied every 15 seconds.
+Config → Network → *Send mail with* chooses how they are delivered:
+
+- **System MTA (sendmail)**, the default for new setups: the message is
+  given to `/usr/sbin/sendmail`, which Postfix, Exim, OpenSMTPD and
+  msmtp-mta all provide. The MTA does the rest (TLS, login, retries).
+- **msmtp**: the message is given to `msmtp`, configured in
+  `~/.msmtprc`. msmtp uses the account whose `from` is the message's
+  sender, or its default account, so one account per identity just
+  works.
+- **Built-in SMTP client**: the original client. It speaks plain SMTP on
+  port 25 without encryption or login, so it is only useful with a mail
+  server on your own machine or network (`localhost`).
+
+For the first two, *Program* is the program to run (another path, or
+`~/bin/...`, can be given). It is run as
+`PROGRAM -i -f SENDER -- RECIPIENT...` with the message on standard
+input; Bcc recipients are passed as arguments and the Bcc header is
+removed. If the program fails, the message stays in the outbox, its
+error (for example msmtp's) is shown once, and it is tried again at the
+next round. Settings made before this option existed keep using the
+built-in client until changed.
 
 Clicking a link runs the command in the preference
 `postoffice/gui/action/http`, with `$` replaced by the URL. The default
@@ -225,13 +252,19 @@ See the git history for details. In summary:
   the fixed inbox come from the mailbox type. Folders whose settings were
   not saved (after a crash) are made again from the message index
   instead of their messages being lost from view.
+- Outgoing mail can be delivered by the system MTA (`/usr/sbin/sendmail`,
+  the default for new setups) or msmtp instead of the built-in SMTP
+  client, and their errors are shown (the built-in client ignores its own). The outbox
+  is saved as soon as messages are sent, so a crash right after sending
+  no longer sends them again.
 
 ## Known issues and ideas
 
 Found while modernizing and left for later:
 
 - Only `http://` links are recognized (no `https://`); POP3, IMAP4,
-  NNTP and SMTP have no TLS support.
+  NNTP and the built-in SMTP client have no TLS support (send through
+  the system MTA or msmtp instead).
 - Message text in 8-bit without a declared character set shows `?`
   instead of accented letters in the message view (headers are fine).
 - After closing the Config window, Check does nothing until a folder is

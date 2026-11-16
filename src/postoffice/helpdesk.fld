@@ -2325,40 +2325,81 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Group {} {open
             xywh {30 65 575 20}
           } {
+            Fl_Button {} {
+              label {Send mail with}
+              xywh {30 65 105 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Group {} {open
+              xywh {230 65 235 20} box BORDER_FRAME color 0
+            } {
+              Fl_Choice ch_prefs_delivery {
+                callback cb_prefs_delivery open
+                tooltip {How outgoing mail is delivered. The system MTA and msmtp get the sender with -f and the recipients as arguments, and read the message from standard input.} xywh {231 66 234 19} down_box BORDER_BOX labelsize 12 textsize 12
+              } {
+                MenuItem {} {
+                  label {Built-in SMTP client}
+                  xywh {15 15 100 20} labelsize 12
+                }
+                MenuItem {} {
+                  label {System MTA (sendmail)}
+                  xywh {15 15 100 20} labelsize 12
+                }
+                MenuItem {} {
+                  label msmtp
+                  xywh {15 15 100 20} labelsize 12
+                }
+              }
+            }
+          }
+          Fl_Group {} {open
+            xywh {30 95 575 20}
+          } {
             Fl_Input in_prefs_smtpserver {
               callback cb_prefs_smtpserver
-              xywh {230 65 375 20} labelsize 12 when 1 textsize 12
+              tooltip {The mail server the built-in SMTP client sends to (port 25, no encryption or login): use localhost with a local MTA.} xywh {230 95 375 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label {SMTP Server}
-              xywh {30 65 105 20} box NO_BOX labelsize 12 align 20
+              xywh {30 95 105 20} box NO_BOX labelsize 12 align 20
               code0 {xloc(o, "smtp_server");}
             }
           }
           Fl_Group {} {open
-            xywh {30 155 575 20}
+            xywh {30 125 575 20}
           } {
-            Fl_Input {} {
-              xywh {230 155 375 20} labelsize 12 textsize 12 deactivate
+            Fl_Input in_prefs_sendprogram {
+              callback cb_prefs_sendprogram
+              tooltip {The program that delivers the mail: /usr/sbin/sendmail for the system MTA, msmtp (found in PATH) for msmtp. msmtp uses the account whose from address is the sender's.} xywh {230 125 375 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
-              label {MySQL Host}
-              xywh {30 155 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+              label Program
+              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
             }
           }
           Fl_Group {} {open
-            xywh {30 125 470 20}
+            xywh {30 185 575 20}
+          } {
+            Fl_Input {} {
+              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
+            }
+            Fl_Button {} {
+              label {MySQL Host}
+              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+            }
+          }
+          Fl_Group {} {open
+            xywh {30 155 470 20}
           } {
             Fl_Button {} {
               label {Directory Service}
-              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
+              xywh {30 155 105 20} box NO_BOX labelsize 12 align 20
               code0 {xloc(o, "directory_service");}
             }
             Fl_Group {} {open
-              xywh {230 125 235 20} box BORDER_FRAME color 0
+              xywh {230 155 235 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_directoryservice {open
-                xywh {231 126 234 19} down_box BORDER_BOX labelsize 12 textsize 12
+                xywh {231 156 234 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
                 MenuItem {} {
                   label {User Homedir}
@@ -2374,14 +2415,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
           Fl_Group {} {open
-            xywh {30 185 575 20}
+            xywh {30 215 575 20}
           } {
             Fl_Button {} {
               label {MySQL Database}
-              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+              xywh {30 215 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
             }
             Fl_Input {} {
-              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
+              xywh {230 215 375 20} labelsize 12 textsize 12 deactivate
             }
           }
         }

@@ -1,0 +1,15 @@
+#ifndef _SENDPIPE_H
+#define _SENDPIPE_H 1
+
+#include <string>
+
+class WordList;
+
+// Delivers a message through a sendmail-compatible program (the system MTA
+// or msmtp): PROGRAM -i -f MAILFROM -- RECIPIENTS..., the message on its
+// standard input. Returns false with a reason in err if it failed.
+bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrValues,
+						const char *mailfrom, WordList *Recipients, const char *body,
+						std::string &err);
+
+#endif

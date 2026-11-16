@@ -20,13 +20,54 @@
 #include <string.h>
 #include "strdupp.h"
 #include "smtp.h"
+#include "sendpipe.h"
+#include "style.h"
 #include "debug.h"
+
+#include <set>
+#include <string>
 #include "status.h"
 
 extern JobList JOBQ;
 
 extern void extract_recipients (WordList *, char *);
 extern MailBox *MailBoxList[];
+
+// Sends one message the way Config -> Network says: the built-in SMTP
+// client (also when nothing is set), the system MTA or msmtp. Returns true
+// when it was handed over.
+static bool deliver_message (MailBox *Parent, const char *msgid, WordList *HeaderNames, WordList *HeaderValues,
+							 char *mailfrom, WordList *RCPT, char *body)
+{
+	const char *method = PREFERENCES.Get_char_tree ("postoffice/network/delivery");
+	const char *program = NULL;
+	if (strcasecmp (method, "sendmail") == 0)
+	{
+		program = PREFERENCES.Get_char_tree ("postoffice/network/sendmail_path");
+		if (!*program) program = "/usr/sbin/sendmail";
+	}
+	else if (strcasecmp (method, "msmtp") == 0)
+	{
+		program = PREFERENCES.Get_char_tree ("postoffice/network/msmtp_path");
+		if (!*program) program = "msmtp";
+	}
+	if (!program) return !send_message_smtp (HeaderNames, HeaderValues, mailfrom, RCPT, body);
+
+	// The message stays in the outbox when it fails; the reason is shown
+	// once per message and reason, not at every check.
+	static std::set<std::string> reported;
+	std::string err;
+	if (send_message_pipe (program, HeaderNames, HeaderValues, mailfrom, RCPT, body, err))
+	{
+		reported.erase (msgid);
+		return true;
+	}
+	std::string key = std::string (msgid) + "\n" + err;
+	if (reported.insert (key).second)
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+								   ("The message stays in the outbox: " + err).c_str());
+	return false;
+}
 
 OutBoxHandler::OutBoxHandler (MailBox *_Parent, class Var *_Parameters)
 {
@@ -60,6 +101,7 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 	WordList	*RCPT, *HeaderNames, *HeaderValues;
 	int			 pos;
 	MailView 	*Q = Parent->VFirst;
+	bool		 sent = false;
 	
 	if (Q)
 	{
@@ -116,8 +158,9 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 
 				//Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Sending message from queue...");
 				
-				if (!send_message_smtp (HeaderNames, HeaderValues, mailfrom, RCPT, P->Contents))
+				if (deliver_message (Parent, M->MsgID, HeaderNames, HeaderValues, mailfrom, RCPT, P->Contents))
 				{
+					sent = true;
 					Q->DoneWithMessage();
 					Parent->UnTie (M);
 					Parent->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, Q->Name, M->MsgID);
@@ -172,6 +215,7 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 										dprintf ("posted\n");
 										Q->DoneWithMessage();
 										didit = 1;
+										sent = true;
 										Parent->UnTie (M);
 										Parent->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, Q->Name, M->MsgID);
 										--i;
@@ -197,6 +241,9 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 		JOBQ.EndJob (jid);
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 	}
+	// Record at once that these are sent (the regular save is every two
+	// minutes): after a crash they would otherwise be sent again.
+	if (sent) Parent->SaveMailBox ();
 }
 
 void OutBoxHandler::DeleteMessage (char */*msgid*/)
