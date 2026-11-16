@@ -7,7 +7,10 @@ project(NeoPostOffice
 
 include(GNUInstallDirs)
 
-option(WITH_MYSQL "Build the MySQL/MariaDB mail storage back end" OFF)
+option(WITH_MYSQL "Build the MySQL/MariaDB mailbox type" OFF)
+set(WITH_POSTGRESQL AUTO CACHE STRING
+    "PostgreSQL mail storage: AUTO (if libpq is found), ON or OFF")
+set_property(CACHE WITH_POSTGRESQL PROPERTY STRINGS AUTO ON OFF)
 option(PO_WARNINGS "Compile with -Wall -Wextra" ON)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -62,14 +65,32 @@ if(WITH_MYSQL)
   pkg_search_module(MYSQLCLIENT REQUIRED IMPORTED_TARGET libmariadb mysqlclient)
 endif()
 
+# PostgreSQL client library (Debian: libpq-dev)
+set(PO_POSTGRESQL OFF)
+if(NOT WITH_POSTGRESQL STREQUAL "OFF")
+  find_path(PQ_INCLUDE_DIR libpq-fe.h PATH_SUFFIXES postgresql pgsql)
+  find_library(PQ_LIBRARY pq)
+  if(PQ_INCLUDE_DIR AND PQ_LIBRARY)
+    set(PO_POSTGRESQL ON)
+    message(STATUS "PostgreSQL mail storage: enabled (${PQ_LIBRARY})")
+  elseif(WITH_POSTGRESQL STREQUAL "ON")
+    message(FATAL_ERROR "WITH_POSTGRESQL=ON but libpq was not found (install libpq-dev)")
+  else()
+    message(STATUS "PostgreSQL mail storage: disabled (libpq not found; install libpq-dev)")
+  endif()
+endif()
+
 # ---------------------------------------------------------------------------
 # Common compile settings
 # ---------------------------------------------------------------------------
 
 add_library(po_settings INTERFACE)
 target_compile_definitions(po_settings INTERFACE _REENTRANT LINUX USE_GDBM)
-if(NOT WITH_MYSQL)
-  target_compile_definitions(po_settings INTERFACE NO_MYSQL)
+if(WITH_MYSQL)
+  target_compile_definitions(po_settings INTERFACE PO_HAVE_MYSQL)
+endif()
+if(PO_POSTGRESQL)
+  target_compile_definitions(po_settings INTERFACE PO_HAVE_POSTGRESQL)
 endif()
 if(PO_WARNINGS)
   target_compile_options(po_settings INTERFACE -Wall -Wextra)
@@ -130,14 +151,11 @@ set(PO_BACKEND_SOURCES
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp imap4handler.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
   mboxhandler.cpp mboxstorage.cpp mysqlhandler.cpp nntphandler.cpp
+  podb.cpp podb_mysql.cpp podb_pgsql.cpp pgstorage.cpp
   outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtp.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
   var2.cpp version.cpp wizard.cpp wordlist.cpp)
-
-if(WITH_MYSQL)
-  list(APPEND PO_BACKEND_SOURCES mysql.cpp)
-endif()
 
 list(TRANSFORM PO_GUI_SOURCES PREPEND src/postoffice/)
 list(TRANSFORM PO_BACKEND_SOURCES PREPEND src/postoffice/)
@@ -153,6 +171,10 @@ target_link_libraries(postoffice PRIVATE
   ${GDBM_LIBRARY} X11::X11 X11::Xext Threads::Threads ${CMAKE_DL_LIBS} m)
 if(WITH_MYSQL)
   target_link_libraries(postoffice PRIVATE PkgConfig::MYSQLCLIENT)
+endif()
+if(PO_POSTGRESQL)
+  target_include_directories(postoffice PRIVATE ${PQ_INCLUDE_DIR})
+  target_link_libraries(postoffice PRIVATE ${PQ_LIBRARY})
 endif()
 
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

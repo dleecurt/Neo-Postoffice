@@ -9,6 +9,8 @@
 #include "wordlist.h"
 #include "socketclasses.h"
 
+namespace podb { class Connection; }
+
 class MailHandler
 {
 public:
@@ -106,9 +108,9 @@ public:
 	
 private:
 	
-	void					*SQL;
-	int						 CheckError (void);
-	int						 MsgToSQL (char *);
+	podb::Connection		*SQL;
+	int						 CheckError (bool ok);
+	long					 MsgToSQL (char *);
 };
 
 class OutBoxHandler : public MailHandler

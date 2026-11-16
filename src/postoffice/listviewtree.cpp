@@ -4,7 +4,6 @@
 #include "helpdesk.h"
 #include "encode.h"
 #include "wordlist.h"
-#include "mysqlclient.h"
 #include "smtp.h"
 #include "buffer.h"
 #include "formatter.h"
@@ -271,7 +270,7 @@ void update_folder (void)
 		// redraw everything
 		
 		br_folderindex->update_height();
-		br_folderindex_->position (0,0);
+		br_folderindex_->scroll_to (0,0); // FLTK 1.0 Fl_Scroll::position() scrolled; in 1.4 it moves the widget
 		br_folderindex_->redraw();
 	}
 

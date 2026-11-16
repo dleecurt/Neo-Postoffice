@@ -5026,6 +5026,16 @@ Fl_Int_Input *in_prefs_expire_local_only=(Fl_Int_Input *)0;
 
 Fl_Int_Input *in_prefs_expire_local=(Fl_Int_Input *)0;
 
+Fl_Choice *ch_prefs_storage=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_prefs_storage[] = {
+ {"Local files (GDBM)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"PostgreSQL database", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
+Fl_Input *in_prefs_storage_conninfo=(Fl_Input *)0;
+
 Fl_Input *in_prefs_mailboxname=(Fl_Input *)0;
 
 static const char *idata_eraser[] = {
@@ -5497,12 +5507,12 @@ Fl_Window* make_prefs_window() {
   int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
   char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
   Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");
-  { Fl_Window* o = win_prefs = new Fl_Window(650, 461, "Post Office Preferences Panel");
+  { Fl_Window* o = win_prefs = new Fl_Window(650, 516, "Post Office Preferences Panel");
     win_prefs->callback((Fl_Callback*)cb_prefs_window);
-    { tb_prefs = new Fl_Tabs(5, 5, 635, 415);
+    { tb_prefs = new Fl_Tabs(5, 5, 635, 470);
       tb_prefs->box(FL_UP_BOX);
       tb_prefs->callback((Fl_Callback*)cb_prefs_tab);
-      { Fl_Group* o = gr_prefs_mailboxes = new Fl_Group(5, 25, 635, 395, "Mailboxes");
+      { Fl_Group* o = gr_prefs_mailboxes = new Fl_Group(5, 25, 635, 450, "Mailboxes");
         gr_prefs_mailboxes->color((Fl_Color)51);
         gr_prefs_mailboxes->labelfont(1);
         gr_prefs_mailboxes->labelsize(12);
@@ -5524,10 +5534,10 @@ Fl_Window* make_prefs_window() {
           bt_prefs_mailbox_add->labelsize(12);
           bt_prefs_mailbox_add->callback((Fl_Callback*)cb_prefs_mailbox_add);
         } // Fl_Button* bt_prefs_mailbox_add
-        { gr_mailboxes_set = new Fl_Group(20, 42, 610, 363);
+        { gr_mailboxes_set = new Fl_Group(20, 42, 610, 418);
           gr_mailboxes_set->color((Fl_Color)51);
           gr_mailboxes_set->selection_color((Fl_Color)246);
-          { Fl_Group* o = new Fl_Group(20, 245, 600, 160);
+          { Fl_Group* o = new Fl_Group(20, 245, 600, 215);
             o->box(FL_ENGRAVED_BOX);
             o->color((Fl_Color)51);
             { Fl_Group* o = new Fl_Group(35, 255, 565, 20);
@@ -5637,6 +5647,50 @@ Fl_Window* make_prefs_window() {
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               xloc(o, "expiration_helpmsg");
             } // Fl_Button* o
+            { Fl_Group* o = new Fl_Group(35, 410, 565, 20);
+              { Fl_Button* o = new Fl_Button(35, 410, 270, 20, "Store mail in");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+                xloc(o, "storage");
+              } // Fl_Button* o
+              { Fl_Group* o = new Fl_Group(315, 410, 285, 20);
+                o->box(FL_BORDER_FRAME);
+                o->color(FL_FOREGROUND_COLOR);
+                { ch_prefs_storage = new Fl_Choice(317, 411, 283, 19);
+                  ch_prefs_storage->down_box(FL_BORDER_BOX);
+                  ch_prefs_storage->selection_color(FL_BACKGROUND2_COLOR);
+                  ch_prefs_storage->labelsize(12);
+                  ch_prefs_storage->textsize(12);
+                  ch_prefs_storage->callback((Fl_Callback*)cb_prefs_storage);
+                  ch_prefs_storage->when(FL_WHEN_CHANGED);
+                  { Fl_Menu_Item* o = &menu_ch_prefs_storage[0];
+                    xloc(o, "storage_gdbm");
+                  }
+                  { Fl_Menu_Item* o = &menu_ch_prefs_storage[1];
+                    xloc(o, "storage_pgsql");
+                  }
+                  ch_prefs_storage->menu(menu_ch_prefs_storage);
+                } // Fl_Choice* ch_prefs_storage
+                o->end();
+              } // Fl_Group* o
+              o->end();
+            } // Fl_Group* o
+            { Fl_Group* o = new Fl_Group(35, 435, 565, 20);
+              { Fl_Button* o = new Fl_Button(35, 435, 270, 20, "PostgreSQL connection");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+                xloc(o, "storage_pgsql_conninfo");
+              } // Fl_Button* o
+              { in_prefs_storage_conninfo = new Fl_Input(315, 435, 285, 20);
+                in_prefs_storage_conninfo->labelsize(12);
+                in_prefs_storage_conninfo->textsize(12);
+                in_prefs_storage_conninfo->callback((Fl_Callback*)cb_prefs_storage_conninfo);
+                in_prefs_storage_conninfo->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_storage_conninfo
+              o->end();
+            } // Fl_Group* o
             o->end();
           } // Fl_Group* o
           { in_prefs_mailboxname = new Fl_Input(20, 215, 135, 20);
@@ -5978,7 +6032,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "mailboxes");
         gr_prefs_mailboxes->end();
       } // Fl_Group* gr_prefs_mailboxes
-      { Fl_Group* o = gr_prefs_mailfolders = new Fl_Group(5, 25, 635, 395, "Mailfolders");
+      { Fl_Group* o = gr_prefs_mailfolders = new Fl_Group(5, 25, 635, 450, "Mailfolders");
         gr_prefs_mailfolders->color((Fl_Color)51);
         gr_prefs_mailfolders->labelfont(1);
         gr_prefs_mailfolders->labelsize(12);
@@ -6263,7 +6317,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "mailfolders");
         gr_prefs_mailfolders->end();
       } // Fl_Group* gr_prefs_mailfolders
-      { Fl_Group* o = gr_prefs_identities = new Fl_Group(5, 25, 635, 395, "Identities");
+      { Fl_Group* o = gr_prefs_identities = new Fl_Group(5, 25, 635, 450, "Identities");
         gr_prefs_identities->color((Fl_Color)51);
         gr_prefs_identities->labelfont(1);
         gr_prefs_identities->labelsize(12);
@@ -6461,7 +6515,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "identities");
         gr_prefs_identities->end();
       } // Fl_Group* gr_prefs_identities
-      { Fl_Group* o = gr_prefs_network = new Fl_Group(5, 25, 635, 395, "Network");
+      { Fl_Group* o = gr_prefs_network = new Fl_Group(5, 25, 635, 450, "Network");
         gr_prefs_network->color((Fl_Color)51);
         gr_prefs_network->labelfont(1);
         gr_prefs_network->labelsize(12);
@@ -6546,7 +6600,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "network");
         gr_prefs_network->end();
       } // Fl_Group* gr_prefs_network
-      { Fl_Group* o = gr_prefs_language = new Fl_Group(5, 25, 635, 395, "Language");
+      { Fl_Group* o = gr_prefs_language = new Fl_Group(5, 25, 635, 450, "Language");
         gr_prefs_language->color((Fl_Color)51);
         gr_prefs_language->labelfont(1);
         gr_prefs_language->labelsize(12);
@@ -6646,7 +6700,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "language");
         gr_prefs_language->end();
       } // Fl_Group* gr_prefs_language
-      { Fl_Group* o = gr_prefs_style = new Fl_Group(5, 25, 635, 395, "Style");
+      { Fl_Group* o = gr_prefs_style = new Fl_Group(5, 25, 635, 450, "Style");
         gr_prefs_style->color((Fl_Color)51);
         gr_prefs_style->labelfont(1);
         gr_prefs_style->labelsize(12);
@@ -6883,12 +6937,12 @@ Fl_Window* make_prefs_window() {
       } // Fl_Group* gr_prefs_style
       tb_prefs->end();
     } // Fl_Tabs* tb_prefs
-    { Fl_Group* o = new Fl_Group(8, 428, 95, 24);
+    { Fl_Group* o = new Fl_Group(8, 483, 95, 24);
       o->box(FL_BORDER_FRAME);
       o->color((Fl_Color)35);
-      { Fl_Group* o = new Fl_Group(11, 431, 89, 18);
+      { Fl_Group* o = new Fl_Group(11, 486, 89, 18);
         o->box(FL_BORDER_BOX);
-        { Fl_Button* o = bt_prefs_save = new Fl_Button(12, 432, 88, 17, "Save");
+        { Fl_Button* o = bt_prefs_save = new Fl_Button(12, 487, 88, 17, "Save");
           bt_prefs_save->down_box(FL_DOWN_BOX);
           bt_prefs_save->color((Fl_Color)51);
           bt_prefs_save->labelsize(12);
@@ -6899,9 +6953,9 @@ Fl_Window* make_prefs_window() {
       } // Fl_Group* o
       o->end();
     } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(115, 430, 90, 20);
+    { Fl_Group* o = new Fl_Group(115, 485, 90, 20);
       o->box(FL_BORDER_BOX);
-      { Fl_Button* o = bt_prefs_apply = new Fl_Button(116, 431, 89, 19, "Apply");
+      { Fl_Button* o = bt_prefs_apply = new Fl_Button(116, 486, 89, 19, "Apply");
         bt_prefs_apply->down_box(FL_DOWN_BOX);
         bt_prefs_apply->color((Fl_Color)51);
         bt_prefs_apply->labelsize(12);
@@ -6910,9 +6964,9 @@ Fl_Window* make_prefs_window() {
       } // Fl_Button* bt_prefs_apply
       o->end();
     } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(545, 430, 90, 20);
+    { Fl_Group* o = new Fl_Group(545, 485, 90, 20);
       o->box(FL_BORDER_BOX);
-      { Fl_Button* o = bt_prefs_cancel = new Fl_Button(546, 431, 89, 19, "Cancel");
+      { Fl_Button* o = bt_prefs_cancel = new Fl_Button(546, 486, 89, 19, "Cancel");
         bt_prefs_cancel->down_box(FL_DOWN_BOX);
         bt_prefs_cancel->color((Fl_Color)51);
         bt_prefs_cancel->labelsize(12);

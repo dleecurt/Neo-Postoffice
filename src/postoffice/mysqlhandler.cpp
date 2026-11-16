@@ -5,48 +5,60 @@
 // Sourcecode and resulting binaries are covered by the GNU Lesser General Public
 // License (GNU LGPL). For more information and the literal text of the license
 // agreement, check the Free Software Foundation's website on http://www.fsf.org/
-// 
+//
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
+//===============================================================================
+//===============================================================================
+// MySQLHandler
+// ------------
+// A mailbox type that reads mail from a MySQL table filled by another program.
+// Neo-PostOffice: uses the podb database layer with query parameters instead
+// of the original dbdriver_* functions.
 //===============================================================================
 
 #include "mailbox.h"
 #include "var.h"
 #include "reg.h"
 #include "chop.h"
-#ifndef NO_MYSQL
-#include "mysqlclient.h"
-#endif
+#include "podb.h"
 #include "encode.h"
 #include "status.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 
 #include "debug.h"
 
 extern JobList JOBQ;
 
-MySQLHandler::MySQLHandler ([[maybe_unused]] MailBox *_Parent, [[maybe_unused]] class Var *_Parameters)
+// The table name comes from the mailbox settings and cannot be a query
+// parameter, so only plain identifiers are accepted.
+static bool valid_table_name (const char *t)
 {
-#ifndef NO_MYSQL
+	if (!t || !*t || strlen (t) > 64) return false;
+	for (const char *p = t; *p; ++p)
+		if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') ||
+		      (*p >= '0' && *p <= '9') || *p == '_'))
+			return false;
+	return true;
+}
+
+MySQLHandler::MySQLHandler (MailBox *_Parent, class Var *_Parameters)
+{
 	SQL = NULL;
 	Parameters = new Var (_Parameters);
 	Parent = _Parent;
-#endif
 }
 
 MySQLHandler::~MySQLHandler (void)
 {
-#ifndef NO_MYSQL
 	if (SQL) CloseConnection ();
-#endif
 }
 
 void MySQLHandler::OpenConnection (void)
 {
-#ifndef NO_MYSQL
-	char *msg;
-	
 	char *pHost = Parameters->Get_char ("host");
 	int   pPort = Parameters->Get_int ("port");
 	char *pUser = Parameters->Get_char ("user");
@@ -55,162 +67,141 @@ void MySQLHandler::OpenConnection (void)
 	char *pDB = Parameters->Get_char ("database");
 
 	if (!pPort) pPort = 3306;
+	if (SQL) return;
 
+	if (!podb::HaveMySQL())
+	{
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler",
+								   "This build of Neo-PostOffice has no MySQL support "
+								   "(build with -DWITH_MYSQL=ON).");
+		return;
+	}
+	if ( (strlen (pHost) == 0) || (strlen (pUser) == 0) || !valid_table_name (pTable))
+	{
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
+								   "mysqlhandler", "Invalid host name, user name or table "
+								   "(table names may only contain letters, digits and _).");
+		return;
+	}
+
+	std::string msg = std::string ("Contacting MySQL host ") + pHost;
+	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Stat (jid, msg.c_str());
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+
+	std::string error;
+	SQL = podb::ConnectMySQL (pHost, pPort, pUser, pPass, pDB, error).release();
 	if (!SQL)
 	{
-		if ( (strlen (pHost) == 0) || (pPort == 0) ||
-		     (strlen (pUser) == 0) || (strlen (pTable) == 0))
-		{
-			Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-									   "mysqlhandler", "Invalid Hostname, Username, "
-									   "Database or Table. You blew it.");
-			return;
-		}
-
-		msg = new char[ strlen (pHost) + 32];
-		int jid = JOBQ.NewJob (Parent->Name);
-		sprintf (msg, "Contacting MySQL host %s", pHost);
-		JOBQ.Stat (jid, msg);
-		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-		delete[] (msg);	
-
-		SQL = dbdriver_open (pHost, pPort, pUser, pPass, pDB);
-		if (!SQL)
-		{
-			Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-									   "mysqlhandler", "Error connecting to database");
-		}
-		else Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Connected");
-		JOBQ.EndJob (jid);
-		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+		std::string e = "Error connecting to database: " + error;
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler", e.c_str());
 	}
-#endif
+	else Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Connected");
+
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 }
 
 void MySQLHandler::CloseConnection (void)
 {
-#ifndef NO_MYSQL
 	if (SQL)
 	{
-		dbdriver_close (SQL);
+		delete SQL;
 		SQL = NULL;
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Connection closed");
 	}
-#endif
 }
 
-void MySQLHandler::CheckGroup ([[maybe_unused]] const char *groupname)
+void MySQLHandler::CheckGroup (const char *groupname)
 {
-#ifndef NO_MYSQL
-	const char		*_groupname;
-	WordList		*res, *dbr, *dbc;
-	char			 qry[512];
+	podb::Result	 res, dbr;
 	char 			*pDB = Parameters->Get_char ("database");
 	char 			*pHost = Parameters->Get_char ("host");
 	char 			*pTable = Parameters->Get_char ("table");
 	MailMessage		*M;
-	char			 msgid[64];
+	char			 msgid[256];
 	int				 i,j;
-	
-	// If no groupname is specified, override it with a wildcard (check all)
-	
-	if (strlen (groupname) < 2) _groupname = "%";
-	else _groupname = groupname;
-	
+
 	if (!SQL) OpenConnection(); // Open connection on demand
-	if (SQL)
-	{
-		int jid = JOBQ.NewJob (Parent->Name);
-		JOBQ.Stat (jid, "Opening folder...");
-		JOBQ.Progress (jid, 10);
-		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-	
-		// Find about all active message-ids the server has for us
-	
-		sprintf (qry, "SELECT msgid FROM %s WHERE folder='%s' ORDER BY msgid", pTable, _groupname);
-		res = dbdriver_execute (SQL, qry);
-		
-		if (CheckError()) // Make sure my SQL majick didn't leave us
-		{
-			sprintf (qry, "%i Messages found...", res->Count);
-			JOBQ.Progress (jid, 20);
-			JOBQ.Stat (jid, qry);
-			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-		
-			if (res->Count) // Did we get a meaningful amount of message-ids?
-			{
-				for (i=0;i<res->Count;++i) 
-				{
-					// Create a unique message-id for this message
-				
-					sprintf (msgid, "<MySQL.%s:%s.%08i@%s>", pDB, pTable, res->GetInt (i), pHost);
-					
-					if (!Parent->Have (msgid)) // Do we have one yet?
-					{
-						sprintf (qry, "Processing message %i %s", i, msgid);
-						JOBQ.Progress (jid, 20+((70*i)/(res->Count)));
-						JOBQ.Stat (jid, qry);
-						Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-						
-						// Retrieve the envelope headers
-						
-						sprintf (qry, "SELECT namefrom,mailfrom,subject,received,folder FROM %s "
-									  "WHERE msgid=%i", pTable, res->GetInt (i));
-						
-						dprintf ("[sql] %s\n", qry);
-						dbr = dbdriver_execute (SQL, qry);
-						dprintf ("[sql] done\n");
-						
-						if (CheckError()) // In case they want to complain about my syntax
-						{
-							if (dbr->Count) // One of those "can't happen" situations ;)
-							{
-								dbc = dbr->GetWordList (0); // Break up the result row.
-								M = new MailMessage (Parent, msgid);
-								M->Envelope->Set (ENVELOPE_NAMEFROM, dbc->Get (0));
-								M->Envelope->Set (ENVELOPE_MAILFROM, dbc->Get (1));
-								M->Envelope->Set (ENVELOPE_SUBJECT,  dbc->Get (2));
-								M->Envelope->Set (ENVELOPE_DATE,     dbc->Get (3));
-								M->Envelope->Set (ENVELOPE_GROUPS,	 dbc->Get (4));
-								Parent->Deliver (M); // Send the message into limbo
-								
-								Parent->Lock->LockRW();
-								for (j=0;j<M->Subscribers->Count();++j)
-								{
-									ViewListNode *VLN = M->Subscribers->Get(j);
-									if (VLN) Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, VLN->View->Name, M->MsgID);
-								}
-								Parent->Lock->UnlockRW();
-							}
-							else
-							{
-								Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-														   "mysqldriver", "Message select failed.");
-							}
-						}
-						delete (dbr);
-					}
-				}
-			}
-			Parent->SaveMailBox();
-		}
-		delete (res);
-		JOBQ.EndJob (jid);
-	}
+	if (!SQL) return;
+
+	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Stat (jid, "Opening folder...");
+	JOBQ.Progress (jid, 10);
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-#endif
+
+	// Find all message ids the server has for us. Without a folder name,
+	// check all folders.
+	std::string table = std::string ("`") + pTable + "`";
+	bool ok;
+	if (strlen (groupname) < 2)
+		ok = SQL->Exec ("SELECT msgid FROM " + table + " ORDER BY msgid", podb::Params(), &res);
+	else
+		ok = SQL->Exec ("SELECT msgid FROM " + table + " WHERE folder=$1 ORDER BY msgid",
+						{ groupname }, &res);
+
+	if (CheckError (ok))
+	{
+		std::string st = std::to_string (res.Rows()) + " Messages found...";
+		JOBQ.Progress (jid, 20);
+		JOBQ.Stat (jid, st.c_str());
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+
+		for (i=0;i<res.Rows();++i)
+		{
+			long id = res.GetLong (i, 0);
+
+			// Create a unique message-id for this message
+			snprintf (msgid, sizeof (msgid), "<MySQL.%s:%s.%08li@%s>", pDB, pTable, id, pHost);
+
+			if (Parent->Have (msgid)) continue; // Do we have one yet?
+
+			std::string pr = std::string ("Processing message ") + std::to_string (i) + " " + msgid;
+			JOBQ.Progress (jid, 20+((70*i)/(res.Rows())));
+			JOBQ.Stat (jid, pr.c_str());
+			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+
+			// Retrieve the envelope headers
+			ok = SQL->Exec ("SELECT namefrom,mailfrom,subject,received,folder FROM " + table +
+							" WHERE msgid=$1", { id }, &dbr);
+			if (!CheckError (ok)) break;
+
+			if (dbr.Rows())
+			{
+				M = new MailMessage (Parent, msgid);
+				M->Envelope->Set (ENVELOPE_NAMEFROM, dbr.Get (0, 0).c_str());
+				M->Envelope->Set (ENVELOPE_MAILFROM, dbr.Get (0, 1).c_str());
+				M->Envelope->Set (ENVELOPE_SUBJECT,  dbr.Get (0, 2).c_str());
+				M->Envelope->Set (ENVELOPE_DATE,     dbr.Get (0, 3).c_str());
+				M->Envelope->Set (ENVELOPE_GROUPS,	 dbr.Get (0, 4).c_str());
+				Parent->Deliver (M); // Send the message into limbo
+
+				Parent->Lock->LockRW();
+				for (j=0;j<M->Subscribers->Count();++j)
+				{
+					ViewListNode *VLN = M->Subscribers->Get(j);
+					if (VLN) Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, VLN->View->Name, M->MsgID);
+				}
+				Parent->Lock->UnlockRW();
+			}
+			else
+			{
+				Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
+										   "mysqldriver", "Message select failed.");
+			}
+		}
+		Parent->SaveMailBox();
+	}
+	JOBQ.EndJob (jid);
 }
 
-void MySQLHandler::GetBody ([[maybe_unused]] char *x)
+void MySQLHandler::GetBody (char *x)
 {
-#ifndef NO_MYSQL
-	int			 idx = MsgToSQL (x); // We only need the numbers of the msgid
-	WordList	*res;
-	char		 qry[256];
+	long		 idx = MsgToSQL (x); // We only need the numbers of the msgid
+	podb::Result res;
 	char 		*pTable = Parameters->Get_char ("table");
 	MailMessage	*M;
-	
+
 	M = Parent->Find (x); // Make sure there's a mailmessage to put this all in
 	if (!M) // OK, so the GUI side goofed
 	{
@@ -218,109 +209,76 @@ void MySQLHandler::GetBody ([[maybe_unused]] char *x)
 								   "Message not found in internal database");
 		return;
 	}
-	
+
 	if (!SQL) OpenConnection (); // Open connection on demand
-	if (SQL) // At least we hope so
+	if (!SQL) return;
+
+	std::string table = std::string ("`") + pTable + "`";
+	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Stat (jid, "Updating status");
+	JOBQ.Progress (jid, 5);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+
+	// Mark the message as read
+	if (CheckError (SQL->Exec ("UPDATE " + table + " SET msgread=1 WHERE msgid=$1", { idx })))
 	{
-		int jid = JOBQ.NewJob (Parent->Name);
-		JOBQ.Stat (jid, "Updating status");
-		JOBQ.Progress (jid, 5);
+		JOBQ.Progress (jid, 10);
+		JOBQ.Stat (jid, "Downloading message");
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 
-		// Mark the message as read
-		
-		sprintf (qry, "UPDATE %s SET msgread=1 WHERE msgid=%i", pTable, idx);
-		res = dbdriver_execute (SQL, qry);
-		delete (res);
-		
-		if (CheckError()) // They let us do that
+		// Download the message
+		if (CheckError (SQL->Exec ("SELECT body FROM " + table + " WHERE msgid=$1", { idx }, &res)))
 		{
-			JOBQ.Progress (jid, 10);
-			JOBQ.Stat (jid, "Downloading message");
-			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-		
-			// Download the binary goo
-		
-			sprintf (qry, "SELECT body FROM %s WHERE msgid=%i", pTable, idx);
-			res = dbdriver_execute (SQL, qry);
-			
-			if (CheckError()) // If $DEITY allows
+			if (res.Rows() && !res.IsNull (0, 0))
 			{
-				if (res->Count) // And there's any data
-				{
-					char *ascii_message = decode_mysql (res->Get(0)); // Turn it into 8bit
-					M->ProcessMessage (ascii_message); // And let the message figure it out
-					delete[] (ascii_message);
-				}
-				else Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-											    "mysqlhandler", "Message does not exist");
+				// Undo the original @xx encoding of the body column
+				char *ascii_message = decode_mysql ((char *) res.Get (0, 0).c_str());
+				M->ProcessMessage (ascii_message); // And let the message figure it out
+				delete[] (ascii_message);
 			}
-			
-			delete (res);
-			
-			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+			else Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
+										    "mysqlhandler", "Message does not exist");
 		}
-		JOBQ.EndJob (jid);
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 	}
-#endif
+	JOBQ.EndJob (jid);
 }
 
-void MySQLHandler::DeleteMessage ([[maybe_unused]] char *msgid)
+void MySQLHandler::DeleteMessage (char *msgid)
 {
-#ifndef NO_MYSQL
-	int		 idx = MsgToSQL (msgid);
-	char	 qry[128];
+	long	 idx = MsgToSQL (msgid);
 	char	*pTable = Parameters->Get_char ("table");
-	
+
 	if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y"))
 	{
 		if (!SQL) OpenConnection();
 		if (SQL)
 		{
-			sprintf (qry, "DELETE FROM %s WHERE msgid=%i", pTable, idx);
-			delete (dbdriver_execute (SQL, qry));
-			CheckError();
+			std::string table = std::string ("`") + pTable + "`";
+			CheckError (SQL->Exec ("DELETE FROM " + table + " WHERE msgid=$1", { idx }));
 		}
 	}
-#endif
 }
 
-int MySQLHandler::MsgToSQL (char *msgid)
+long MySQLHandler::MsgToSQL (char *msgid)
 {
-#ifndef NO_MYSQL
+	// msgid looks like <MySQL.db:table.00000042@host>
 	char *crsr;
-	
+
 	if (!(crsr = strchr (msgid, '.'))) return 0;
 	if (!(crsr = strchr (crsr+1, '.'))) return 0;
-	return (atoi (crsr+1));
-#else
-	(void) msgid;
-	return 0;
-#endif
+	return (atol (crsr+1));
 }
 
-int MySQLHandler::CheckError (void)
+int MySQLHandler::CheckError (bool ok)
 {
-#ifndef NO_MYSQL
-	char *err;
-	
+	if (ok) return 1;
 	if (SQL)
 	{
-		err = dbdriver_error(SQL);
-		if (strlen (err))
-		{
-			char *msg = new char[strlen(err)+64];
-			sprintf (msg, "MySQL is nagging me with: %s", err);
-			Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler", msg);
-			delete[] msg;
-			return 0;
-		}
-		return 1;
+		std::string msg = "MySQL error: " + SQL->Error();
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mysqlhandler", msg.c_str());
 	}
 	return 0;
-#else
-	return 0;
-#endif
 }
 
 void MySQLHandler::Expire (void)

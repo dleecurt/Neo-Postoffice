@@ -1307,16 +1307,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
   Fl_Window win_prefs {
     label {Post Office Preferences Panel}
     callback cb_prefs_window
-    xywh {44 41 650 461} type Single hide
+    xywh {44 41 650 516} type Single hide
     code0 {xloc(o, "win_prefs");}
   } {
     Fl_Tabs tb_prefs {
       callback cb_prefs_tab open
-      xywh {5 5 635 415} box UP_BOX
+      xywh {5 5 635 470} box UP_BOX
     } {
       Fl_Group gr_prefs_mailboxes {
         label Mailboxes
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12
         code0 {xloc(o, "mailboxes");}
       } {
         Fl_Browser br_prefs_mailboxes {
@@ -1330,10 +1330,10 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           image {icons/filenew2.xpm} compress_image 1 xywh {155 215 20 20} labelsize 12
         }
         Fl_Group gr_mailboxes_set {open
-          xywh {20 42 610 363} color 51 selection_color 246
+          xywh {20 42 610 418} color 51 selection_color 246
         } {
           Fl_Group {} {
-            xywh {20 245 600 160} box ENGRAVED_BOX color 51
+            xywh {20 245 600 215} box ENGRAVED_BOX color 51
           } {
             Fl_Group {} {open
               xywh {35 255 565 20}
@@ -1432,6 +1432,47 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               label {(To turn off any expiration option, set the time to 0 days)}
               xywh {315 280 270 20} box NO_BOX labelfont 2 labelsize 11 align 20
               code0 {xloc(o, "expiration_helpmsg");}
+            }
+            Fl_Group {} {open
+              xywh {35 410 565 20}
+            } {
+              Fl_Button {} {
+                label {Store mail in}
+                xywh {35 410 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc(o, "storage");}
+              }
+              Fl_Group {} {open
+                xywh {315 410 285 20} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_storage {
+                  callback cb_prefs_storage open
+                  xywh {317 411 283 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
+                } {
+                  MenuItem {} {
+                    label {Local files (GDBM)}
+                    xywh {0 0 100 20} labelsize 12
+                    code0 {xloc(o, "storage_gdbm");}
+                  }
+                  MenuItem {} {
+                    label {PostgreSQL database}
+                    xywh {0 0 100 20} labelsize 12
+                    code0 {xloc(o, "storage_pgsql");}
+                  }
+                }
+              }
+            }
+            Fl_Group {} {open
+              xywh {35 435 565 20}
+            } {
+              Fl_Button {} {
+                label {PostgreSQL connection}
+                xywh {35 435 270 20} box NO_BOX labelsize 12 align 20
+                code0 {xloc(o, "storage_pgsql_conninfo");}
+              }
+              Fl_Input in_prefs_storage_conninfo {
+                callback cb_prefs_storage_conninfo
+                xywh {315 435 285 20} labelsize 12 when 1 textsize 12
+              }
             }
           }
           Fl_Input in_prefs_mailboxname {
@@ -1711,7 +1752,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_mailfolders {
         label Mailfolders
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "mailfolders");}
       } {
         Fl_Browser br_prefs_mailfolders_mailboxes {
@@ -1976,7 +2017,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_identities {
         label Identities open
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "identities");}
       } {
         Fl_Browser br_prefs_identities {
@@ -2183,7 +2224,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_network {
         label Network
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "network");}
       } {
         Fl_Group {} {open
@@ -2255,7 +2296,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_language {
         label Language
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
@@ -2337,7 +2378,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_style {
         label Style open
-        xywh {5 25 635 395} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
@@ -2570,36 +2611,36 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
     }
     Fl_Group {} {
-      xywh {8 428 95 24} box BORDER_FRAME color 35
+      xywh {8 483 95 24} box BORDER_FRAME color 35
     } {
       Fl_Group {} {open
-        xywh {11 431 89 18} box BORDER_BOX
+        xywh {11 486 89 18} box BORDER_BOX
       } {
         Fl_Button bt_prefs_save {
           label Save
           callback cb_prefs_save
-          xywh {12 432 88 17} down_box DOWN_BOX color 51 labelsize 12
+          xywh {12 487 88 17} down_box DOWN_BOX color 51 labelsize 12
           code0 {xloc(o, "save");}
         }
       }
     }
     Fl_Group {} {
-      xywh {115 430 90 20} box BORDER_BOX
+      xywh {115 485 90 20} box BORDER_BOX
     } {
       Fl_Button bt_prefs_apply {
         label Apply
         callback cb_prefs_apply
-        xywh {116 431 89 19} down_box DOWN_BOX color 51 labelsize 12
+        xywh {116 486 89 19} down_box DOWN_BOX color 51 labelsize 12
         code0 {xloc(o, "apply");}
       }
     }
     Fl_Group {} {
-      xywh {545 430 90 20} box BORDER_BOX
+      xywh {545 485 90 20} box BORDER_BOX
     } {
       Fl_Button bt_prefs_cancel {
         label Cancel
         callback cb_prefs_cancel
-        xywh {546 431 89 19} down_box DOWN_BOX color 51 labelsize 12
+        xywh {546 486 89 19} down_box DOWN_BOX color 51 labelsize 12
         code0 {xloc(o, "cancel");}
       }
     }

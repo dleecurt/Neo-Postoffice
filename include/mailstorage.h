@@ -1,6 +1,9 @@
 #ifndef _MAILSTORAGE_H
 #define _MAILSTORAGE_H 1
 
+#include <memory>
+#include <string>
+#include <vector>
 #include <sys/types.h>
 #include <stdio.h>
 #include <gdbm.h>
@@ -34,6 +37,16 @@ class MailBoxRef
 #define STORAGE_GDBM	0x0001
 #define STORAGE_MAILDIR	0x0002
 #define STORAGE_MBOX	0x0003
+#define STORAGE_PGSQL	0x0004
+
+// One message's entry in a mailbox index: where it is filed and its envelope.
+struct IndexEntry
+{
+	std::string					MsgID, ParentID, MailFrom, NameFrom, Subject, Date;
+	std::vector<std::string>	Folders;
+	int							Flags = 0, Read = 0, Count = 0;
+	long						Received = 0;
+};
 
 class MailStorage
 {
@@ -46,6 +59,15 @@ class MailStorage
 		virtual void	 Delete (StorageNode *);
 		virtual void	 LoadIndex (void);
 		virtual void	 StoreIndex (bool force=false);
+
+		// Storage that also keeps the mailbox index (folders, read state) itself.
+		// The default, used by GDBM, leaves the index in the mailbox's index file.
+		virtual bool	 KeepsMailboxIndex (void) { return false; }
+		virtual bool	 LoadMailboxIndex (std::vector<IndexEntry> &) { return false; }
+		virtual bool	 SaveMailboxIndex (const std::vector<IndexEntry> &) { return false; }
+		virtual void	 ForgetMessage (const char *) {}
+		virtual bool	 Usable (void) { return true; }
+		virtual std::string LastError (void) { return std::string(); }
 
 		void			 Limit (size_t);
 		void			 Add (const char *, size_t, int, unsigned int xkey=0);
@@ -129,13 +151,46 @@ class MBoxStorage : public MailStorage
 		struct flock	 FLock;
 };
 
+namespace podb { class Connection; }
+
+// Neo-PostOffice: keeps a mailbox's messages and index in PostgreSQL.
+class PGStorage : public MailStorage
+{
+	public:
+						 PGStorage (const char *name, const char *mailbox, const char *conninfo);
+						~PGStorage (void);
+		void			 Store (class MailMessage *) override;
+		bool			 Retrieve (class MailMessage *) override;
+		void			 Delete (const char *) override;
+		void			 Delete (StorageNode *) override;
+		void			 LoadIndex (void) override;
+		void			 StoreIndex (bool force=false) override;
+
+		bool			 KeepsMailboxIndex (void) override { return true; }
+		bool			 LoadMailboxIndex (std::vector<IndexEntry> &) override;
+		bool			 SaveMailboxIndex (const std::vector<IndexEntry> &) override;
+		void			 ForgetMessage (const char *) override;
+		bool			 Usable (void) override;
+		std::string		 LastError (void) override;
+
+	private:
+		bool			 Check (bool ok, const char *what);
+		bool			 EnsureSchema (void);
+
+		std::unique_ptr<podb::Connection>	Conn;
+		std::string							Mailbox;
+		std::string							Error;
+		bool								Ready;
+};
+
 class StorageList
 {
 	public:
 						 StorageList (void);
 						~StorageList (void);
 
-		MailStorage		*Open (const char *, class MailBox *, short);
+		MailStorage		*Open (const char *, class MailBox *, short,
+								   const char *mailbox = NULL, const char *conninfo = NULL);
 		void			 Close (class MailBox *);
 
 	protected:

@@ -431,7 +431,7 @@ void GDBMStorage::Delete (const char *key)
 	
 	// Find and destroy the node.
 	
-	StorageNode *N = Find (key);
+	StorageNode *N = Find_ (key); // Find() would take the lock again
 	if (N) Delete (N);
 	
 	// Unlock resources

@@ -61,7 +61,8 @@ StorageList::~StorageList (void)
 // RETURNS		A pointer to the open MailStorage.
 //===============================================================================
 
-MailStorage *StorageList::Open (const char *name, class MailBox *subs, short Type)
+MailStorage *StorageList::Open (const char *name, class MailBox *subs, short Type,
+                                 const char *mailbox, const char *conninfo)
 {
 	// Set up a mutex lock to prevent nasty races
 	
@@ -83,6 +84,12 @@ MailStorage *StorageList::Open (const char *name, class MailBox *subs, short Typ
 
 			case STORAGE_MBOX: // MBOXStorage
 				N = new MBoxStorage (name);
+				N->LoadIndex ();
+				N->Subscribe (subs);
+				break;
+
+			case STORAGE_PGSQL: // PGStorage (Neo-PostOffice)
+				N = new PGStorage (name, mailbox ? mailbox : "", conninfo ? conninfo : "");
 				N->LoadIndex ();
 				N->Subscribe (subs);
 				break;

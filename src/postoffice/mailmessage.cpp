@@ -70,7 +70,7 @@ void MailPart::Set (const char *contenttype, const char *filename, const char *d
 	ContentSize = contentsize;
 }
 
-MailMessage::MailMessage (MailBox *M, char *msgid) : BTreeNode (msgid, M->Root)
+MailMessage::MailMessage (MailBox *M, const char *msgid) : BTreeNode (msgid, M->Root)
 {
 	Subscribers = new ViewList (this);
 	HeaderNames = new WordList;

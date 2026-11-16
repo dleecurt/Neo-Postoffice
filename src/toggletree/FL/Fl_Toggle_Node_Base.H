@@ -7,6 +7,8 @@ class Fl_Toggle_Node_Base {
 
 public:
 
+  // Nodes are deleted through Fl_Toggle_Node_Base pointers (Neo-PostOffice fix).
+  virtual ~Fl_Toggle_Node_Base () {}
   Fl_Toggle_Node_Base () {
     prev_ = 0;
     next_ = 0;

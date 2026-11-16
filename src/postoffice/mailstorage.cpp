@@ -409,16 +409,17 @@ void MailStorage::Unsubscribe (MailBox *B)
 			
 			delete (R);
 			
+			// Decrease the reference count (only for a real subscriber:
+			// StorageList::Close() calls this for every storage)
+			
+			--SCount_;
+			
 			// Terminate loop
 			
 			R = NULL;
 		}
 		else R = R->Next;
 	}
-	
-	// Decrease reference-count
-	
-	--SCount_;
 	
 	// Unlock resources
 	

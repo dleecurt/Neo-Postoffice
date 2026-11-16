@@ -9,6 +9,8 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include <string>
+#include <vector>
 #include "mailbox.h"
 #include "wordlist.h"
 #include "var.h"
@@ -123,10 +125,21 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     }
 
 #ifdef USE_GDBM
-    char *gdbm_filename = new char[strlen(DirectoryPrefix)+strlen("/box.gdbm")+1];
-    sprintf (gdbm_filename, "%s/box.gdbm", DirectoryPrefix);
-    DB = STORAGE.Open (gdbm_filename, this, STORAGE_GDBM);
-    delete[] gdbm_filename;
+    // Neo-PostOffice: each mailbox stores its mail either in local GDBM
+    // files (the default) or in PostgreSQL ("storage" = "pgsql").
+    if (strcasecmp (PREFROOT->Get_char ("storage"), "pgsql") == 0)
+    {
+        std::string storagename = std::string ("pgsql:") + Name;
+        DB = STORAGE.Open (storagename.c_str(), this, STORAGE_PGSQL, Name,
+                           PREFROOT->Get_char ("pgsql_conninfo"));
+    }
+    else
+    {
+        char *gdbm_filename = new char[strlen(DirectoryPrefix)+strlen("/box.gdbm")+1];
+        sprintf (gdbm_filename, "%s/box.gdbm", DirectoryPrefix);
+        DB = STORAGE.Open (gdbm_filename, this, STORAGE_GDBM);
+        delete[] gdbm_filename;
+    }
 #endif
 
     // Initialize the collector with the proper handler
@@ -166,6 +179,17 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     LoadMailBox();
 	ClearBiff();
 	
+#ifdef USE_GDBM
+    // Without usable storage, fetching mail could lose it (POP3 may delete
+    // it from the server), so the collector is not started.
+    if (DB && !DB->Usable())
+    {
+        std::string msg = std::string ("Mailbox ") + Name + " is not available: " +
+                          DB->LastError() + "\nNo mail will be fetched for it.";
+        ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "mailbox", msg.c_str());
+        return;
+    }
+#endif
 
     // Start the collector thread
 
@@ -236,11 +260,15 @@ MailBox::MailBox (ITCPipe *ui)
 
 MailBox::~MailBox (void)
 {
+    // Save the index first: with PostgreSQL storage, saving needs the storage
+    // that STORAGE.Close() may delete.
+    SaveMailBox();
+
 #ifdef USE_GDBM
     STORAGE.Close (this);
+    DB = NULL;
 #endif
 
-    SaveMailBox();
     Collector->Kill();
 }
 
@@ -255,83 +283,139 @@ MailBox::~MailBox (void)
 #define ENVELOPE_GROUPS			6
 */
 
-void MailBox::LoadMailBox (void)
+// Reads the mailbox's index file into entries.
+static void read_index_file (const char *DirectoryPrefix, std::vector<IndexEntry> &entries)
 {
     FILE *IDX;
-    char *fname;
     char buf[1024];
-    WordList *Line = new WordList;
-    WordList *Subs = new WordList;
-    int i;
-    MailView *V;
-//    struct stat mystat;
-//	int mbcount=0;
+    WordList Line, Subs;
+    std::string fname = std::string (DirectoryPrefix) + "/index";
 
-    // Make sure the directories exist
+    if (!(IDX = fopen (fname.c_str(), "r"))) return; // No index yet
 
-	//iprintf ("[mbox] (%s) LoadIndex()\n", Name);
-    //if (DB) DB->LoadIndex();
-
-    // Constuct path for the indexfile
-
-    fname = new char [strlen (DirectoryPrefix) + strlen ("index") + 16];
-    sprintf (fname, "%s/index", DirectoryPrefix);
-
-    if ((IDX = fopen (fname, "r"))) // Attempt to open the index file;
+    while (!feof (IDX)) // Browse through the index file
     {
-        while (!feof (IDX)) // Browse through the index file
+        buf[0] = 0;
+        if (!fgets (buf, 1023, IDX)) buf[0] = 0; // Read a line
+        buf[1023] = 0;
+        if ((strlen (buf)>1)&&(!feof (IDX)))
         {
-            buf[0] = 0;
-            if (!fgets (buf, 1023, IDX)) buf[0] = 0; // Read a line
-            buf[1023] = 0;
-            if ((strlen (buf)>1)&&(!feof (IDX)))
+            choplf (buf);
+
+            Line.MakeDB (buf); // The arguments to a message in the index
+            Subs.MakeGeneric (Line.Get(6),','); // The names of all views it was a part of
+
+            IndexEntry e;
+            e.MsgID    = Line.Get(0);
+            e.ParentID = Line.Get(1);
+            e.MailFrom = Line.Get(2);
+            e.NameFrom = Line.Get(3);
+            e.Subject  = Line.Get(4);
+            e.Date     = Line.Get(5);
+            for (int i=0;i<Subs.Count;++i) e.Folders.push_back (Subs.Get(i));
+            e.Flags    = Line.GetInt(7);
+            e.Read     = Line.GetInt(8);
+            e.Count    = Line.GetInt(9);
+            e.Received = atol (Line.Get (10));
+            entries.push_back (e);
+        }
+    }
+    fclose (IDX);
+}
+
+void MailBox::LoadMailBox (void)
+{
+    std::vector<IndexEntry> entries;
+    MailView *V;
+
+#ifdef USE_GDBM
+    if (DB && DB->KeepsMailboxIndex()) // The storage keeps the index (PostgreSQL)
+    {
+        if (!DB->LoadMailboxIndex (entries)) return;
+    }
+    else
+#endif
+    read_index_file (DirectoryPrefix, entries);
+
+    for (const IndexEntry &e : entries)
+    {
+        std::string groups;
+        for (size_t i=0;i<e.Folders.size();++i)
+        {
+            if (i) groups += ',';
+            groups += e.Folders[i];
+        }
+
+        // Initialize a MailMessage with all information from the index
+
+        MailMessage *M = new MailMessage (this, e.MsgID.c_str());
+        M->Envelope->Set (ENVELOPE_I_PARENTID, e.ParentID.c_str());
+        M->Envelope->Set (ENVELOPE_MAILFROM, e.MailFrom.c_str());
+        M->Envelope->Set (ENVELOPE_NAMEFROM, e.NameFrom.c_str());
+        M->Envelope->Set (ENVELOPE_SUBJECT, e.Subject.c_str());
+        M->Envelope->Set (ENVELOPE_DATE, e.Date.c_str());
+        M->Envelope->Set (ENVELOPE_GROUPS, groups.c_str());
+        M->Envelope->SetInt (ENVELOPE_I_READ, e.Read);
+        M->Count = e.Count;
+        M->Flags = e.Flags & (MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_ONDISK);
+        M->ReceiveDate = e.Received;
+        if (!M->ReceiveDate) M->ReceiveDate = time (NULL) - 864000;
+
+        for (size_t i=0;i<e.Folders.size();++i)
+        {
+            V = GetView (e.Folders[i].c_str()); // Find the named view
+            if (!V) // If it doesn't exist
             {
-                choplf (buf);
-
-                Line->MakeDB (buf); // The 9 arguments to a message in the index
-                Subs->MakeGeneric (Line->Get(6),','); // The names of all views it was a part of
-
-                // Initialize a MailMessage with all information from the dbrow
-
-                MailMessage *M = new MailMessage (this, Line->Get(0));
-                M->Envelope->Set (ENVELOPE_I_PARENTID, Line->Get(1));
-                M->Envelope->Set (ENVELOPE_MAILFROM, Line->Get(2));
-                M->Envelope->Set (ENVELOPE_NAMEFROM, Line->Get(3));
-                M->Envelope->Set (ENVELOPE_SUBJECT, Line->Get(4));
-                M->Envelope->Set (ENVELOPE_DATE, Line->Get(5));
-                M->Envelope->Set (ENVELOPE_GROUPS, Line->Get(6));
-                M->Envelope->SetInt (ENVELOPE_I_READ, Line->GetInt(8));
-                M->Count = Line->GetInt(9);
-                M->Flags = Line->GetInt(7) & (MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_ONDISK);
-                M->ReceiveDate = atol (Line->Get (10));
-                if (!M->ReceiveDate) M->ReceiveDate = time (NULL) - 864000;
-
-
-                for (i=0;i<Subs->Count;++i)
-                {
-                    V = GetView (Subs->Get(i)); // Find the named view
-                    if (!V) // If it doesn't exist
-                    {
-                        dprintf ("%s does not exist, using Deliver()\n", Subs->Get(i));
-                        M->LoadHeaders();
-                        UnTie (M); // Undo direct deliveries
-                        Deliver (M); // And fall back to filter rules
-                        i = Subs->Count; // Exit direct delivery cycle
-                    }
-                    else // But of course it exists
-                    {
-                        V->Associate (M); // Direct delivery
-                    }
-                }
+                dprintf ("%s does not exist, using Deliver()\n", e.Folders[i].c_str());
+                M->LoadHeaders();
+                UnTie (M); // Undo direct deliveries
+                Deliver (M); // And fall back to filter rules
+                break; // Exit direct delivery cycle
+            }
+            else // But of course it exists
+            {
+                V->Associate (M); // Direct delivery
             }
         }
     }
-	delete (Subs);
-	delete (Line);
 }
 
 void MailBox::SaveMailBox (void)
 {
+#ifdef USE_GDBM
+    if (DB && DB->KeepsMailboxIndex()) // The storage keeps the index (PostgreSQL)
+    {
+        std::vector<IndexEntry> entries;
+        ViewListNode *V;
+
+        Lock->LockR();
+        VLock->LockR();
+        for (MailMessage *M = (MailMessage *) Root->BNext; M && (M!=Root); M = (MailMessage *) M->BNext)
+        {
+            IndexEntry e;
+            e.MsgID    = M->MsgID;
+            e.ParentID = M->Envelope->Get (ENVELOPE_I_PARENTID);
+            e.MailFrom = M->Envelope->Get (ENVELOPE_MAILFROM);
+            e.NameFrom = M->Envelope->Get (ENVELOPE_NAMEFROM);
+            e.Subject  = M->Envelope->Get (ENVELOPE_SUBJECT);
+            e.Date     = M->Envelope->Get (ENVELOPE_DATE);
+            for (int i=0;i<M->Subscribers->Count();++i)
+                if ((V=M->Subscribers->Get(i))) e.Folders.push_back (V->View->Name);
+            e.Flags    = M->Flags;
+            e.Read     = M->Envelope->GetInt (ENVELOPE_I_READ);
+            e.Count    = M->Count;
+            e.Received = (long) M->ReceiveDate;
+            entries.push_back (std::move (e));
+        }
+        Lock->UnlockR();
+        VLock->UnlockR();
+
+        // Written outside the mailbox locks: this talks to the server.
+        DB->SaveMailboxIndex (entries);
+        return;
+    }
+#endif
+
     struct stat mystat;
     char path[256];
 	char oldpath[256];
@@ -669,6 +753,9 @@ void MailBox::RemoveMessage (MailMessage *M)
         {
             M->RemoveFiles();
         }
+#ifdef USE_GDBM
+        if (DB && DB->KeepsMailboxIndex()) DB->ForgetMessage (M->MsgID);
+#endif
 
         delete (M);
         --Count;

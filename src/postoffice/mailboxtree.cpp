@@ -4,7 +4,6 @@
 #include "helpdesk.h"
 #include "encode.h"
 #include "wordlist.h"
-#include "mysqlclient.h"
 #include "smtp.h"
 #include "buffer.h"
 #include "formatter.h"

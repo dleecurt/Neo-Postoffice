@@ -33,7 +33,7 @@ char *send_message_smtp (WordList *HdrNames, WordList *HdrValues, char *mailfrom
 	char		 buffer    [1024];
 	char         hostname  [128];
 	char         domainname[128];
-	char         fqdn      [128];
+	char         fqdn      [256];
 
 	int			 state;
 	int			 res;
@@ -69,7 +69,7 @@ char *send_message_smtp (WordList *HdrNames, WordList *HdrValues, char *mailfrom
 		dprintf ("[smtp] getdomainname() error");
    }
 
-   sprintf(fqdn,"%s.%s",hostname,domainname);
+   snprintf(fqdn, sizeof (fqdn), "%s.%s",hostname,domainname);
 
 	// Bail out when the connection fails
 	

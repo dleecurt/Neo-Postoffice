@@ -205,7 +205,7 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 {
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
-	char buf[256];
+	char buf[264]; // "Fwd: " + 255-character subject
 	WordList *quoted_lines;
 	AsyncBuffer *quoted_body;
 
@@ -249,7 +249,7 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 	{
 		 strcpy (buf, currentsubject[mdi_current]);
 	}
-	else sprintf (buf, "Re: %s", currentsubject[mdi_current]);
+	else snprintf (buf, sizeof (buf), "Re: %s", currentsubject[mdi_current]);
 	
 	W->in_subject->value (buf);
 	W->in_to->value (currentreplyto[mdi_current]);
@@ -278,7 +278,7 @@ void doforward (bool fullhdr)
 {
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
-	char buf[256];
+	char buf[264]; // "Fwd: " + 255-character subject
 	AsyncBuffer *quoted_body;
 
 	Composer_Window *W = create_composer_window();
@@ -323,7 +323,7 @@ void doforward (bool fullhdr)
 	
 	// Add a "Re:" if it isn't already there in the subject
 	
-	sprintf (buf, "Fwd: %s", currentsubject[mdi_current]);
+	snprintf (buf, sizeof (buf), "Fwd: %s", currentsubject[mdi_current]);
 	
 	W->in_subject->value (buf);
 	W->in_to->value (currentreplyto[mdi_current]);

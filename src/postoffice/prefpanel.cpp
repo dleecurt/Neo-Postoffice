@@ -9,6 +9,8 @@
 #include "style.h"
 #include <FL/Fl_Pixmap.H>
 #include <FL/Fl_Multi_Browser.H>
+#include "podb.h"
+#include <FL/fl_ask.H>
 
 #define FL_SCREEN_BOLD_ITALIC FL_SCREEN_BOLD
 #define FL_SCREEN_ITALIC FL_SCREEN
@@ -239,6 +241,10 @@ void func_view_protocol (void)
 		in_prefs_expire_onserver_notreceived->value (PREFS_CURRENTBOX->Get_char ("expire_onserver_notreceived"));
 		in_prefs_expire_local_only->value (PREFS_CURRENTBOX->Get_char ("expire_local_only"));
 		in_prefs_expire_local->value (PREFS_CURRENTBOX->Get_char ("expire_local"));
+		ch_prefs_storage->value (strcasecmp (PREFS_CURRENTBOX->Get_char ("storage"), "pgsql") == 0 ? 1 : 0);
+		in_prefs_storage_conninfo->value (PREFS_CURRENTBOX->Get_char ("pgsql_conninfo"));
+		if (ch_prefs_storage->value() == 1) in_prefs_storage_conninfo->activate();
+		else in_prefs_storage_conninfo->deactivate();
 	}
 }
 
@@ -269,7 +275,13 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	PREFS_MBOX_CHANGE = 0;
 	JOURNAL.Erase();
 	
-	if (!(win_prefs)) make_prefs_window();
+	if (!(win_prefs))
+	{
+		make_prefs_window();
+		// Grey out database features this build does not have.
+		if (!podb::HaveMySQL()) menu_ch_prefs_protocol[0].deactivate();
+		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
+	}
 	
 	// Display Mailboxes
 	
@@ -387,7 +399,7 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		}
 		else if (strcasecmp (proto, "imap4") == 0)
 		{
-			ch_prefs_protocol->value (3);
+			ch_prefs_protocol->value (4);
 		}
 		else
 		{
@@ -1088,6 +1100,28 @@ void cb_prefs_mailbox_flags (Fl_Choice */*b*/, void */*v*/)
 		PREFS_CURRENTBOX->Set_int ("expire_local_only", atoi (in_prefs_expire_local_only->value()));
 		PREFS_CURRENTBOX->Set_int ("expire_local", atoi (in_prefs_expire_local->value()));
 	}
+}
+
+// Neo-PostOffice: where a mailbox stores its mail.
+void cb_prefs_storage (Fl_Choice */*c*/, void */*v*/)
+{
+	if (!PREFS_CURRENTBOX) return;
+	if (ch_prefs_storage->value() == 1 && !podb::HavePostgreSQL())
+	{
+		fl_alert ("This build of Neo-PostOffice has no PostgreSQL support.");
+		ch_prefs_storage->value (0);
+	}
+	PREFS_MBOX_CHANGE=1;
+	PREFS_CURRENTBOX->Set_char ("storage", ch_prefs_storage->value() == 1 ? "pgsql" : "gdbm");
+	if (ch_prefs_storage->value() == 1) in_prefs_storage_conninfo->activate();
+	else in_prefs_storage_conninfo->deactivate();
+}
+
+void cb_prefs_storage_conninfo (Fl_Input */*i*/, void */*v*/)
+{
+	if (!PREFS_CURRENTBOX) return;
+	PREFS_MBOX_CHANGE=1;
+	PREFS_CURRENTBOX->Set_char ("pgsql_conninfo", in_prefs_storage_conninfo->value());
 }
 
 void cb_prefs_protocol (Fl_Choice */*c*/, void */*v*/)

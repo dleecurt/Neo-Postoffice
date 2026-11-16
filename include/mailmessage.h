@@ -58,7 +58,7 @@ class MailPart
 class MailMessage : public BTreeNode
 {
 	public:
-						 MailMessage (MailBox *, char *);
+						 MailMessage (MailBox *, const char *);
 						~MailMessage (void);
 		
 		//MailMessage		*Next, *Prev;
