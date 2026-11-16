@@ -126,13 +126,15 @@ static bool check_folder_name (MailBox *box, std::string &name)
 	const char *why = NULL;
 	if (name.empty()) why = "The name is empty.";
 	else if (name.size() > 63) why = "The name is too long (at most 63 bytes).";
-	else if (name.find_first_of (".={}\",") != std::string::npos)
-		why = "Folder names cannot contain . = { } \" or ,";
+	else if (name.find_first_of ("={}\",") != std::string::npos)
+		why = "Folder names cannot contain = { } \" or ,";
 	else if (name.front() == '/' || name.back() == '/' || name.find ("//") != std::string::npos)
 		why = "Use / only between folder names, as in Lists/2025.";
-	else if (strcasecmp (name.c_str(), "Inbox") == 0) why = "Inbox is the name of the top folder.";
 	else if (box->GetView (name.c_str())) why = "There is already a folder with that name.";
 	else for (char c : name) if ((unsigned char) c < ' ') why = "The name contains a control character.";
+	std::string format_rule;
+	if (!why && box->Handler && !(format_rule = box->Handler->CheckFolderName (name)).empty())
+		why = format_rule.c_str();
 	if (why) fl_alert ("%s", why);
 	return !why;
 }
@@ -149,7 +151,7 @@ static void post_folder_op (MailBox *box, const char *op, const char *a, const c
 void folder_new (MailBox *box, const char *parent)
 {
 	if (!can_manage_folders (box)) return;
-	std::string def = (parent && *parent && strcmp (parent, "Inbox") != 0) ? std::string (parent) + "/" : "";
+	std::string def = (parent && *parent && !box->Handler->IsFixedFolder (parent)) ? std::string (parent) + "/" : "";
 	const char *in = fl_input ("Name of the new folder (use / for a subfolder, e.g. Lists/2025):", def.c_str());
 	if (!in) return;
 	std::string name = in;
@@ -160,9 +162,9 @@ void folder_new (MailBox *box, const char *parent)
 void folder_rename (MailBox *box, const char *folder)
 {
 	if (!can_manage_folders (box)) return;
-	if (!folder || !*folder || !box->GetView (folder) || strcmp (folder, "Inbox") == 0)
+	if (!folder || !*folder || !box->GetView (folder) || box->Handler->IsFixedFolder (folder))
 	{
-		fl_alert ("Select a folder other than the Inbox to rename.");
+		fl_alert ("Select a folder other than the inbox to rename.");
 		return;
 	}
 	std::string old = folder;
@@ -176,9 +178,9 @@ void folder_rename (MailBox *box, const char *folder)
 void folder_delete (MailBox *box, const char *folder)
 {
 	if (!can_manage_folders (box)) return;
-	if (!folder || !*folder || !box->GetView (folder) || strcmp (folder, "Inbox") == 0)
+	if (!folder || !*folder || !box->GetView (folder) || box->Handler->IsFixedFolder (folder))
 	{
-		fl_alert ("Select a folder other than the Inbox to delete.");
+		fl_alert ("Select a folder other than the inbox to delete.");
 		return;
 	}
 	std::string name = folder;
@@ -228,7 +230,7 @@ static void tree_context_menu (Fl_Toggle_Node *n)
 	MailBox *box = B->mailbox;
 	if (!box) return;
 	bool is_folder = B->foldername && box->GetView (B->foldername);
-	bool fixed = !is_folder || strcmp (B->foldername, "Inbox") == 0;
+	bool fixed = !is_folder || (box->Handler && box->Handler->IsFixedFolder (B->foldername));
 	bool manage = box->Handler && box->Handler->CanManageFolders();
 
 	Fl_Menu_Item items[] = {

@@ -141,7 +141,7 @@ set(PO_BACKEND_SOURCES
   connection.cpp debug.cpp eaddr.cpp encode.cpp envelope.cpp folderxpm.cpp
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp imap4handler.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
-  maildirhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
+  localmailhandler.cpp maildirhandler.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
   nntphandler.cpp sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp

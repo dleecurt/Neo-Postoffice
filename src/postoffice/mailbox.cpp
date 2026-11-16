@@ -161,6 +161,10 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     {
         Handler = new MaildirHandler (this, PREFROOT);
     }
+    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mh") == 0)
+    {
+        Handler = new MHHandler (this, PREFROOT);
+    }
     else if (strcasecmp (PREFROOT->Get_char ("protocol"), "mbox") == 0)
     {
         Handler = new MBoxHandler (this, PREFROOT);
@@ -200,9 +204,9 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 
     Collector->Run((void *) this);
 
-    // SQL and Maildir mailboxes read their message list right away: that
+    // SQL, Maildir and MH mailboxes read their message list right away: that
     // creates their folders and brings in changes made elsewhere meanwhile.
-    if (dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<MaildirHandler *> (Handler))
+    if (dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<LocalMailHandler *> (Handler))
         ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
 }
 
@@ -347,8 +351,15 @@ void MailBox::LoadMailBox (void)
 #endif
     read_index_file (DirectoryPrefix, entries);
 
+    bool from_store = dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<LocalMailHandler *> (Handler);
+
     for (const IndexEntry &e : entries)
     {
+        // An entry in no folder cannot be shown. For SQL, Maildir and MH it is
+        // left out: the first check finds the message in the store again and
+        // files it in its folder.
+        if (from_store && e.Folders.empty()) continue;
+
         std::string groups;
         for (size_t i=0;i<e.Folders.size();++i)
         {
@@ -374,6 +385,14 @@ void MailBox::LoadMailBox (void)
         for (size_t i=0;i<e.Folders.size();++i)
         {
             V = GetView (e.Folders[i].c_str()); // Find the named view
+            // SQL, Maildir and MH folders are made from what the store has, so
+            // one missing from the settings (not saved after a crash, say) is
+            // made again here instead of the message being lost from view.
+            if (!V && from_store)
+            {
+                EnsureFolder (e.Folders[i]);
+                V = GetView (e.Folders[i].c_str());
+            }
             if (!V) // If it doesn't exist
             {
                 dprintf ("%s does not exist, using Deliver()\n", e.Folders[i].c_str());

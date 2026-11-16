@@ -43,6 +43,11 @@ public:
 	// Folder management (Maildir): op is "create", "rename" or "delete".
 	virtual bool			 CanManageFolders (void) { return false; }
 	virtual void			 FolderOp (const char * /*op*/, const char * /*a*/, const char * /*b*/) {}
+	// Format rules for new folder names: "" if fine, else why not. Called
+	// from the window thread, so it must only use the settings.
+	virtual std::string		 CheckFolderName (const std::string &) { return ""; }
+	// A folder that cannot be renamed or deleted (the inbox).
+	virtual bool			 IsFixedFolder (const char * /*name*/) { return false; }
 
 	WordList				*GroupList (void);
 		
@@ -137,52 +142,123 @@ private:
 	bool					 FoldersChanged;
 };
 
-class MaildirHandler : public MailHandler
+// Neo-PostOffice: mailboxes kept as files on this computer, one file per
+// message, with real folders (Maildir, MH). The checking, reading and flag
+// handling are shared here; the formats supply scanning and file changes.
+class LocalMailHandler : public MailHandler
+{
+public:
+	void					 OpenConnection (void) {}
+	void					 CloseConnection (void) {}
+	void					 GetBody (char *);
+	void					 CheckGroup (const char *);
+	void					 Expire (void) {}
+	int						 PostMessage (WordList *, MailMessage *) { return 0; }
+	void					 MarkRead (char *);
+	bool					 KeepsFlags (void) { return true; }
+	bool					 CanMove (void) { return true; }
+	bool					 CanManageFolders (void) { return true; }
+	void					 SetFlag (char *, char, bool);
+	bool					 ExportRaw (char *, std::string &, std::string &);
+
+protected:
+	struct Entry
+	{
+		std::string			 Folder;	// the folder's name in the client ("Inbox", "Lists/2025")
+		std::string			 Dir;		// format-specific: Maildir ".Work", MH "lists/2025"
+		std::string			 Sub;		// Maildir "new"/"cur"
+		std::string			 File;		// file name
+		std::string			 Flags;		// Maildir letters, sorted: S seen, F flagged, R replied, P passed
+	};
+
+	virtual std::string		 Root (void) = 0;
+	// Lists all messages into Files and all folder names into Folders;
+	// false if the mailbox is not there.
+	virtual bool			 Scan (void) = 0;
+	virtual std::string		 Path (const Entry &) = 0;
+	// Adds and removes flag letters (S, F, R, P) of a message.
+	virtual bool			 ChangeFlags (Entry &, const std::string &add, const std::string &remove) = 0;
+	virtual std::string		 MissingText (void) = 0;	// why Scan failed
+	virtual const char		*Kind (void) = 0;			// for error messages
+
+	void					 Init (MailBox *, Var *);
+	Entry					*Locate (const char *msgid);
+	bool					 MarkSeen (Entry &);
+	bool					 ApplyFlags (MailMessage *, const Entry &);
+	void					 Error (const std::string &);
+	static bool				 WriteFile (const std::string &path, const std::string &data, std::string &err);
+
+	std::map<std::string, Entry> Files;		// msgid -> file, as of the last scan
+	std::vector<std::string> Folders;		// all folder names, as of the last scan
+	bool					 FoldersChanged;
+	bool					 ReportedMissing;
+};
+
+class MaildirHandler : public LocalMailHandler
 {
 public:
 							 MaildirHandler (MailBox *, Var *);
 							~MaildirHandler (void);
 
-	void					 OpenConnection (void);
-	void					 CloseConnection (void);
-	void					 GetBody (char *);
-	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
-	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
-	void					 MarkRead (char *);
-	bool					 KeepsFlags (void) { return true; }
-	bool					 CanMove (void) { return true; }
-	void					 SetFlag (char *, char, bool);
 	void					 MoveMessage (char *, const char *);
-	bool					 ExportRaw (char *, std::string &, std::string &);
 	bool					 DeliverRaw (const std::string &, const char *, const std::string &, std::string &);
-	bool					 CanManageFolders (void) { return true; }
 	void					 FolderOp (const char *, const char *, const char *);
+	std::string				 CheckFolderName (const std::string &);
+	bool					 IsFixedFolder (const char *name);
+
+protected:
+	std::string				 Root (void);
+	bool					 Scan (void);
+	std::string				 Path (const Entry &);
+	bool					 ChangeFlags (Entry &, const std::string &add, const std::string &remove);
+	std::string				 MissingText (void);
+	const char				*Kind (void) { return "maildir"; }
 
 private:
-
-	struct Entry
-	{
-		std::string			 Dir;	// "" (top level) or ".Work"
-		std::string			 Sub;	// "new" or "cur"
-		std::string			 File;	// file name, with ":2,flags"
-		std::string			 Flags;	// "FS"
-	};
-
-	std::string				 Root (void);
-	std::string				 Path (const Entry &);
 	std::string				 MsgID (const std::string &dir, const std::string &uniq);
-	bool					 Scan (void);
-	Entry					*Locate (const char *msgid);
-	bool					 MarkSeen (Entry &);
-	bool					 ChangeFlags (Entry &, const std::string &add, const std::string &remove);
-	bool					 ApplyFlags (MailMessage *, const Entry &);
-
-	std::map<std::string, Entry> Files;	// msgid -> file, as of the last scan
 	std::vector<std::string> Dirs;		// "" and the Maildir++ subfolders
-	bool					 FoldersChanged;
-	bool					 ReportedMissing;
+};
+
+// MH folders as used by nmh: a directory per folder (nested folders are
+// subdirectories), one file per message named by its number, and the
+// sequences (unseen, flagged, replied, ...) in each folder's .mh_sequences.
+class MHHandler : public LocalMailHandler
+{
+public:
+							 MHHandler (MailBox *, Var *);
+							~MHHandler (void);
+
+	void					 DeleteMessage (char *);
+	void					 MoveMessage (char *, const char *);
+	bool					 DeliverRaw (const std::string &, const char *, const std::string &, std::string &);
+	void					 FolderOp (const char *, const char *, const char *);
+	std::string				 CheckFolderName (const std::string &);
+	bool					 IsFixedFolder (const char *name);
+
+protected:
+	std::string				 Root (void);
+	bool					 Scan (void);
+	std::string				 Path (const Entry &);
+	bool					 ChangeFlags (Entry &, const std::string &add, const std::string &remove);
+	std::string				 MissingText (void);
+	const char				*Kind (void) { return "mh"; }
+
+public:
+	struct Profile
+	{
+		std::string			 Path;			// mail directory
+		std::string			 Inbox;			// inbox folder name
+		std::vector<std::string> Unseen;	// Unseen-Sequence names (the first is used)
+		std::string			 Rmmproc;		// program that "deletes" messages
+		std::string			 SeqFile;		// sequences file name
+	};
+	Profile					 ReadProfile (void);
+
+private:
+	bool					 Store (const std::string &dir, const std::string &raw,
+									const std::string &flags, std::string &err);
+	int						 NextNumber (const std::string &dir);
 };
 
 class OutBoxHandler : public MailHandler

@@ -5097,6 +5097,7 @@ Fl_Menu_Item menu_ch_prefs_protocol[] = {
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"IMAP4 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Maildir", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"MH (nmh)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
 
@@ -5145,6 +5146,10 @@ Fl_Button *bt_prefs_mboxfile_add=(Fl_Button *)0;
 Fl_Input *in_prefs_mboxfile_name=(Fl_Input *)0;
 
 Fl_Button *bt_prefs_mboxfile_erase=(Fl_Button *)0;
+
+Fl_Group *gr_prefs_protocol_mh=(Fl_Group *)0;
+
+Fl_Input *in_prefs_protocol_mh_path=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_maildir=(Fl_Group *)0;
 
@@ -6038,6 +6043,35 @@ Fl_Window* make_prefs_window() {
             } // Fl_Button* bt_prefs_mboxfile_erase
             gr_prefs_protocol_mbox->end();
           } // Fl_Group* gr_prefs_protocol_mbox
+          { gr_prefs_protocol_mh = new Fl_Group(210, 75, 410, 160);
+            gr_prefs_protocol_mh->box(FL_ENGRAVED_BOX);
+            gr_prefs_protocol_mh->color((Fl_Color)51);
+            gr_prefs_protocol_mh->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+            gr_prefs_protocol_mh->hide();
+            { Fl_Group* o = new Fl_Group(225, 85, 380, 21);
+              { in_prefs_protocol_mh_path = new Fl_Input(375, 85, 230, 21);
+                in_prefs_protocol_mh_path->tooltip("The MH mail directory. Leave empty to use Path: from ~/.mh_profile (nmh).");
+                in_prefs_protocol_mh_path->labelsize(12);
+                in_prefs_protocol_mh_path->textsize(12);
+                in_prefs_protocol_mh_path->callback((Fl_Callback*)cb_prefs_protocol_mh);
+                in_prefs_protocol_mh_path->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_mh_path
+              { Fl_Button* o = new Fl_Button(225, 85, 120, 20, "MH directory");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+                xloc(o, "mh_path");
+              } // Fl_Button* o
+              o->end();
+            } // Fl_Group* o
+            { Fl_Box* o = new Fl_Box(225, 120, 380, 75, "Empty: the Path from ~/.mh_profile. Every folder in it appears by itself. Rea"
+"d state is the profile\'s Unseen-Sequence; flagged and replied are kept as seq"
+"uences. Deleting works like rmm.");
+              o->labelsize(11);
+              o->align(Fl_Align(133|FL_ALIGN_INSIDE));
+            } // Fl_Box* o
+            gr_prefs_protocol_mh->end();
+          } // Fl_Group* gr_prefs_protocol_mh
           { gr_prefs_protocol_maildir = new Fl_Group(210, 75, 410, 160);
             gr_prefs_protocol_maildir->box(FL_ENGRAVED_BOX);
             gr_prefs_protocol_maildir->color((Fl_Color)51);

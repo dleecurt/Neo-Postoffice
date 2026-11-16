@@ -13,9 +13,9 @@ interface and behavior are intentionally kept close to the original.
 ## Features
 
 - POP3, IMAP4 and NNTP (Usenet) support, SMTP sending with an outbox queue
-- Local mbox files and Maildir (with Maildir++ folders) as mailboxes;
-  Maildir read state, flags, moves and deletions are shared with other
-  programs
+- Local mbox files, Maildir (with Maildir++ folders) and MH folders
+  (nmh) as mailboxes; read state, flags, moves and deletions are shared
+  with other programs
 - SQL mailboxes (experimental, on hold): mail read from a shared
   PostgreSQL database over SSL
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
@@ -96,6 +96,19 @@ and forwards set the replied/passed flags. Folders can be created,
 renamed and deleted with a right-click in the folder tree or *File →
 Folder*. See [docs/maildir.md](docs/maildir.md).
 
+## MH mailboxes (nmh)
+
+The *MH (nmh)* protocol reads the mail folders of nmh, from the `Path:`
+in `~/.mh_profile` (or a directory given in the settings). Every folder,
+nested ones too, appears by itself, and nmh can be used on the same
+folders at the same time. Read state is the profile's Unseen-Sequence;
+flagged, replied and forwarded are the sequences `flagged`, `replied` and
+`forwarded`, changed under nmh's lock without touching other sequences.
+Deleting works like `rmm` (the profile's `rmmproc`, or a rename to
+`,NUMBER`), messages can be moved and copied in and out like with
+Maildir, and folders can be managed the same way. See
+[docs/mh.md](docs/mh.md).
+
 ## SQL mailboxes
 
 *Development of the SQL mailbox is on hold* (too little is known about
@@ -124,7 +137,7 @@ Setup (database, roles, SSL, getmail and the client) is described in
 | `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
 | `src/postoffice/icons/` | XPM icons and banner artwork |
 | `src/tools/po-sqldeliver.cpp` | Delivery tool for SQL mailboxes |
-| `docs/` | Maildir and SQL mailbox guides, database schemas |
+| `docs/` | Maildir, MH and SQL mailbox guides, database schemas |
 | `include/` | Application headers |
 | `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
 | `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
@@ -207,6 +220,11 @@ See the git history for details. In summary:
   other programs are detected by Message-ID. If the file is locked by
   another program the message is hidden and deleted at a later check;
   a read-only mbox can be read, and deleting there only hides.
+- MH folders (nmh) as mailboxes, sharing their code with Maildir in a
+  common base for mailboxes kept in local files. Folder name rules and
+  the fixed inbox come from the mailbox type. Folders whose settings were
+  not saved (after a crash) are made again from the message index
+  instead of their messages being lost from view.
 
 ## Known issues and ideas
 
