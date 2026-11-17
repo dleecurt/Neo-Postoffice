@@ -12,9 +12,6 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
-#ifdef WIN32
-#include <conio.h>
-#endif
 #include <rcl/library/vartypes.h>
 
 
@@ -35,7 +32,6 @@ RCLDLL void StripCommas(char *number);
 RCLDLL char ** ParseCommandLine(char *line, int *argc);
 RCLDLL void  ReleaseCommandLine(char **argv);
 
-#ifndef WIN32
 #ifndef strlwr
 inline void strlwr(char *string)
 {
@@ -57,7 +53,6 @@ inline void strupr(char *string)
         string++;
     }
 }
-#endif
 #endif
 
 #endif

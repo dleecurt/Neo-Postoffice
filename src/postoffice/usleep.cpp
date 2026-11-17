@@ -14,9 +14,6 @@
 #include "usleep.h"
 #include <unistd.h>
 #include <sys/types.h>
-#ifdef IRIX
-#include <bstring.h>
-#endif
 #include <sys/time.h>
 #include <stdio.h>
 
@@ -26,10 +23,6 @@ void _usleep (unsigned int usec)
 	
 	timeout.tv_sec = (time_t) 0;
 	
-#ifndef FREEBSD	
 	timeout.tv_usec = usec;
-#else
-	timeout.tv_usec = 10*usec;
-#endif
 	select (0, NULL, NULL, NULL, &timeout);
 }

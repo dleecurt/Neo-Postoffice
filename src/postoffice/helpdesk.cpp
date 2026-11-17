@@ -9914,7 +9914,7 @@ Fl_Window* make_buildinfo() {
       o->labelsize(12);
       o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
     } // Fl_Box* o
-    { Fl_Box* o = new Fl_Box(155, 145, 330, 20, "-DDEBUG -DUSE_GDBM -Wall -g -O2 -DLINUX");
+    { Fl_Box* o = new Fl_Box(155, 145, 330, 20, "-DUSE_GDBM -Wall -O2");
       o->box(FL_THIN_DOWN_BOX);
       o->color((Fl_Color)51);
       o->labelsize(12);

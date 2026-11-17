@@ -16,9 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(SOLARIS) || defined(IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 
 #include "debug.h"
 #include "status.h"

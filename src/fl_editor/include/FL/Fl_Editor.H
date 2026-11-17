@@ -13,11 +13,7 @@
 
 #include <rcl/library/editor.hpp>
 
-#ifdef WIN32
-#include <FL/win32.H>
-#else
 #include <FL/x.H>
-#endif
 
 class Fl_CursorBox : public Fl_Box
 {

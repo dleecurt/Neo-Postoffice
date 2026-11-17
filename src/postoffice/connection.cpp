@@ -15,6 +15,8 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -32,30 +34,9 @@
 
 #define MAXFD 255
 
-#ifdef FREEBSD
-  #define O_SYNC O_FSYNC
-#endif
 
-#ifdef IRIX
-  typedef int socklen_t;
-#endif
 
 #define _MAX_TIMEOUT 9999
-
-extern int      errno;
-
-// This is a kludge, but those darn headers are hard to find in Scott's world
-
-extern          "C" int socket (int, int, int);
-
-// Not that Sun does any better :-)
-
-#ifdef SUNOS
-#define bzero(s, n) memset ((s), 0, (n))
-extern          "C" int connect (int, struct sockaddr *, int);
-extern          "C" int accept (int, caddr_t, int *);
-extern          "C" int shutdown (int, int);
-#endif
 
 #include "debug.h"
 
@@ -223,8 +204,6 @@ int Connection::Open (char *host, u_short port)
 void  Connection::Accept (int mySocket)
 {
 	socklen_t       blah;
-	int             pri, sec, tert, quad;
-	u_long          myAddress;
 	fd_set          myfd;
 	struct timeval  timeout;
 	int				Escape;
@@ -260,19 +239,7 @@ void  Connection::Accept (int mySocket)
 			res = fcntl (Socket, F_GETFL, 0);
 			res &= ~O_SYNC;
 			fcntl (Socket, F_SETFL, res);
-			myAddress = Remote.sin_addr.s_addr;
-#ifdef LINUX
-			quad = ((myAddress & 0xff000000) >> 24);
-			tert = ((myAddress & 0x00ff0000) >> 16);
-			sec = ((myAddress & 0x0000ff00) >> 8);
-			pri = ((myAddress & 0x000000ff));
-#else
-			pri = ((myAddress & 0xff000000) >> 24);
-			sec = ((myAddress & 0x00ff0000) >> 16);
-			tert = ((myAddress & 0x0000ff00) >> 8);
-			quad = ((myAddress & 0x000000ff));
-#endif
-			sprintf (Address, "%i.%i.%i.%i", pri, sec, tert, quad);
+			if (!inet_ntop (AF_INET, &Remote.sin_addr, Address, sizeof (Address))) strcpy (Address, "?");
 			Connected = ST_CONNECTED;
 			Direction = C_DIR_IN;
 			ConnectionTime = time (NULL);
@@ -341,8 +308,6 @@ void  Connection::AcceptUnix (int mySocket)
 void Connection::Accept2 (int mySocket)
 {
 	//int             blah;
-	int             pri, sec, tert, quad;
-	u_long          myAddress;
 
 	Sent = 0;
 
@@ -356,12 +321,7 @@ void Connection::Accept2 (int mySocket)
 		res = fcntl (Socket, F_GETFL, 0);
 		res &= ~O_SYNC;
 		fcntl (Socket, F_SETFL, res);
-		myAddress = Remote.sin_addr.s_addr;
-		pri = ((myAddress & 0xff000000) >> 24);
-		sec = ((myAddress & 0x00ff0000) >> 16);
-		tert = ((myAddress & 0x0000ff00) >> 8);
-		quad = ((myAddress & 0x000000ff));
-		sprintf (Address, "%i.%i.%i.%i", pri, sec, tert, quad);
+		if (!inet_ntop (AF_INET, &Remote.sin_addr, Address, sizeof (Address))) strcpy (Address, "?");
 		Connected = ST_CONNECTED;
 		Direction = C_DIR_IN;
 		ConnectionTime = time (NULL);
@@ -425,11 +385,7 @@ int Connection::Read (char *Buffer, int size)
 	int             result = 0;
 
 	timeout.tv_sec = (time_t) 0;
-#ifndef FREEBSD
 	timeout.tv_usec = 250;
-#else
-	timeout.tv_usec = 25000;
-#endif
 
 	if (!Redirect) // If redirected we can only write
 	{
@@ -600,11 +556,7 @@ void Connection::Send (const char *TheLine, int Priority)
 							}
 							else
 							{
-#ifndef FREEBSD
 								_usleep (waittime);
-#else
-								_usleep (10*waittime);
-#endif
 								blocksize = (int) (blocksize / 1.2);
 								waittime = waittime + 100;
 							}
@@ -615,11 +567,7 @@ void Connection::Send (const char *TheLine, int Priority)
 							Sent += len;
 							if (theBuffer->Pos > 0)
 							{
-#ifndef FREEBSD
 								_usleep (waittime);
-#else
-								_usleep (10*waittime);
-#endif
 							}
 						}
 					}
@@ -703,11 +651,7 @@ void Connection::SendB ([[maybe_unused]] int Priority, u_char *theLine, int theS
 					}
 					else
 					{
-#ifndef FREEBSD
 						_usleep (waittime);
-#else
-						_usleep (10*waittime);
-#endif
 						if (blocksize > 64)
 							blocksize = (int) (blocksize / 1.2);
 						waittime *= 2;
@@ -724,11 +668,7 @@ void Connection::SendB ([[maybe_unused]] int Priority, u_char *theLine, int theS
 						blocksize = (int) (1.2 * (double) blocksize);
 					if (theBuffer->Pos > 0)
 					{
-#ifndef FREEBSD
 						_usleep (waittime);
-#else
-						_usleep (10*waittime);
-#endif
 					}
 				}
 			}
@@ -811,11 +751,7 @@ void Connection::AwaitInput (int seconds)
 // 	fcntl (Socket, F_SETFL, newres);
 
 	timeout.tv_sec = (time_t) seconds;
-#ifndef FREEBSD
 	timeout.tv_usec = 100;
-#else
-	timeout.tv_usec = 10000;
-#endif
 
 	FD_ZERO (&myfd);
 	FD_SET (Socket, &myfd);
@@ -845,11 +781,7 @@ int Connection::Handle (char *Buffer, int Size, int TOsec, int TOusec, int fd)
 	struct timeval  timeout;
 
 	timeout.tv_sec = (time_t) TOsec;
-#ifndef FREEBSD
 	timeout.tv_usec = TOusec;
-#else
-	timeout.tv_usec = 100 * TOusec;
-#endif
 
 	int             blksize = 512;
 	int 			selx;

@@ -13,9 +13,7 @@
 #include "buffer.h"
 #include <string.h>
 #include <sys/types.h>
-#if defined(SOLARIS) || defined(IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 
 //void bzero(void *s, int n);
 

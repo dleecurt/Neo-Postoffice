@@ -14,9 +14,7 @@
 #include "debug.h"
 
 #include <string.h>
-#if defined(SOLARIS) || defined(IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 
 extern Var PREFERENCES;
 extern const char *strcasestr (const char *, const char *);

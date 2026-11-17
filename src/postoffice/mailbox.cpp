@@ -27,9 +27,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(SOLARIS) || defined(IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 
 extern Var PREFERENCES;
 

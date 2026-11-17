@@ -28,9 +28,7 @@
 using std::cout;
 using std::endl;
 #include <string.h>
-#if defined (SOLARIS) || defined (IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 
 
 #define DEBUG 1

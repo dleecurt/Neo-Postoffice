@@ -3277,7 +3277,7 @@ Function {make_buildinfo()} {} {
       xywh {10 120 140 20} labelsize 12 align 24
     }
     Fl_Box {} {
-      label {-DDEBUG -DUSE_GDBM -Wall -g -O2 -DLINUX}
+      label {-DUSE_GDBM -Wall -O2}
       xywh {155 145 330 20} box THIN_DOWN_BOX color 51 labelsize 12 align 20
       code0 {\#include "version.h"}
       code1 {o->label (__CXXFLAGS);}

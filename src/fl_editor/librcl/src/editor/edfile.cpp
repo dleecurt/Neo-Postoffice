@@ -41,15 +41,9 @@ rclError EditorEngine::LoadFrom(FILE *infile)
 					char c = sc;
 					if((sc == EOF) && feof(infile))
 						break;
-#ifdef WIN32
-	// Windows platform has CRLF pairs, so ignore the soft returns
-					else if(c == SOFT_RETURN)
-						c = ' ';
-#else
 	// Linux uses the soft returns as hard returns
 					else if(c == SOFT_RETURN)
 						c = HARD_RETURN;
-#endif
 					else if(c == '\t')  // TAB
 						{
 							c = ' ';
@@ -91,11 +85,7 @@ rclError EditorEngine::SaveTo(FILE *outfile)
 	LastResult = NOERROR;
 	if(CharCount)		// if nothing in it, don't write anything...
 		{
-#ifdef WIN32
-			sprintf(softbuffer,"%c",CARRIAGE_RETURN);
-#else
 			sprintf(softbuffer,"%c",LINE_FEED);
-#endif
             wString softreturn(softbuffer);
             wString s;
 			LastResult = NOERROR;

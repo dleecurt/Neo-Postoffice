@@ -24,9 +24,7 @@
 #include "btree.h"
 
 #include <string.h>
-#if defined(SOLARIS) || defined(IRIX)
-  #include <strings.h>
-#endif
+#include <strings.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>

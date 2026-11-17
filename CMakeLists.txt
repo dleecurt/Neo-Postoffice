@@ -79,7 +79,7 @@ endif()
 # ---------------------------------------------------------------------------
 
 add_library(po_settings INTERFACE)
-target_compile_definitions(po_settings INTERFACE _REENTRANT LINUX USE_GDBM)
+target_compile_definitions(po_settings INTERFACE _REENTRANT USE_GDBM)
 if(PO_POSTGRESQL)
   target_compile_definitions(po_settings INTERFACE PO_HAVE_POSTGRESQL)
 endif()

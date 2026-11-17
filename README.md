@@ -10,6 +10,9 @@ The modernization builds against the current FLTK 1.4 toolkit with CMake,
 compiles without warnings, and fixes bugs found along the way. The user
 interface and behavior are intentionally kept close to the original.
 
+Neo-PostOffice runs on Linux and the BSDs. The code for other systems
+(IRIX, Solaris, SunOS, Windows) has been removed.
+
 ## Features
 
 - POP3, IMAP4 and NNTP (Usenet) support; outgoing mail is queued in the
@@ -36,6 +39,12 @@ On Debian 13 (trixie):
     ./build/postoffice
 
 Install with `sudo cmake --install build` (default prefix `/usr/local`).
+
+On the BSDs, install the same dependencies from packages or ports
+(FLTK must be 1.4 or newer) and build the same way. CMake looks in
+`/usr/local`; on NetBSD add `-DCMAKE_PREFIX_PATH=/usr/pkg`, and on
+OpenBSD also `-DCMAKE_PREFIX_PATH=/usr/X11R6` if X11 is not found. The
+BSD builds have not been tested yet.
 
 Requirements: a C++17 compiler, CMake 3.16+, FLTK 1.4 (with its image
 library) and GDBM; libpq for PostgreSQL. FLTK is found through `fltk-config` or, if that is not
@@ -257,6 +266,10 @@ See the git history for details. In summary:
   client, and their errors are shown (the built-in client ignores its own). The outbox
   is saved as soon as messages are sent, so a crash right after sending
   no longer sends them again.
+- Only Linux and the BSDs are supported: the IRIX, Solaris/SunOS,
+  old-FreeBSD and Windows code was removed, along with the `LINUX`
+  build define. Connection addresses are formatted with `inet_ntop`
+  instead of a byte-order guess that printed some of them backwards.
 
 ## Known issues and ideas
 

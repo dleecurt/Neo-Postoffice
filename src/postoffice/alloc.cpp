@@ -6,9 +6,6 @@
 #include <string.h>
 #include <signal.h>
 
-#ifdef IRIX
-#include <libexc.h>
-#endif
 
 typedef struct _tagAllocs {
 	void* Block;
@@ -94,10 +91,6 @@ static int RemoveBlock(void* Block)
 		if(BlockPos >= aux->Start && BlockPos <= aux->Start+aux->Length) {
 			if (BlockPos != aux->Start) printf ("PANIC: erronous position in delete()\n");
 			pthread_mutex_lock (mem_mutex);
-			#ifdef IRIX
-			aux->Origin[0] = 0;
-			free(aux->Origin);
-			#endif
 			free(aux->Block);
 			break;
 		}
@@ -154,46 +147,6 @@ extern "C" int efree(void* Block)
 }
 
 #ifdef DEBUG_ALLOC
-#ifdef IRIX
-void *operator new (size_t size)
-{
-	char **trace = (char **) malloc (4 * sizeof (char *));
-	uint64_t *addr = (uint64_t *) malloc (4 * sizeof (uint64_t));
-	
-	char *ctrace = (char *) malloc ((size_t) 104);
-	
-	trace[0] = (char *) malloc ((size_t) 32);
-	trace[1] = (char *) malloc ((size_t) 32);
-	trace[2] = (char *) malloc ((size_t) 32);
-	trace[3] = (char *) malloc ((size_t) 32);
-	trace[1][0] = 0;
-	trace[2][0] = 0;
-	trace[3][0] = 0;
-	
-	trace_back_stack(4, addr, trace, 4, 31);
-	
-	strcpy (ctrace, trace[3]);
-	strcat (ctrace, "->");
-	strcat (ctrace, trace[2]);
-	strcat (ctrace, "->");
-	strcat (ctrace, trace[1]);
-	
-	void *x = ealloc(size, ctrace);
-
-	free (trace[0]);
-	free (trace[1]);
-	free (trace[2]);
-	free (trace[3]);
-	free (trace);
-	free (addr);
-	return x;
-}
-
-void operator delete (void *block)
-{
-	efree (block);
-}
-#else
 
 #include <setjmp.h>
 
@@ -256,6 +209,5 @@ extern "C" void *__builtin_vec_delete (void *ptr)
 	return ((void *) __builtin_delete (ptr));
 }
 
-#endif
 
 #endif

@@ -9,7 +9,7 @@
 //
 // with the message on standard input. -f also makes msmtp use the account
 // whose "from" is the sender (or its default account). The message is
-// kept in memory (memfd), never in a file. A program that runs for more
+// kept in memory (memfd) where the system has it. A program that runs for more
 // than five minutes is stopped.
 //
 // GNU LGPL like PostOffice itself.
@@ -65,6 +65,23 @@ static void close_from (int lowfd)
 	for (int fd = lowfd; fd < max; ++fd) close (fd);
 }
 
+// Where the message is kept for the program to read: memory (memfd) on
+// Linux, FreeBSD and NetBSD; on the other BSDs a private file in
+// ~/.postoffice that is removed as soon as it is open.
+static int open_message_store (void)
+{
+#ifdef MFD_CLOEXEC
+	int fd = memfd_create ("neo-postoffice-message", MFD_CLOEXEC);
+	if (fd >= 0 || errno != ENOSYS) return fd;
+#endif
+	std::string tmpl = std::string (getenv ("HOME") ? getenv ("HOME") : "/tmp") + "/.postoffice/.send-XXXXXX";
+	int fd2 = mkstemp (&tmpl[0]);
+	if (fd2 < 0) return -1;
+	unlink (tmpl.c_str());
+	fcntl (fd2, F_SETFD, FD_CLOEXEC);
+	return fd2;
+}
+
 // Trims the program's output to its last few lines, for the error message.
 static std::string short_output (const std::string &text)
 {
@@ -88,7 +105,7 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 
 	// The message, in memory.
 	std::string message = build_message (HdrNames, HdrValues, body);
-	int in = memfd_create ("neo-postoffice-message", MFD_CLOEXEC);
+	int in = open_message_store ();
 	if (in < 0)
 	{
 		err = std::string ("cannot hold the message: ") + strerror (errno);

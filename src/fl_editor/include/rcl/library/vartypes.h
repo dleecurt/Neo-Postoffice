@@ -6,20 +6,8 @@
 #define far
 #define _export 
 
-#if defined(WIN32)
-#include <dos.h>
-#ifdef MSC
-#define MK_FP(seg,ofs)  ((void far *) \
-       (((unsigned long)(seg) << 16) | (unsigned)(ofs)))
-#endif
-#ifndef RCLDLL
-#define RCLDLL 
-#endif
-
-#else	// not Win32
 #define RCLDLL  
 #define CLASSEXPORT
-#endif
 
 // if your compiler doesn't support a bool type, uncomment this...
 //typedef char bool;
@@ -83,11 +71,7 @@
 #define __FILE__    NULL
 #endif
 
-#ifdef WIN32
-RCLDLL extern double PowersOfTen[];
-#else
 extern double PowersOfTen[];
-#endif
 
 enum ErrorSeverity
 {
@@ -135,10 +119,8 @@ enum rclError {
 
 #ifdef __cplusplus
 #include <math.h>
-#ifndef WIN32
 #ifndef modf
 extern "C" double modf(double, double *);
-#endif
 #endif
 inline double Round(double num, short places)
 {

@@ -427,10 +427,8 @@ FL_EXPORT int Fl_Editor::handle(int event)
 			handled = 1;
 			break;
 		case FL_UNFOCUS:
-#ifndef WIN32
 			if ( marking )
 				CopySelection(false);	// set selection() so normal X mark-then-paste works.
-#endif
 			if(!HideCursor())
 			{
 				HideCursor(myHideCursor = true);
@@ -449,7 +447,6 @@ FL_EXPORT int Fl_Editor::handle(int event)
 			selectlines = false;
 			if ( Fl::event_button() == 2 ) // middle button paste
 			{
-#ifndef WIN32
 				if ( marking )
 				{
 					engine->Command(CLEAR_MARKS);
@@ -463,7 +460,6 @@ FL_EXPORT int Fl_Editor::handle(int event)
 					//if (Fl::focus()==this)  handled = 1;	//remove for Motif behavior
 					damage(DAMAGE_EDITOR);
 				}
-#endif
 			}
 			else if ( ( Fl::event_button() == 1 ) && Fl::event_is_click() )
 			{
@@ -596,9 +592,7 @@ FL_EXPORT int Fl_Editor::handle(int event)
 		case FL_RELEASE:
 			damage(DAMAGE_PARTIAL);
 			handled = 1;
-#ifndef WIN32
 			CopySelection(false);	// set selection() so normal X mark-then-paste works.
-#endif
 			selectlines =  false;
 			break;
 		case FL_PASTE:

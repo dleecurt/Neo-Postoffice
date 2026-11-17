@@ -3,9 +3,6 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef WIN32
-#include <conio.h>
-#endif
 #include <rcl/library/strings.h>
 
 /*
