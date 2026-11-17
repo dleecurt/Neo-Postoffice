@@ -28,6 +28,12 @@ In your getmail rc file, deliver into the Maildir:
 getmail writes each message to `tmp/` and then moves it to `new/`, so
 Neo-PostOffice never sees a half-written message.
 
+To have Neo-PostOffice run getmail itself, enter it as the mailbox's
+*Fetch command* in Config → Mailboxes (for example
+`getmail --rcfile work.rc`): it then runs before every check, on *Check
+Mail* and at the mailbox's interval. See "Fetching mail with getmail or
+fetchmail" in the README.
+
 With fetchmail, deliver through a local mail delivery agent that writes
 Maildir (for example `mda "/usr/bin/procmail -d %T"` with a procmail rule
 ending in `Maildir/`).

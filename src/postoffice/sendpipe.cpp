@@ -9,8 +9,11 @@
 //
 // with the message on standard input. -f also makes msmtp use the account
 // whose "from" is the sender (or its default account). The message is
-// kept in memory (memfd) where the system has it. A program that runs for more
-// than five minutes is stopped.
+// kept in memory (memfd) where the system has it.
+//
+// It also runs a mailbox's fetch command (getmail, fetchmail) through
+// /bin/sh before the mailbox is checked. Either program is stopped after
+// five minutes.
 //
 // GNU LGPL like PostOffice itself.
 //===============================================================================
@@ -34,7 +37,7 @@
 #include <string>
 #include <vector>
 
-static const int SEND_TIMEOUT = 300;	// seconds
+static const int RUN_TIMEOUT = 300;	// seconds
 
 // The message as the program reads it: headers, an empty line, the body,
 // with plain \n line ends (sendmail and msmtp turn them into CRLF).
@@ -91,6 +94,112 @@ static std::string short_output (const std::string &text)
 	return t;
 }
 
+// Runs a program with in as its standard input (closed here) and collects
+// what it writes. The program gets its own process group, so that a
+// timeout stops everything it started (sh -c "getmail ..."). label names
+// it in err.
+static bool run_program (std::vector<std::string> args, int in, const std::string &label, std::string &err)
+{
+	// The arguments, ready before fork (the child only calls exec).
+	std::vector<char *> argv;
+	for (std::string &a : args) argv.push_back (&a[0]);
+	argv.push_back (NULL);
+
+	int out[2], failed[2];		// output of the program; errno if exec fails
+	if (pipe2 (out, O_CLOEXEC) != 0)
+	{
+		err = "cannot start " + label + ": " + strerror (errno);
+		close (in);
+		return false;
+	}
+	if (pipe2 (failed, O_CLOEXEC) != 0)
+	{
+		err = "cannot start " + label + ": " + strerror (errno);
+		close (in); close (out[0]); close (out[1]);
+		return false;
+	}
+
+	pid_t pid = fork();
+	if (pid == 0)
+	{
+		setpgid (0, 0);
+		dup2 (in, 0);
+		dup2 (out[1], 1);
+		dup2 (out[1], 2);
+		dup2 (failed[1], 3);
+		fcntl (3, F_SETFD, FD_CLOEXEC);
+		close_from (4);
+		signal (SIGPIPE, SIG_DFL);
+		execvp (argv[0], argv.data());
+		int e = errno;
+		if (write (3, &e, sizeof (e))) {}
+		_exit (127);
+	}
+	int fork_errno = errno;
+	close (in);
+	close (out[1]);
+	close (failed[1]);
+	if (pid < 0)
+	{
+		err = "cannot start " + label + ": " + strerror (fork_errno);
+		close (out[0]); close (failed[0]);
+		return false;
+	}
+	setpgid (pid, pid);		// also here, in case the parent gets there first
+
+	// The program's output, until it closes it or takes too long.
+	std::string output;
+	time_t start = time (NULL);
+	bool timed_out = false;
+	for (;;)
+	{
+		struct pollfd p = { out[0], POLLIN, 0 };
+		int r = poll (&p, 1, 1000);
+		if (r < 0 && errno != EINTR) break;
+		if (r > 0)
+		{
+			char buf[1024];
+			ssize_t n = read (out[0], buf, sizeof (buf));
+			if (n <= 0) break;
+			if (output.size() < 16384) output.append (buf, n);
+		}
+		if (time (NULL) - start > RUN_TIMEOUT)
+		{
+			kill (-pid, SIGTERM);
+			timed_out = true;
+			break;
+		}
+	}
+	close (out[0]);
+
+	int status = 0;
+	while (waitpid (pid, &status, 0) < 0 && errno == EINTR) {}
+
+	int exec_errno = 0;
+	bool exec_failed = read (failed[0], &exec_errno, sizeof (exec_errno)) == sizeof (exec_errno);
+	close (failed[0]);
+
+	if (exec_failed)
+	{
+		err = "cannot run " + label + ": " + strerror (exec_errno);
+		return false;
+	}
+	if (timed_out)
+	{
+		err = label + " did not finish within " + std::to_string (RUN_TIMEOUT / 60) + " minutes and was stopped";
+		return false;
+	}
+	if (!WIFEXITED (status) || WEXITSTATUS (status) != 0)
+	{
+		err = label + (WIFEXITED (status) ? " failed (exit status " + std::to_string (WEXITSTATUS (status)) + ")"
+										  : std::string (" was killed by signal ") + std::to_string (WTERMSIG (status)));
+		std::string o = short_output (output);
+		if (!o.empty()) err += ":\n" + o;
+		return false;
+	}
+	return true;
+}
+
 bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrValues,
 						const char *mailfrom, WordList *Recipients, const char *body,
 						std::string &err)
@@ -125,102 +234,18 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 	}
 	lseek (in, 0, SEEK_SET);
 
-	// The arguments, ready before fork (the child only calls exec).
 	std::vector<std::string> args = { path, "-i", "-f", mailfrom ? mailfrom : "", "--" };
 	for (int i = 0; i < Recipients->Count; ++i) args.push_back (Recipients->Get (i));
-	std::vector<char *> argv;
-	for (std::string &a : args) argv.push_back (&a[0]);
-	argv.push_back (NULL);
+	return run_program (args, in, path, err);
+}
 
-	int out[2], failed[2];		// output of the program; errno if exec fails
-	if (pipe2 (out, O_CLOEXEC) != 0)
+bool run_fetch_command (const char *command, std::string &err)
+{
+	int in = open ("/dev/null", O_RDONLY | O_CLOEXEC);
+	if (in < 0)
 	{
-		err = std::string ("cannot start ") + path + ": " + strerror (errno);
-		close (in);
+		err = std::string ("cannot open /dev/null: ") + strerror (errno);
 		return false;
 	}
-	if (pipe2 (failed, O_CLOEXEC) != 0)
-	{
-		err = std::string ("cannot start ") + path + ": " + strerror (errno);
-		close (in); close (out[0]); close (out[1]);
-		return false;
-	}
-
-	pid_t pid = fork();
-	if (pid == 0)
-	{
-		dup2 (in, 0);
-		dup2 (out[1], 1);
-		dup2 (out[1], 2);
-		dup2 (failed[1], 3);
-		fcntl (3, F_SETFD, FD_CLOEXEC);
-		close_from (4);
-		signal (SIGPIPE, SIG_DFL);
-		execvp (argv[0], argv.data());
-		int e = errno;
-		if (write (3, &e, sizeof (e))) {}
-		_exit (127);
-	}
-	int fork_errno = errno;
-	close (in);
-	close (out[1]);
-	close (failed[1]);
-	if (pid < 0)
-	{
-		err = std::string ("cannot start ") + path + ": " + strerror (fork_errno);
-		close (out[0]); close (failed[0]);
-		return false;
-	}
-
-	// The program's output, until it closes it or takes too long.
-	std::string output;
-	time_t start = time (NULL);
-	bool timed_out = false;
-	for (;;)
-	{
-		struct pollfd p = { out[0], POLLIN, 0 };
-		int r = poll (&p, 1, 1000);
-		if (r < 0 && errno != EINTR) break;
-		if (r > 0)
-		{
-			char buf[1024];
-			ssize_t n = read (out[0], buf, sizeof (buf));
-			if (n <= 0) break;
-			if (output.size() < 16384) output.append (buf, n);
-		}
-		if (time (NULL) - start > SEND_TIMEOUT)
-		{
-			kill (pid, SIGTERM);
-			timed_out = true;
-			break;
-		}
-	}
-	close (out[0]);
-
-	int status = 0;
-	while (waitpid (pid, &status, 0) < 0 && errno == EINTR) {}
-
-	int exec_errno = 0;
-	bool exec_failed = read (failed[0], &exec_errno, sizeof (exec_errno)) == sizeof (exec_errno);
-	close (failed[0]);
-
-	if (exec_failed)
-	{
-		err = "cannot run " + path + ": " + strerror (exec_errno);
-		return false;
-	}
-	if (timed_out)
-	{
-		err = path + " did not finish within " + std::to_string (SEND_TIMEOUT / 60) + " minutes and was stopped";
-		return false;
-	}
-	if (!WIFEXITED (status) || WEXITSTATUS (status) != 0)
-	{
-		err = path + (WIFEXITED (status) ? " failed (exit status " + std::to_string (WEXITSTATUS (status)) + ")"
-										 : std::string (" was killed by signal ") + std::to_string (WTERMSIG (status)));
-		std::string o = short_output (output);
-		if (!o.empty()) err += ":\n" + o;
-		return false;
-	}
-	return true;
+	return run_program ({ "/bin/sh", "-c", command }, in, command, err);
 }

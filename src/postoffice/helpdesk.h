@@ -173,6 +173,10 @@ extern Fl_Iconbrowser *br_prefs_mailboxes;
 extern void cb_prefs_mailbox_add(Fl_Button*, void*);
 extern Fl_Button *bt_prefs_mailbox_add;
 extern Fl_Group *gr_mailboxes_set;
+extern Fl_Group *gr_prefs_fetchcmd;
+extern void cb_prefs_fetchcmd(Fl_Input*, void*);
+extern Fl_Input *in_prefs_fetchcmd;
+extern Fl_Group *gr_prefs_collection_row;
 extern void cb_prefs_mailbox_flags(Fl_Choice*, void*);
 extern Fl_Choice *ch_prefs_collection;
 #include <FL/Fl_Int_Input.H>

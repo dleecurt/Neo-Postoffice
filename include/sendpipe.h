@@ -12,4 +12,9 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 						const char *mailfrom, WordList *Recipients, const char *body,
 						std::string &err);
 
+// Runs a mailbox's fetch command (getmail, fetchmail...) with /bin/sh -c,
+// stopping it after five minutes. Returns false with the reason and the
+// last lines of its output in err if it failed.
+bool run_fetch_command (const char *command, std::string &err);
+
 #endif

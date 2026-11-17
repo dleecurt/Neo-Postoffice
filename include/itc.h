@@ -56,6 +56,7 @@
 // global defines
 
 #define NO_SUBCLASS			0x0000 // placeholder
+#define SUB_CHECK_NOFETCH	0x1001 // CLASS_CHECKGROUP: rescan only, without the mailbox's fetch command
 
 class ITCMessage
 {

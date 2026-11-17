@@ -5022,6 +5022,12 @@ static Fl_Image *image_filenew2() {
 
 Fl_Group *gr_mailboxes_set=(Fl_Group *)0;
 
+Fl_Group *gr_prefs_fetchcmd=(Fl_Group *)0;
+
+Fl_Input *in_prefs_fetchcmd=(Fl_Input *)0;
+
+Fl_Group *gr_prefs_collection_row=(Fl_Group *)0;
+
 Fl_Choice *ch_prefs_collection=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_collection[] = {
@@ -5574,7 +5580,25 @@ Fl_Window* make_prefs_window() {
           { Fl_Group* o = new Fl_Group(20, 245, 600, 215);
             o->box(FL_ENGRAVED_BOX);
             o->color((Fl_Color)51);
-            { Fl_Group* o = new Fl_Group(35, 255, 565, 20);
+            { gr_prefs_fetchcmd = new Fl_Group(35, 255, 565, 20);
+              gr_prefs_fetchcmd->hide();
+              { Fl_Button* o = new Fl_Button(35, 255, 220, 20, "Fetch command");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+              } // Fl_Button* o
+              { in_prefs_fetchcmd = new Fl_Input(315, 255, 285, 20);
+                in_prefs_fetchcmd->tooltip("A command run with /bin/sh before every check of this mailbox, that fetches i"
+"ts mail (for example getmail or fetchmail -s). Leave empty if mail arrives som"
+"e other way.");
+                in_prefs_fetchcmd->labelsize(12);
+                in_prefs_fetchcmd->textsize(12);
+                in_prefs_fetchcmd->callback((Fl_Callback*)cb_prefs_fetchcmd);
+                in_prefs_fetchcmd->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_fetchcmd
+              gr_prefs_fetchcmd->end();
+            } // Fl_Group* gr_prefs_fetchcmd
+            { gr_prefs_collection_row = new Fl_Group(35, 255, 565, 20);
               { Fl_Group* o = new Fl_Group(315, 255, 285, 20);
                 o->box(FL_BORDER_FRAME);
                 o->color(FL_FOREGROUND_COLOR);
@@ -5604,8 +5628,8 @@ Fl_Window* make_prefs_window() {
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
                 xloc(o, "collection_method");
               } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
+              gr_prefs_collection_row->end();
+            } // Fl_Group* gr_prefs_collection_row
             { Fl_Group* o = new Fl_Group(35, 300, 565, 20);
               { Fl_Button* o = new Fl_Button(35, 300, 270, 20, "Expire received messages on server after");
                 o->box(FL_NO_BOX);

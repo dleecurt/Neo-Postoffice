@@ -15,7 +15,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 
 ## Features
 
-- POP3, IMAP4 and NNTP (Usenet) support; outgoing mail is queued in the
+- POP3, IMAP4 and NNTP (Usenet) support, or a fetch command (getmail,
+  fetchmail) run before each check of a local mailbox; outgoing mail is queued in the
   outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
   client
 - Local mbox files, Maildir (with Maildir++ folders) and MH folders
@@ -117,6 +118,26 @@ enter a libpq connection string, for example
 put it in `~/.pgpass`. The tables (`po_messages`, `po_parts`) are created
 on first use; `docs/postgresql-storage.sql` shows them. Messages from
 several mailboxes and users can share one database.
+
+## Fetching mail with getmail or fetchmail
+
+Maildir, MH and mbox mailboxes can have a *Fetch command* (Config →
+Mailboxes, in place of the collection method). It is run with
+`/bin/sh -c` before every check of that mailbox: at startup, on *Check
+Mail* (Alt+L) and at the mailbox's interval, and then the mailbox is
+read. For example:
+
+    getmail --rcfile work.rc
+    fetchmail -s
+    getmail --rcfile personal.rc && getmail --rcfile lists.rc
+
+The command should deliver into this mailbox (getmail's destination,
+fetchmail through procmail and so on). While it runs, the status bar
+says so; it is stopped after five minutes. If it fails, its last lines
+of output are shown, once until the error changes or a run succeeds,
+and the mailbox is read anyway. Moving or copying messages into the
+mailbox does not run it. Leave the field empty if mail is fetched some
+other way (cron, a fetchmail daemon).
 
 ## Maildir mailboxes
 
@@ -270,6 +291,8 @@ See the git history for details. In summary:
   old-FreeBSD and Windows code was removed, along with the `LINUX`
   build define. Connection addresses are formatted with `inet_ntop`
   instead of a byte-order guess that printed some of them backwards.
+- Maildir, MH and mbox mailboxes can run a fetch command such as getmail
+  or fetchmail before every check, with its errors shown.
 
 ## Known issues and ideas
 

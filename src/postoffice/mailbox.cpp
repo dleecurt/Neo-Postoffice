@@ -981,5 +981,6 @@ void MailBox::TransferMessage (const char *msgid, const char *target, const char
         Handler->DeleteMessage ((char *) msgid);
         ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Name, msgid);
     }
-    if (last && T) T->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
+    // Show the new arrivals; this is no reason to fetch mail.
+    if (last && T) T->ToCollector->PostMessage (CLASS_CHECKGROUP, SUB_CHECK_NOFETCH, "*");
 }

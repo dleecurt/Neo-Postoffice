@@ -75,7 +75,8 @@ If nmh is not set up yet, `install-mh` creates the profile and
 - Neo-PostOffice reads the folders; it does not deliver mail. Keep using
   `inc`, or let getmail, fetchmail or procmail deliver into the inbox
   (procmail writes an MH folder when the folder name in a rule ends in
-  `/.`, as in `Mail/inbox/.`).
+  `/.`, as in `Mail/inbox/.`). The mailbox's *Fetch command* in Config →
+  Mailboxes (for example `inc` or `getmail`) is run before every check.
 - The ",NUMBER" backups are not removed by Neo-PostOffice. nmh does not
   remove them either; a cron job such as
   `find ~/Mail -name ',[0-9]*' -mtime +30 -delete` does.

@@ -264,6 +264,19 @@ void func_view_protocol (void)
 	{
 		//int val;
 		ch_prefs_collection->value (PREFS_CURRENTBOX->Get_int ("collection"));
+		// Mailboxes kept in local files can have a command that fetches
+		// their mail; the collection method only applies to servers.
+		if (val == 3 || val == 5 || val == 6)
+		{
+			in_prefs_fetchcmd->value (PREFS_CURRENTBOX->Get_char ("fetchcmd"));
+			gr_prefs_collection_row->hide ();
+			gr_prefs_fetchcmd->show ();
+		}
+		else
+		{
+			gr_prefs_fetchcmd->hide ();
+			gr_prefs_collection_row->show ();
+		}
 		in_prefs_expire_onserver_received->value (PREFS_CURRENTBOX->Get_char ("expire_onserver_received"));
 		in_prefs_expire_onserver_notreceived->value (PREFS_CURRENTBOX->Get_char ("expire_onserver_notreceived"));
 		in_prefs_expire_local_only->value (PREFS_CURRENTBOX->Get_char ("expire_local_only"));
@@ -1170,6 +1183,11 @@ void cb_prefs_storage_conninfo (Fl_Input */*i*/, void */*v*/)
 	if (!PREFS_CURRENTBOX) return;
 	PREFS_MBOX_CHANGE=1;
 	PREFS_CURRENTBOX->Set_char ("pgsql_conninfo", in_prefs_storage_conninfo->value());
+}
+
+void cb_prefs_fetchcmd (Fl_Input *i, void */*v*/)
+{
+	if (PREFS_CURRENTBOX) PREFS_CURRENTBOX->Set_char ("fetchcmd", (char *) i->value());
 }
 
 void cb_prefs_protocol (Fl_Choice */*c*/, void */*v*/)

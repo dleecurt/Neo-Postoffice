@@ -1377,7 +1377,19 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Group {} {
             xywh {20 245 600 215} box ENGRAVED_BOX color 51
           } {
-            Fl_Group {} {open
+            Fl_Group gr_prefs_fetchcmd {open
+              xywh {35 255 565 20} hide
+            } {
+              Fl_Button {} {
+                label {Fetch command}
+                xywh {35 255 220 20} box NO_BOX labelsize 12 align 20
+              }
+              Fl_Input in_prefs_fetchcmd {
+                callback cb_prefs_fetchcmd
+                tooltip {A command run with /bin/sh before every check of this mailbox, that fetches its mail (for example getmail or fetchmail -s). Leave empty if mail arrives some other way.} xywh {315 255 285 20} labelsize 12 when 1 textsize 12
+              }
+            }
+            Fl_Group gr_prefs_collection_row {open
               xywh {35 255 565 20}
             } {
               Fl_Group {} {open

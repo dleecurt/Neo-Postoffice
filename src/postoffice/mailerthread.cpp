@@ -13,6 +13,10 @@
 #include "mailbox.h"
 #include "usleep.h"
 #include "debug.h"
+#include "sendpipe.h"
+#include "style.h"
+
+#include <string>
 
 #define ST_CHECKMESSAGES 0x01
 #define ST_POSTMESSAGES  0x02
@@ -24,6 +28,30 @@ extern MailBox *currentmailbox;
 MailerThread::~MailerThread (void)
 {
 	if (Started) Kill();
+}
+
+// Runs the mailbox's fetch command, if it has one. A failure is shown
+// once (until the error changes or a run succeeds); the mailbox is
+// checked anyway. Called in the mailbox's own thread only.
+void MailBox::RunFetchCommand (bool automatic)
+{
+	Var *prefs = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name);
+	const char *command = prefs->Get_char ("fetchcmd");
+	if (!command || !*command) return;
+	// The timer's first check comes right after the one at startup.
+	if (automatic && time (NULL) - LastFetch < 10) return;
+
+	std::string status = std::string ("Fetching mail for ") + Name + "...";
+	ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, status.c_str());
+	std::string err;
+	bool ok = run_fetch_command (command, err);
+	LastFetch = time (NULL);
+	ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+
+	if (!ok && err != LastFetchError)
+		ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Name,
+						   (std::string ("Could not fetch the mail for ") + Name + ": " + err).c_str());
+	LastFetchError = ok ? "" : err;
 }
 
 void MailerThread::Run (void *data)
@@ -77,6 +105,9 @@ void *MailerThread::MailerMain (void *_box)
 				
 				case CLASS_CHECKGROUP:
 					snprintf (currentgroup, sizeof (currentgroup), "%s", M->Message->Get(0));
+					// A Maildir, MH or mbox mailbox may have a command that
+					// fetches its mail (getmail, fetchmail): run it first.
+					if (M->Subclass != SUB_CHECK_NOFETCH) Box->RunFetchCommand (M->Class == SCHED_CHECKNEW);
 					//printf ("class_checkgroup handler=%08x m=%08x m->message=%08x\n", Box->Handler, M, M->Message);
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->CloseConnection();
