@@ -374,9 +374,8 @@ See the git history for details. In summary:
 - Keyboard navigation in the message list (after clicking it): Up/Down,
   Page Up/Down and Home/End move the selection and keep it in view; Right
   opens a thread and Left closes it (on a reply, Left goes to the message
-  it answers). The
-  message is shown once the keys pause. The mailbox list keeps its
-  selection when it is rebuilt more than once.
+  it answers). The message is shown once the keys pause. The mailbox
+  list keeps its selection when it is rebuilt more than once.
 
 ## Known issues and ideas
 
