@@ -59,9 +59,8 @@ void UnavailableHandler::CheckGroup (const char * /*group*/)
 {
 	if (Told) return;
 	Told = true;
-	std::string note = std::string (Parent->Name) + " is an " + What + " mailbox. " + What +
-					   " is not available in this version of Neo-PostOffice; its settings are kept for when it is."
-					   " Meanwhile mbsync or OfflineIMAP can keep a Maildir in step with the server"
-					   " (see the README).";
+	std::string note = std::string (Parent->Name) + " is an " + What + " mailbox, but this Neo-PostOffice"
+					   " was built without " + What + " support (libetpan was not found when it was built;"
+					   " install libetpan-dev and build again). The mailbox's settings are kept.";
 	Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Parent->Name, note.c_str());
 }

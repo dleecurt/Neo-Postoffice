@@ -15,9 +15,9 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 
 ## Features
 
-- POP3 over TLS or STARTTLS, NNTP (Usenet), or a fetch command (getmail,
-  fetchmail, mbsync) run before each check of a local mailbox; IMAP4 is
-  being rewritten (see below); outgoing mail is queued in the
+- POP3 over TLS or STARTTLS, IMAP4 (being built, with libetpan; see
+  below), NNTP (Usenet), or a fetch command (getmail, fetchmail, mbsync)
+  run before each check of a local mailbox; outgoing mail is queued in the
   outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
   client
 - Local mbox files, Maildir (with Maildir++ folders) and MH folders
@@ -34,8 +34,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 
 On Debian 13 (trixie):
 
-    sudo apt install build-essential cmake libfltk1.4-dev libgdbm-dev \
-                     libx11-dev libxext-dev libpq-dev libssl-dev
+    sudo apt install build-essential cmake pkg-config libfltk1.4-dev libgdbm-dev \
+                     libx11-dev libxext-dev libpq-dev libssl-dev libetpan-dev
     cmake -S . -B build
     cmake --build build -j$(nproc)
     ./build/postoffice
@@ -49,7 +49,8 @@ OpenBSD also `-DCMAKE_PREFIX_PATH=/usr/X11R6` if X11 is not found. The
 BSD builds have not been tested yet.
 
 Requirements: a C++17 compiler, CMake 3.16+, FLTK 1.4 (with its image
-library) and GDBM; libpq for PostgreSQL. FLTK is found through `fltk-config` or, if that is not
+library) and GDBM; libpq for PostgreSQL; libetpan 1.9 or newer (found
+with pkg-config; BSD ports: `mail/libetpan`) for IMAP. FLTK is found through `fltk-config` or, if that is not
 installed, FLTK's CMake package. (Debian 13's FLTK CMake package is
 broken, which is why `fltk-config` comes first.) To use a self-built
 FLTK, put its `bin` directory first in `PATH`, or pass
@@ -60,6 +61,7 @@ FLTK, put its `bin` directory first in `PATH`, or pass
 | Option | Default | Meaning |
 |---|---|---|
 | `WITH_POSTGRESQL` | `AUTO` | PostgreSQL support: SQL mailboxes, PostgreSQL storage and `po-sqldeliver` (needs `libpq-dev`). `AUTO` uses it when libpq is found |
+| `WITH_LIBETPAN` | `AUTO` | IMAP4 support (needs `libetpan-dev`). Without it, IMAP4 mailboxes keep their settings and show a note |
 | `PO_WARNINGS` | `ON` | Compile with `-Wall -Wextra` |
 
 ### Debug build with sanitizers
@@ -114,17 +116,28 @@ certificate) are shown once, not at every automatic check.
 
 ## IMAP4
 
-The original IMAP4 client could not work with today's servers and has
-been removed; a new one, with TLS, folders and flags kept in step with
-the server, is planned. *IMAP4* is no longer offered for new mailboxes;
-an existing IMAP4 mailbox keeps its settings for the new client and
-shows a note when checked. See [docs/imap-plan.md](docs/imap-plan.md).
+A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
+the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
+It is not finished: **step 1 of 6** is done.
 
-Until then, mbsync (isync) or OfflineIMAP can keep a local Maildir in
-step with an IMAP server in both directions: folders, read state, flags,
-deletions and moves. Set up a *Maildir* mailbox on that directory with
-`mbsync -a` (or `offlineimap -o -u quiet`) as its *Fetch command*: every
-check then brings new mail in and sends your changes back.
+What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
+over TLS (port 993), STARTTLS (port 143) or, for a server on your own
+network, without encryption; certificates are checked as for POP3
+(system CAs plus an optional CA file, and the host name), with no way to
+turn that off. It logs in with the password or the first line printed
+by the password command, and shows the folders you subscribe to on the
+server (and always the inbox) as its folders. Messages are not read yet.
+
+An IMAP4 mailbox from PostOffice 0.7, which has no encryption setting,
+uses STARTTLS on its old port rather than sending the password in the
+clear.
+
+Until IMAP is finished, mbsync (isync) or OfflineIMAP can keep a local
+Maildir in step with an IMAP server in both directions: folders, read
+state, flags, deletions and moves. Set up a *Maildir* mailbox on that
+directory with `mbsync -a` (or `offlineimap -o -u quiet`) as its *Fetch
+command*: every check then brings new mail in and sends your changes
+back.
 
 ## Sending mail
 
@@ -344,8 +357,9 @@ See the git history for details. In summary:
   dot-unstuffing, stable IDs for messages without a Message-ID, and
   deletion only after messages are saved. Deletions are sent in one
   session, and messages expired as headers leave the list.
-- The old IMAP4 client was removed (it could not work); IMAP4 mailboxes
-  keep their settings for a new client.
+- The old IMAP4 client was removed (it could not work); a new one is
+  being built on libetpan (step 1: connecting, logging in and folders),
+  and IMAP4 mailboxes keep their settings.
 - The settings file and `uidl.dat` are private (mode 600). Long error
   messages are wrapped. Changing mailbox settings no longer leaves the
   window pointing at a deleted mailbox (a crash when its next message

@@ -1670,7 +1670,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 callback cb_prefs_protocol_pop3
                 tooltip {Empty: 995 for TLS, 110 otherwise.} xywh {565 82 40 20} labelsize 12 when 1 textsize 12
               }
-              Fl_Button {} {
+              Fl_Button lb_prefs_protocol_pop3_host {
                 label {POP3 Host}
                 xywh {240 82 110 20} box NO_BOX labelsize 12 align 20
                 code0 {xloc(o, "pop3_host");}
@@ -1758,7 +1758,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
           } {
             Fl_Box {} {
-              label {IMAP4 is not available in this version of Neo-PostOffice. A new IMAP client is planned; this mailbox's settings are kept for it. Meanwhile, mbsync or OfflineIMAP can keep a Maildir in step with the server: see the README.}
+              label {This Neo-PostOffice was built without IMAP support: libetpan was not found when it was built. Install libetpan-dev (or the mail/libetpan port) and build again. This mailbox's settings are kept.}
               xywh {245 85 360 140} labelsize 12 align 149
             }
           }

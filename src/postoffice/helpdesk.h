@@ -207,6 +207,7 @@ extern Fl_Group *gr_prefs_protocol_pop3;
 extern void cb_prefs_protocol_pop3(Fl_Input*, void*);
 extern Fl_Input *in_prefs_protocol_pop3_host;
 extern Fl_Input *in_prefs_protocol_pop3_port;
+extern Fl_Button *lb_prefs_protocol_pop3_host;
 extern void cb_prefs_protocol_pop3_security(Fl_Choice*, void*);
 extern Fl_Choice *ch_prefs_protocol_pop3_security;
 extern Fl_Input *in_prefs_protocol_pop3_user;

@@ -170,8 +170,12 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     }
 	else if (strcasecmp (PREFROOT->Get_char ("protocol"), "imap4") == 0)
 	{
-		// The old IMAP4 client was removed; a new one will take these settings.
+#ifdef PO_HAVE_LIBETPAN
+		Handler = new IMAP4Handler (this, PREFROOT);
+#else
+		// Built without libetpan: the settings are kept for a build with it.
 		Handler = new UnavailableHandler (this, PREFROOT, "IMAP4");
+#endif
 	}
 	
     // Open all views

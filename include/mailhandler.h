@@ -95,9 +95,57 @@ private:
 	void					 ShowStatus (int jid, const std::string &text);
 };
 
-// A mailbox whose protocol is not available in this version (IMAP4, until
-// the new IMAP client exists). Its settings are kept; checking it shows a
-// note once.
+#ifdef PO_HAVE_LIBETPAN
+struct mailimap;
+
+// IMAP4rev1 (imap4handler.cpp), with libetpan over NetStream: TLS, STARTTLS
+// or plain, with the same certificate checks as POP3.
+class IMAP4Handler : public MailHandler
+{
+public:
+	IMAP4Handler (MailBox *, Var *);
+	~IMAP4Handler (void);
+
+	void					 OpenConnection (void);
+	void					 CloseConnection (void);
+	void					 CheckGroup (const char *);
+
+	// A server folder (one LSUB/LIST line) and its name in the client.
+	struct Folder
+	{
+		std::string			 Server;	// as the server names it (modified UTF-7)
+		std::string			 Client;	// "Inbox", "Lists/2025" (UTF-8)
+		char				 Delim;		// hierarchy delimiter, 0 if none
+	};
+
+	// Exposed for the tests (imap4test): modified UTF-7 (RFC 3501 5.1.3)
+	// to UTF-8, and a server name to the client's.
+	static bool				 DecodeMUTF7 (const std::string &in, std::string &out);
+	static std::string		 ClientName (const std::string &server, char delim, const std::string &prefix);
+
+private:
+	NetStream				*Net;
+	mailimap				*Imap;
+	std::string				 Host;
+	std::string				 Prefix;		// personal namespace prefix ("INBOX." on some servers)
+	std::vector<Folder>		 Folders;		// subscribed, as of the last check
+	std::string				 LastError;		// shown once
+	bool					 Quiet = false;
+
+	bool					 Session (int jid);
+	void					 EndSession (bool logout);
+	bool					 Capability (const char *name);
+	int						 RefreshCapabilities (void);	// libetpan result
+	bool					 ListFolders (int jid);
+	void					 SyncFolders (void);
+	std::string				 Why (int r);
+	void					 Report (const std::string &what);
+	void					 ShowStatus (int jid, const std::string &text);
+};
+#endif
+
+// A mailbox whose protocol is not available in this build (IMAP4 without
+// libetpan). Its settings are kept; checking it shows a note once.
 class UnavailableHandler : public MailHandler
 {
 public:

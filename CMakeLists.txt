@@ -77,6 +77,27 @@ if(NOT WITH_POSTGRESQL STREQUAL "OFF")
   endif()
 endif()
 
+# libetpan for IMAP (Debian: libetpan-dev; BSD ports: mail/libetpan).
+# Without it IMAP mailboxes are shown as unavailable.
+set(WITH_LIBETPAN "AUTO" CACHE STRING "IMAP support with libetpan: AUTO, ON or OFF")
+set(PO_LIBETPAN OFF)
+if(NOT WITH_LIBETPAN STREQUAL "OFF")
+  find_package(PkgConfig QUIET)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(LIBETPAN QUIET IMPORTED_TARGET libetpan>=1.9)
+  endif()
+  if(LIBETPAN_FOUND)
+    set(PO_LIBETPAN ON)
+    message(STATUS "IMAP support: enabled (libetpan ${LIBETPAN_VERSION})")
+  elseif(WITH_LIBETPAN STREQUAL "ON")
+    message(FATAL_ERROR "WITH_LIBETPAN=ON but libetpan was not found (install libetpan-dev)")
+  else()
+    message(STATUS "IMAP support: disabled (libetpan not found; install libetpan-dev)")
+  endif()
+else()
+  message(STATUS "IMAP support: disabled (WITH_LIBETPAN=OFF)")
+endif()
+
 # ---------------------------------------------------------------------------
 # Common compile settings
 # ---------------------------------------------------------------------------
@@ -85,6 +106,9 @@ add_library(po_settings INTERFACE)
 target_compile_definitions(po_settings INTERFACE _REENTRANT USE_GDBM)
 if(PO_POSTGRESQL)
   target_compile_definitions(po_settings INTERFACE PO_HAVE_POSTGRESQL)
+endif()
+if(PO_LIBETPAN)
+  target_compile_definitions(po_settings INTERFACE PO_HAVE_LIBETPAN)
 endif()
 if(PO_WARNINGS)
   target_compile_options(po_settings INTERFACE -Wall -Wextra)
@@ -147,7 +171,7 @@ set(PO_BACKEND_SOURCES
   localmailhandler.cpp mailhandler.cpp maildirhandler.cpp netstream.cpp sendpipe.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
   nntphandler.cpp sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
-  outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
+  imap4handler.cpp outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtp.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
   var2.cpp version.cpp wizard.cpp wordlist.cpp)
@@ -167,6 +191,9 @@ target_link_libraries(postoffice PRIVATE
 if(PO_POSTGRESQL)
   target_include_directories(postoffice PRIVATE ${PQ_INCLUDE_DIR})
   target_link_libraries(postoffice PRIVATE ${PQ_LIBRARY})
+endif()
+if(PO_LIBETPAN)
+  target_link_libraries(postoffice PRIVATE PkgConfig::LIBETPAN)
 endif()
 
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

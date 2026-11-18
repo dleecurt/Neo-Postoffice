@@ -5125,6 +5125,8 @@ Fl_Input *in_prefs_protocol_pop3_host=(Fl_Input *)0;
 
 Fl_Input *in_prefs_protocol_pop3_port=(Fl_Input *)0;
 
+Fl_Button *lb_prefs_protocol_pop3_host=(Fl_Button *)0;
+
 Fl_Choice *ch_prefs_protocol_pop3_security=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_protocol_pop3_security[] = {
@@ -5908,12 +5910,12 @@ Fl_Window* make_prefs_window() {
                 in_prefs_protocol_pop3_port->callback((Fl_Callback*)cb_prefs_protocol_pop3);
                 in_prefs_protocol_pop3_port->when(FL_WHEN_CHANGED);
               } // Fl_Input* in_prefs_protocol_pop3_port
-              { Fl_Button* o = new Fl_Button(240, 82, 110, 20, "POP3 Host");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+              { Fl_Button* o = lb_prefs_protocol_pop3_host = new Fl_Button(240, 82, 110, 20, "POP3 Host");
+                lb_prefs_protocol_pop3_host->box(FL_NO_BOX);
+                lb_prefs_protocol_pop3_host->labelsize(12);
+                lb_prefs_protocol_pop3_host->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
                 xloc(o, "pop3_host");
-              } // Fl_Button* o
+              } // Fl_Button* lb_prefs_protocol_pop3_host
               o->end();
             } // Fl_Group* o
             { Fl_Group* o = new Fl_Group(240, 107, 365, 20);
@@ -6008,9 +6010,9 @@ Fl_Window* make_prefs_window() {
             gr_prefs_protocol_imap4->color((Fl_Color)51);
             gr_prefs_protocol_imap4->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             gr_prefs_protocol_imap4->hide();
-            { Fl_Box* o = new Fl_Box(245, 85, 360, 140, "IMAP4 is not available in this version of Neo-PostOffice. A new IMAP client i"
-"s planned; this mailbox\'s settings are kept for it. Meanwhile, mbsync or Offl"
-"ineIMAP can keep a Maildir in step with the server: see the README.");
+            { Fl_Box* o = new Fl_Box(245, 85, 360, 140, "This Neo-PostOffice was built without IMAP support: libetpan was not found wh"
+"en it was built. Install libetpan-dev (or the mail/libetpan port) and build ag"
+"ain. This mailbox\'s settings are kept.");
               o->labelsize(12);
               o->align(Fl_Align(133|FL_ALIGN_INSIDE));
             } // Fl_Box* o

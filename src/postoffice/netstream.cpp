@@ -5,6 +5,7 @@
 
 #include "netstream.h"
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -255,6 +256,16 @@ bool NetStream::ReadExact (size_t n, std::string &out)
 	out.append (in, 0, n);
 	in.erase (0, n);
 	return true;
+}
+
+long NetStream::ReadSome (void *buf, size_t n)
+{
+	if (n == 0) return 0;
+	if (in.empty () && !Fill ()) return -1;
+	size_t k = std::min (n, in.size ());
+	memcpy (buf, in.data (), k);
+	in.erase (0, k);
+	return (long) k;
 }
 
 bool NetStream::Write (const std::string &data)

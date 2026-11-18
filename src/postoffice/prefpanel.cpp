@@ -138,6 +138,34 @@ extern char			 currentfolder[64];
 
 void show_delivery (void);
 
+// POP3 and IMAP share the server fields (host, port, encryption, login,
+// CA file); only the labels and default ports differ.
+static void server_fields_for (bool imap)
+{
+	lb_prefs_protocol_pop3_host->label (imap ? "IMAP Host" : "POP3 Host");
+	in_prefs_protocol_pop3_port->tooltip (imap ? "Empty: 993 for TLS, 143 otherwise."
+											   : "Empty: 995 for TLS, 110 otherwise.");
+	Fl_Menu_Item *m = (Fl_Menu_Item *) ch_prefs_protocol_pop3_security->menu ();
+	m[0].label (imap ? "TLS (port 993)" : "TLS (port 995)");
+	m[1].label (imap ? "STARTTLS (port 143)" : "STARTTLS (port 110)");
+	gr_prefs_protocol_pop3->redraw ();
+}
+
+static void load_server_fields (bool imap)
+{
+	in_prefs_protocol_pop3_host->value (PREFS_CURRENTBOX->Get_char ("host"));
+	in_prefs_protocol_pop3_user->value (PREFS_CURRENTBOX->Get_char ("user"));
+	in_prefs_protocol_pop3_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
+	in_prefs_protocol_pop3_port->value (PREFS_CURRENTBOX->Get_int ("port") > 0 ? PREFS_CURRENTBOX->Get_char ("port") : "");
+	in_prefs_protocol_pop3_passcmd->value (PREFS_CURRENTBOX->Get_char ("passcmd"));
+	in_prefs_protocol_pop3_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
+	// Mailboxes from before encryption existed have none set, which the
+	// POP3 client reads as "none" and the IMAP client as "starttls".
+	const char *sec = PREFS_CURRENTBOX->Get_char ("security");
+	ch_prefs_protocol_pop3_security->value (strcmp (sec, "tls") == 0 ? 0 : strcmp (sec, "starttls") == 0 ? 1 :
+											(imap && !*sec) ? 1 : 2);
+}
+
 void func_view_protocol (void)
 {
 	int val = ch_prefs_protocol->value();
@@ -185,16 +213,9 @@ void func_view_protocol (void)
 			if (PREFS_CURRENTBOX)
 			{
 				PREFS_CURRENTBOX->Set_char ("protocol","pop3");
-				in_prefs_protocol_pop3_host->value (PREFS_CURRENTBOX->Get_char ("host"));
-				in_prefs_protocol_pop3_user->value (PREFS_CURRENTBOX->Get_char ("user"));
-				in_prefs_protocol_pop3_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
-				in_prefs_protocol_pop3_port->value (PREFS_CURRENTBOX->Get_int ("port") > 0 ? PREFS_CURRENTBOX->Get_char ("port") : "");
-				in_prefs_protocol_pop3_passcmd->value (PREFS_CURRENTBOX->Get_char ("passcmd"));
-				in_prefs_protocol_pop3_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
-				// Mailboxes from before encryption existed have none set.
-				const char *sec = PREFS_CURRENTBOX->Get_char ("security");
-				ch_prefs_protocol_pop3_security->value (strcmp (sec, "tls") == 0 ? 0 : strcmp (sec, "starttls") == 0 ? 1 : 2);
+				load_server_fields (false);
 			}
+			server_fields_for (false);
 			break;
 
 		case 2:
@@ -238,9 +259,19 @@ void func_view_protocol (void)
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->hide();
-			gr_prefs_protocol_imap4->show();
-			// IMAP4 cannot be chosen any more (the menu item is hidden); an
+#ifdef PO_HAVE_LIBETPAN
+			gr_prefs_protocol_pop3->show();
+			if (PREFS_CURRENTBOX)
+			{
+				PREFS_CURRENTBOX->Set_char ("protocol","imap4");
+				load_server_fields (true);
+			}
+			server_fields_for (true);
+#else
+			// Built without libetpan: the menu item is hidden, and an
 			// existing IMAP4 mailbox shows a note and keeps its settings.
+			gr_prefs_protocol_imap4->show();
+#endif
 			break;
 
 		case 5:
@@ -340,6 +371,9 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		// Grey out database features this build does not have.
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
+#ifdef PO_HAVE_LIBETPAN
+		menu_ch_prefs_protocol[4].show();		// IMAP4
+#endif
 	}
 	
 	// Display Mailboxes
