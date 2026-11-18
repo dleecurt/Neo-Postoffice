@@ -94,7 +94,9 @@ class MailMessage : public BTreeNode
 		
 		MailPart		*GetPart (int);
 		void			 AddPart (const char *, const char *, const char *, const char *); // content-type, content-description, filename
-		void			 AddPart (const char *);
+		void			 AddPart (const char *, int depth = 0);
+		// Splits a multipart body at its boundary lines; false if it has none.
+		bool			 SplitMultipart (const char *boundary, const char *body, int depth);
 																											
 		char			*MsgID;
 		//unsigned long	 cMsgID;

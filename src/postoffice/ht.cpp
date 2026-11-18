@@ -1,3 +1,4 @@
+#include <initializer_list>
 #include "ht.h"
 #include "reg.h"
 #include "strdupp.h"
@@ -334,11 +335,8 @@ void HTGroup::Layout (int HintWidth)
 				HTElement *CC = C;
 				for (int i=0;i<inrow;++i)
 				{
-					if (CC)
-					{
-						CC = CC->Prev;
-						CC->Y = y + ((h - CC->H) / 2);
-					}
+					if (CC) CC = CC->Prev;
+					if (CC) CC->Y = y + ((h - CC->H) / 2);
 				}
 			}
 			else // bottom
@@ -760,18 +758,24 @@ void HTWord::HandlePush (void)
 	{
 		if (strlen (action))
 		{
-			printf ("\n\nACTION: %s\n\n", action);
-			if (strstr (text, "http://"))
+			// The link starts at its scheme (https://, http://, ftp://).
+			const char *start = NULL;
+			for (const char *scheme : { "https://", "http://", "ftp://" })
+			{
+				const char *f = strstr (text, scheme);
+				if (f && (!start || f < start)) start = f;
+			}
+			if (start)
 			{
 				action_config = PREFERENCES.Get_char_tree ("postoffice/gui/action/http");
 				if (strlen (action_config) < 1) action_config = "xdg-open $";
 
-				subtext = strdupp (text);
+				subtext = strdupp (start);
 				t = subtext;
-				while (strncmp(t,"http://",6)) ++t;
 
+				// Punctuation after a link is not part of it.
 				ln = strlen (t);
-				while ( (ln>1) && ( (t[ln-1]=='.') || (t[ln-1]==' ') ) ) t[--ln] = 0;
+				while ( (ln>1) && strchr (". ,;:!?)>\"'", t[ln-1]) ) t[--ln] = 0;
 
 				run_url_action (action_config, t);
 
@@ -1039,7 +1043,7 @@ void Fl_View::add_textline (const char *line, int _color, int _font, int _size)
 	changed_ = 1;
 	int split=0;
 
-	if (wild_match ("*http://*", line))
+	if (wild_match ("*http://*", line) || wild_match ("*https://*", line))
 	{
 		split=1;
 	}
@@ -1070,7 +1074,7 @@ void Fl_View::add_textline (const char *line, int _color, int _font, int _size)
 			strcat (tmp, " ");
 			H = new HTWord (G, tmp);
 			H->LF = false;
-			if ((wild_match ("*tp://*",tmp))||(wild_match ("*@*.*",tmp)))
+			if (strstr (tmp, "http://") || strstr (tmp, "https://") || strstr (tmp, "ftp://") || wild_match ("*@*.*",tmp))
 			{
 				H->SetSProperty ("action","dourl");
 				iprintf ("set hyperlink property\n");

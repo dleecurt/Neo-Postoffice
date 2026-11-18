@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <vector>
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -101,6 +103,12 @@ struct Composer_Window
 		char				 origflag;
 };
 
+// The composer windows that are open (Neo-PostOffice): the Message menu's
+// items are shared by all of them, so their callbacks find the composer
+// from the window the menu belongs to.
+static std::vector<Composer_Window *> open_composers;
+
+
 // Remembers the shown message as the original of W (flag is 'R' for a
 // reply, 'P' for a forward) and puts its real Message-ID header in W->msgid
 // for In-Reply-To/References. The internal id is not a Message-ID for
@@ -168,6 +176,7 @@ Composer_Window *create_composer_window (void)
 	compose_bt_address2->callback ((Fl_Callback *) cb_address, (void *) compose_in_cc);
 	compose_bt_address4->callback ((Fl_Callback *) cb_address, (void *) compose_in_bcc);
 	compose_bt_send->callback ((Fl_Callback *) cb_sendmessage, (void *) W);
+	open_composers.push_back (W);
 	compose_mbt_send->callback ((Fl_Callback *) cb_sendmessage, (void *) W);
 	comp->callback ((Fl_Callback *) cb_discardmessage, (void *) W);
 
@@ -362,8 +371,32 @@ void doforward (bool fullhdr)
 	delete (quoted_body);
 }
 
+static Composer_Window *composer_of (Fl_Widget *w)
+{
+	Fl_Window *win = w ? w->window() : NULL;
+	for (Composer_Window *W : open_composers)
+		if (W->comp == win) return W;
+	return NULL;
+}
+
+static void forget_composer (Composer_Window *W)
+{
+	open_composers.erase (std::remove (open_composers.begin(), open_composers.end(), W), open_composers.end());
+}
+
+void cb_compose_menu_send (Fl_Menu_ *m, void * /*v*/)
+{
+	if (Composer_Window *W = composer_of (m)) cb_sendmessage (W->comp, W);
+}
+
+void cb_compose_menu_discard (Fl_Menu_ *m, void * /*v*/)
+{
+	if (Composer_Window *W = composer_of (m)) cb_discardmessage (W->comp, W);
+}
+
 void cb_discardmessage (Fl_Window */*b*/, Composer_Window *W)
 {
+	forget_composer (W);
 	W->comp->hide();
 	delete[] (W->references);
 	delete (W);
@@ -491,7 +524,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	HdrNames->Add ("Date");
 	char *daymonth = WD.Get(2);
 	if (daymonth[0]==' ') ++daymonth;
-	sprintf (buf, "%s, %s %s %s %s %s", WD.Get(0), daymonth, WD.Get(1), WD.Get(4), WD.Get(3), tzname[1]);
+	snprintf (buf, sizeof (buf), "%s, %s %s %s %s %s", WD.Get(0), daymonth, WD.Get(1), WD.Get(4), WD.Get(3), tzname[1]);
 	HdrValues->Add (buf);
 	M->Envelope->Set (ENVELOPE_DATE, buf);
 
@@ -515,7 +548,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	M->Envelope->Set (ENVELOPE_GROUPS, "Queue");
 	M->Flags = MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_INRAM;
 	
-	sprintf (buf, "%s <%s>", pers_from, pers_email);
+	snprintf (buf, sizeof (buf), "%s <%s>", pers_from, pers_email);
 	HdrNames->Add ((char *) "From");
 	HdrValues->Add (buf);
 	if (strlen (W->in_to->value()))
@@ -553,14 +586,17 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	HdrValues->Add ((char *) W->in_subject->value());
 	M->Envelope->Set (ENVELOPE_SUBJECT, (char *) W->in_subject->value());
 	
-	if (strlen (pers_replyto) > 0)
+	if (pers_replyto && strlen (pers_replyto) > 0)
 	{
 		HdrNames->Add ((char *) "Reply-To");
 		HdrValues->Add ((char *) pers_replyto);
 	}
 	
-	HdrNames->Add ("Organization");
-	HdrValues->Add ((char *) pers_org);
+	if (pers_org && *pers_org)
+	{
+		HdrNames->Add ("Organization");
+		HdrValues->Add ((char *) pers_org);
+	}
 
 	HdrNames->Add ("X-Mailer");
 	HdrValues->Add ( __VERSIONSTRING "(by " __BUILDINFO ")" );
@@ -599,6 +635,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 
 	// Clean up the Window and it's structure.
 	
+	forget_composer (W);
 	W->comp->hide();
 	//delete (W->comp);
 	delete[] (W->references);
@@ -706,7 +743,7 @@ void cb_address (Fl_Button */*b*/, void *d)
 	br_addresses->column_widths (adr_widths);
 	for (i=0;i<W->Count;++i)
 	{
-		sprintf (buf, "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
+		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
 		br_addresses->add (buf, NULL);
 	}
 	br_addresses->callback ((Fl_Callback *) cb_selectaddress, (void *) d);
@@ -729,7 +766,7 @@ void cb_address_new (Fl_Button */*b*/, void */*d*/)
 	br_addresses->column_widths (adr_widths);
 	for (int i=0;i<W->Count;++i)
 	{
-		sprintf (buf, "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
+		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
 		br_addresses->add (buf, NULL);
 	}
 	bt_address_delete->deactivate();
@@ -752,7 +789,7 @@ void cb_address_delete (Fl_Button */*b*/, void */*d*/)
 	br_addresses->column_widths (adr_widths);
 	for (int i=0;i<W->Count;++i)
 	{
-		sprintf (buf, "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
+		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
 		br_addresses->add (buf, NULL);
 	}
 	bt_address_delete->deactivate();

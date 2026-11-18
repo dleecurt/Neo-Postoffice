@@ -110,7 +110,7 @@ void MBoxStorage::Synchronize (void)
 	}
 	
 	int jid = JOBQ.NewJob ("MBoxStorage");
-	sprintf (msg, "Syncing %s", Filename);
+	snprintf (msg, sizeof (msg), "Syncing %s", Filename);
 	JOBQ.Stat (jid, msg);
 	
 	while (!feof (DB)) // Go through till the EOF
@@ -257,7 +257,7 @@ void MBoxStorage::Store (MailMessage *M)
 		}
 		if (M->Count > 1)
 		{
-			sprintf (seperator, "-----8<-----CUT-HERE-%02x%02x%05i", rand()&266,rand()&255,rand()&65535);
+			snprintf (seperator, sizeof (seperator), "-----8<-----CUT-HERE-%02x%02x%05i", rand()&266,rand()&255,rand()&65535);
 			fprintf (DB, "Content-type: multipart/mixed; seperator=\"%s\"\n", seperator);
 		}
 		fprintf (DB, "\n");
@@ -640,7 +640,7 @@ void MBoxStorage::LoadIndex (void)
 	FILE *IF;
 	WordList W;
 	
-	sprintf (indexfilename, "%s/.postoffice/.mbox_%08x", getenv ("HOME"), checksum (Filename));
+	snprintf (indexfilename, sizeof (indexfilename), "%s/.postoffice/.mbox_%08x", getenv ("HOME"), checksum (Filename));
 	IF = fopen (indexfilename, "r");
 	if (IF)
 	{
@@ -665,7 +665,7 @@ void MBoxStorage::LoadIndex (void)
 		fclose (IF);
 	}
 	
-	sprintf (indexfilename, "%s/.postoffice/.delete_list_%08x", getenv ("HOME"), checksum (Filename));
+	snprintf (indexfilename, sizeof (indexfilename), "%s/.postoffice/.delete_list_%08x", getenv ("HOME"), checksum (Filename));
 
 	IF = fopen (indexfilename, "r");
 	if (IF)
@@ -687,7 +687,7 @@ void MBoxStorage::StoreIndex (bool /*x*/)
 	char oldindexfilename[256];
 	FILE *IF;
 	
-	sprintf (indexfilename, "%s/.postoffice/.mbox_%08x", getenv ("HOME"), checksum (Filename));
+	snprintf (indexfilename, sizeof (indexfilename), "%s/.postoffice/.mbox_%08x", getenv ("HOME"), checksum (Filename));
 	strcpy (oldindexfilename, indexfilename);
 	strcat (indexfilename, ".tmp");
 	
@@ -706,7 +706,7 @@ void MBoxStorage::StoreIndex (bool /*x*/)
 		rename (indexfilename, oldindexfilename);
 	}
 
-	sprintf (indexfilename, "%s/.postoffice/.delete_list_%08x", getenv ("HOME"), checksum (Filename));
+	snprintf (indexfilename, sizeof (indexfilename), "%s/.postoffice/.delete_list_%08x", getenv ("HOME"), checksum (Filename));
 	strcpy (oldindexfilename, indexfilename);
 	strcat (indexfilename, ".tmp");
 	

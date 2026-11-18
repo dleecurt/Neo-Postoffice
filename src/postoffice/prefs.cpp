@@ -8,7 +8,7 @@ int PrefsFromDB (char *hostname, char *username, char *password, char *database)
 	char 			*table = new char[strlen(username)+32];
 	WordList		*result;
 
-	sprintf (table, "%s_prefs");
+	sprintf (table, "%s_prefs", username);
 
 	db = dbdriver_open (hostname, 3306, username, password, database);
 	if (db)

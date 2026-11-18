@@ -1,6 +1,7 @@
 #ifndef Fl_ToggleNode_H
 #define Fl_ToggleNode_H
 
+#include <stdlib.h>
 #include <FL/Fl_Toggle_Node_Base.H>
 #include <FL/Enumerations.H>
 #include <string.h>
@@ -21,20 +22,22 @@ public:
     opened_ = 1;
     color_ = FL_BLACK;
 
-    label_ = strdup(label);
+    label_ = label ? strdup(label) : 0;
     pixmap_ = pixmap;
     can_open_ = can_open;
     data_ = d;
   }
+
+  ~Fl_Toggle_Node() { free(label_); }
 
   char* label(void) {
     return label_;
   }
 
   void label(char* ptr) {
-    if (label_)
-      delete label_;
-    label_ = strdup(ptr);
+    // strdup'ed, so free() (Neo-PostOffice: was delete)
+    free(label_);
+    label_ = ptr ? strdup(ptr) : 0;
   }
 
   Fl_Pixmap* pixmap(void) {

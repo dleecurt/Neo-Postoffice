@@ -66,7 +66,7 @@ void cb_wiz_check (Fl_MacCheck_Button *b, void *data)
 {
 	char tmp[16];
 	char *str = (char *) data;
-	sprintf (tmp, "%i", b->value());
+	snprintf (tmp, sizeof (tmp), "%i", b->value());
 	PREFERENCES.Set_char_tree (str, tmp);
 }
 

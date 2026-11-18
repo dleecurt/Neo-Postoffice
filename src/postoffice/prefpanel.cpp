@@ -282,6 +282,20 @@ void func_view_protocol (void)
 			gr_prefs_fetchcmd->hide ();
 			gr_prefs_collection_row->show ();
 		}
+		// Settings that only apply to some protocols are greyed out for
+		// the others: the collection method to POP3 and NNTP, deleting
+		// from the server after some days to POP3.
+		if (val == 1 || val == 2) ch_prefs_collection->activate (); else ch_prefs_collection->deactivate ();
+		if (val == 1)
+		{
+			in_prefs_expire_onserver_received->activate ();
+			in_prefs_expire_onserver_notreceived->activate ();
+		}
+		else
+		{
+			in_prefs_expire_onserver_received->deactivate ();
+			in_prefs_expire_onserver_notreceived->deactivate ();
+		}
 		in_prefs_expire_onserver_received->value (PREFS_CURRENTBOX->Get_char ("expire_onserver_received"));
 		in_prefs_expire_onserver_notreceived->value (PREFS_CURRENTBOX->Get_char ("expire_onserver_notreceived"));
 		in_prefs_expire_local_only->value (PREFS_CURRENTBOX->Get_char ("expire_local_only"));
@@ -552,7 +566,7 @@ void cb_prefs_mailfolders_folders (Fl_Iconbrowser */*b*/, void */*v*/)
 				const char *xxx = WW->Get(i);
 				if (atoi (xxx)==7) xxx = "Envelope Folder";
 				if (atoi (xxx)==2) xxx = "Envelope From";
-				sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
+				snprintf (tmp, sizeof (tmp), "%s\t%s", xxx, WW->Get(i+4));
 				br_prefs_filters->add (tmp, NULL);
 			}
 			bt_prefs_filt_delete->deactivate();
@@ -605,7 +619,7 @@ void cb_prefs_br_filters (Fl_Browser */*b*/, void */*v*/)
 				xscor = -xscor;
 			}
 
-			sprintf (bf, "%i", xscor);
+			snprintf (bf, sizeof (bf), "%i", xscor);
 			in_prefs_filt_scoring->value (bf);
 
 			in_prefs_filt_string->value (F->Get (pos+4));
@@ -641,7 +655,7 @@ void cb_prefs_delfilter (Fl_Button */*b*/, void */*v*/)
 				const char *xxx = WW->Get(i);
 				if (atoi (xxx)==7) xxx = "Envelope Folder";
 				if (atoi (xxx)==2) xxx = "Envelope From";
-				sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
+				snprintf (tmp, sizeof (tmp), "%s\t%s", xxx, WW->Get(i+4));
 				br_prefs_filters->add (tmp, NULL);
 			}
 			bt_prefs_filt_delete->deactivate();
@@ -710,7 +724,7 @@ void cb_prefs_addfilter (Fl_Button */*b*/, void */*v*/)
 			const char *xxx = WW->Get(i);
 			if (atoi (xxx)==7) xxx = "Envelope Folder";
 			if (atoi (xxx)==2) xxx = "Envelope From";
-			sprintf (tmp, "%s\t%s", xxx, WW->Get(i+4));
+			snprintf (tmp, sizeof (tmp), "%s\t%s", xxx, WW->Get(i+4));
 			br_prefs_filters->add (tmp, NULL);
 		}
 		bt_prefs_filt_delete->deactivate();
@@ -762,7 +776,7 @@ void cb_prefs_mailfolders_sub_add (Fl_Button */*b*/, void */*v*/)
 		if (ifolder)
 		{
 			folder = (char *) br_prefs_mailfolders_folders->text (ifolder);
-			sprintf (buf, "%s:Untitled", folder);
+			snprintf (buf, sizeof (buf), "%s:Untitled", folder);
 			if (PREFS_FCURRENTBOX->Get_wordlist ("folders")->Find (buf) < 0)
 			{
 				PREFS_FCURRENTBOX->Get_collection ("folders")->Get_collection (buf);
@@ -806,7 +820,7 @@ void cb_prefs_mailfolders_sub_del (Fl_Button */*b*/, void */*v*/)
 				sub = (char *) br_prefs_mailfolders_subfolders->text (isub);
 				br_prefs_mailfolders_subfolders->remove (isub);
 				br_prefs_mailfolders_subfolders->redraw();
-				sprintf (buf, "%s:%s", folder, sub);
+				snprintf (buf, sizeof (buf), "%s:%s", folder, sub);
 				PREFS_FCURRENTBOX->Get_collection ("folders")->Delete (buf);
 				gr_prefs_mailfolders_subset->deactivate();
 				int imailbox = br_prefs_mailfolders_mailboxes->value();
@@ -843,11 +857,11 @@ void cb_prefs_mailfolders_subname (Fl_Input *in, void */*v*/)
 			if (isub)
 			{
 				sub = (char *) br_prefs_mailfolders_subfolders->text (isub);
-				sprintf (buf, "%s:%s", folder, sub);
-				sprintf (buf2, "%s:%s", folder, val);
+				snprintf (buf, sizeof (buf), "%s:%s", folder, sub);
+				snprintf (buf2, sizeof (buf2), "%s:%s", folder, val);
 				PREFS_FCURRENTBOX->Get_collection ("folders")->Rename (buf, buf2);
 				br_prefs_mailfolders_subfolders->text (isub, val);
-				sprintf (buf3, "%s|%s", buf, buf2);
+				snprintf (buf3, sizeof (buf3), "%s|%s", buf, buf2);
 				int imailbox = br_prefs_mailfolders_mailboxes->value();
 				if (imailbox)
 				{
@@ -1259,7 +1273,7 @@ void cb_prefs_identity_add (Fl_Button */*b*/, void */*v*/)
 		if (strcasecmp (br_prefs_identities->text(i), "untitled") == 0) return;
 	}
 	
-	sprintf (buf, "%ld", time (NULL));
+	snprintf (buf, sizeof (buf), "%ld", time (NULL));
 	
 	br_prefs_identities->add ("Untitled", &pixmap_identity, NULL);
 	br_prefs_identities->value (br_prefs_identities->size());
@@ -1410,9 +1424,9 @@ void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 	
 	Fl_Scroll *scr = current_boxlist;
 	
-	sprintf (buf, "%s/.postoffice/resource.rc.bak", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.bak", getenv ("HOME"));
 	PREFERENCES.Save (buf);
-	sprintf (buf, "%s/.postoffice/resource.rc", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
 	LPREFERENCES.Save (buf);
 	
 //	br_folderindex->clear();

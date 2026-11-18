@@ -9,6 +9,7 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include <string>
 #include "formatter.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -233,7 +234,7 @@ TextMessage::~TextMessage (void)
 
 WordList *TextMessage::Get (int quoted)
 {
-	char buf[1024];
+	std::string buf;		// (was char[1024]: deep quoting overflowed it)
 	Paragraph *P, *NP;
 	int quo, ind;
 	int total;
@@ -256,12 +257,12 @@ WordList *TextMessage::Get (int quoted)
 		j = 0;
 		while (j<P->Text->Count)
 		{
-			buf[0] = 0;
+			buf.clear();
 			total = 0;
 		
 			for (i=0;i<quo+quoted;++i)
 			{
-				strcat (buf, "> ");
+				buf += "> ";
 				total += 2;
 			}
 			if (P->Prev)
@@ -274,7 +275,7 @@ WordList *TextMessage::Get (int quoted)
 			{
 				for (i=0;i<ind;++i)
 				{
-					strcat (buf, " ");
+					buf += ' ';
 					++total;
 				}
 			}
@@ -286,23 +287,22 @@ WordList *TextMessage::Get (int quoted)
 			while ( (j<P->Text->Count) && (total + (ln = strlen (P->Text->Get(j))) < 75) )
 			{
 				//printf ("[quote] %s\n", buf);
-				strcat (buf, P->Text->Get(j)); total += ln;
+				buf += P->Text->Get(j); total += ln;
 				if ( (j+1) < P->Text->Count)
 				{
 					++total;
-					strcat (buf, " ");
+					buf += ' ';
 				}
 				++j;
 				inc = 0;
 			}
 			j += inc;
-			result->Add (buf);
-			if (strlen (P->Text->Get(j)) > 74)
+			result->Add (buf.c_str());
+			if (j < P->Text->Count && strlen (P->Text->Get(j)) > 74)
 			{
-				sprintf (buf, "(...) ");
-				strncpy (buf+6, P->Text->Get(j++), 70);
-				buf[76] = 0;
-				result->Add (buf);
+				buf = "(...) ";
+				buf.append (P->Text->Get(j++), 70);
+				result->Add (buf.c_str());
 			}
 		}
 		
@@ -312,9 +312,9 @@ WordList *TextMessage::Get (int quoted)
 		{
 			if (!lastwasempty)
 			{
-				buf[0] = 0;
-				for (i=0;i<quo+quoted;++i) strcat (buf, "> ");
-				result->Add (buf);
+				buf.clear();
+				for (i=0;i<quo+quoted;++i) buf += "> ";
+				result->Add (buf.c_str());
 				lastwasempty=1;
 			}
 		}
@@ -325,15 +325,15 @@ WordList *TextMessage::Get (int quoted)
 			{
 				if (NP->QuoteLevel > quo)
 				{
-					buf[0] = 0;
-					for (i=0;i<quo+quoted;++i) strcat (buf, "> ");
-					result->Add (buf);
+					buf.clear();
+					for (i=0;i<quo+quoted;++i) buf += "> ";
+					result->Add (buf.c_str());
 				}
 				else if (NP->QuoteLevel < quo)
 				{
-					buf[0] = 0;
-					for (i=0;i<NP->QuoteLevel+quoted;++i) strcat (buf, "> ");
-					result->Add (buf);
+					buf.clear();
+					for (i=0;i<NP->QuoteLevel+quoted;++i) buf += "> ";
+					result->Add (buf.c_str());
 					lastwasempty=1;
 				}
 			}

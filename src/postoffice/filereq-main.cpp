@@ -164,7 +164,7 @@ void freq_update (void)
 
 		while ((DE = readdir (D))) // walk through the directory
 		{
-			sprintf (bf, "%s/%s", wd,DE->d_name);
+			snprintf (bf, sizeof (bf), "%s/%s", wd,DE->d_name);
 			if (stat (bf, &stbuff) == 0)
 			{
 				char *xn = strdupp (DE->d_name);
@@ -181,7 +181,7 @@ void freq_update (void)
 			}
 		}
 	}
-	closedir (D);
+	if (D) closedir (D);
 	br_freq->redraw();
 }
 
@@ -249,7 +249,7 @@ void cb_freq_select (Fl_Iconbrowser */*br*/, void */*v*/)
 
 	if ((val = br_freq->value()))
 	{
-		sprintf (bf, "%s/%s", in_freq_dir->value(), br_freq->text (val));
+		snprintf (bf, sizeof (bf), "%s/%s", in_freq_dir->value(), br_freq->text (val));
 		if (stat (bf, &xstat) == 0)
 		{
 			if (S_ISDIR (xstat.st_mode))
@@ -270,7 +270,7 @@ void cb_freq_ok (Fl_Button */*b*/, void */*v*/)
 {
 	if (strlen (in_freq_filename->value()))
 	{
-		sprintf (FREQ_FILENAME, "%s/%s", in_freq_dir->value(), in_freq_filename->value());
+		snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s/%s", in_freq_dir->value(), in_freq_filename->value());
 	}
 	else FREQ_FILENAME[0] = 0;
 	FREQ->hide();

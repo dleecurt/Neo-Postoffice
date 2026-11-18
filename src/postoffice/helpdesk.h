@@ -108,6 +108,8 @@ extern Fl_Menu_Item menu_[];
 extern Fl_Menu_Item menu_popup_msgwin[];
 extern Fl_Window *win_menu;
 Fl_Window* make_menuwindow();
+extern void cb_compose_menu_send(Fl_Menu_*, void*);
+extern void cb_compose_menu_discard(Fl_Menu_*, void*);
 extern Fl_Group *gr_compose_mini_buttons;
 extern Fl_Button *compose_mbt_send;
 extern void cb_compose_menu_expand(Fl_Button*, void*);

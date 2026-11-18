@@ -80,6 +80,7 @@ private:
 	std::map<std::string, int> Numbers;			// UIDL -> number, this session
 	std::vector<std::string> Order;				// UIDLs in server order
 	std::string				 LastError;			// shown once
+	bool					 Quiet = false;		// no error dialogs (best-effort fetches)
 
 	bool					 Session (int jid);
 	bool					 EndSession (void);

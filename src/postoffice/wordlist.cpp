@@ -9,6 +9,7 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include <algorithm>
 #include "wordlist.h"
 #include "debug.h"
 #include <stdio.h>
@@ -227,20 +228,16 @@ void WordList::MakeGeneric (const char *theLine, char Seperator, char Escape)
 
 		while (theLine[SourcePosition] != 0)
 		{
+			// The word runs to the first separator that is not escaped
+			// (Neo-PostOffice: the original tested *tmp-1 instead of
+			// *(tmp-1), so an escaped separator cut the word short).
 			if ((tmp = strchr (theLine+SourcePosition, Seperator)))
 			{
-				wsz = tmp - (theLine+SourcePosition);
-				while ((tmp) && (*tmp-1 == Escape))
-				{
-					tmp = strchr (tmp, Seperator);
-					if (tmp)
-					{
-						wsz = tmp - (theLine+SourcePosition);
-					}
-					else wsz = strlen (theLine);
-				}
+				while (tmp && Escape && tmp > theLine+SourcePosition && *(tmp-1) == Escape)
+					tmp = strchr (tmp+1, Seperator);
+				wsz = tmp ? (int) (tmp - (theLine+SourcePosition)) : (int) strlen (theLine+SourcePosition);
 			}
-			else wsz = strlen (theLine);
+			else wsz = strlen (theLine+SourcePosition);
 			
 			myWord = new char[wsz+4];
 			myWord[0] = 0;
@@ -637,27 +634,20 @@ void WordList::SetInt (int theNumber, int I)
 
 char *WordList::Gather (int Start, char *Buffer, int maxlen)
 {
-	int             i = Start;
-
-	if (Buffer)
-	{
-
-		Buffer[0] = 0;
-
-			while (i < Count)
-			{
-				strncat (Buffer, Get (i++), maxlen);
-				if (i < Count)
-					strncat (Buffer, " ", maxlen);
-			}
-
-			Buffer[maxlen] = 0;
-		return Buffer;
-	}
-	else
-	{
-	}
+	// maxlen is the size of Buffer (Neo-PostOffice: the original could
+	// write past it, and wrote to a NULL Buffer).
+	if (!Buffer || maxlen <= 0) return Buffer;
+	size_t used = 0, room = (size_t) maxlen - 1;
 	Buffer[0] = 0;
+	for (int i = Start; i < Count && used < room; ++i)
+	{
+		const char *w = Get (i);
+		size_t n = std::min (strlen (w), room - used);
+		memcpy (Buffer + used, w, n);
+		used += n;
+		if (i + 1 < Count && used < room) Buffer[used++] = ' ';
+	}
+	Buffer[used] = 0;
 	return Buffer;
 }
 

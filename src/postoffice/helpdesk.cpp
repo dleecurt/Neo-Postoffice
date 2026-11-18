@@ -1465,8 +1465,8 @@ Fl_Window* make_menuwindow() {
 
 Fl_Menu_Item menu_1[] = {
  {"Message", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Send", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Discard", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Send", 0,  (Fl_Callback*)cb_compose_menu_send, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Discard", 0,  (Fl_Callback*)cb_compose_menu_discard, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"Template", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"New Template", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -5031,7 +5031,7 @@ Fl_Group *gr_prefs_collection_row=(Fl_Group *)0;
 Fl_Choice *ch_prefs_collection=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_collection[] = {
- {"Fetch Headers seperately", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Fetch headers separately", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Fetch complete messages", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Fetch and Delete complete messages", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}

@@ -111,6 +111,7 @@ class GDBMStorage : public MailStorage
 		
 	protected:
         void             StoreNode (StorageNode *);
+        StorageNode     *Recover_ (const char *msgid);
 
 		ASemaphore		*Lock;
 		char			*Filename;

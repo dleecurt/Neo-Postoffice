@@ -114,7 +114,7 @@ void POP3Handler::SaveUidl (void)
 // every automatic check.
 void POP3Handler::Report (const std::string &what)
 {
-	if (what == LastError || Parent->ToCollector->UrgentPending) return;
+	if (Quiet || what == LastError || Parent->ToCollector->UrgentPending) return;
 	LastError = what;
 	Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Parent->Name, what.c_str());
 }
@@ -474,12 +474,16 @@ void POP3Handler::CheckGroup (const char * /*groupname*/)
 bool POP3Handler::FetchBody (const char *msgid, int jid)
 {
 	MailMessage *X = Parent->Find ((char *) msgid);
-	if (!X || (X->Flags & MMFL_HAVEBODY)) return true;
+	if (!X) return true;
+	// A copy to another mailbox asks for the original text (CaptureRaw),
+	// also of a message whose text was fetched before.
+	bool have = X->Flags & MMFL_HAVEBODY;
+	if (have && !X->CaptureRaw) return true;
 	std::string uid = UidOf (msgid);
 	if (uid.empty() || !Numbers.count (uid))
 	{
-		Report ("This message is no longer on the POP3 server, so its text cannot be fetched.");
-		return false;
+		if (!have) Report ("This message is no longer on the POP3 server, so its text cannot be fetched.");
+		return have;
 	}
 	int n = Numbers[uid];
 	ShowStatus (jid, "Fetching the message text");
@@ -494,6 +498,8 @@ bool POP3Handler::FetchBody (const char *msgid, int jid)
 		Report ("The connection was lost while fetching the message: " + Net->Error() + ".");
 		return false;
 	}
+	if (X->CaptureRaw) X->CaptureRaw->assign (text);
+	if (have) return true;
 	size_t body = text.find ("\n\n");
 	body = body == std::string::npos ? text.size() : body + 2;
 	std::string b = text.substr (body);
@@ -505,14 +511,21 @@ bool POP3Handler::FetchBody (const char *msgid, int jid)
 void POP3Handler::GetBody (char *msgid)
 {
 	MailMessage *X = Parent->Find (msgid);
-	if (!X || (X->Flags & MMFL_HAVEBODY)) return;
+	if (!X) return;
+	bool have = X->Flags & MMFL_HAVEBODY;
+	if (have && !X->CaptureRaw) return;
+	// Only the original for a copy: there is a local one to fall back on,
+	// so no error dialogs, and none to ask for when it was deleted.
+	if (have && (Parameters->Get_int ("collection") > 1 || UidOf (msgid).empty())) return;
+	Quiet = have;
 	int jid = JOBQ.NewJob (Parent->Name);
 	if (Session (jid))
 	{
-		if (FetchBody (msgid, jid) && EndSession ()) LastError.clear ();
+		if (FetchBody (msgid, jid) && EndSession ()) { if (!have) LastError.clear (); }
 		else EndSession ();
 	}
 	JOBQ.EndJob (jid);
+	Quiet = false;
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 

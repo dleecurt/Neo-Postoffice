@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include "mailbox.h"
+#include "mailheaders.h"
 #include "wordlist.h"
 #include "var.h"
 #include "semaphore.h"
@@ -114,7 +115,7 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 
     if (stat (HOME, &mystat)==0)
     {
-        sprintf (path, "%s/.postoffice", HOME);
+        snprintf (path, sizeof (path), "%s/.postoffice", HOME);
         if (stat (path, &mystat)!=0)
         {
             mkdir (path, 0700);
@@ -248,7 +249,7 @@ MailBox::MailBox (ITCPipe *ui)
 
     if (stat (HOME, &mystat)==0)
     {
-        sprintf (path, "%s/.postoffice", HOME);
+        snprintf (path, sizeof (path), "%s/.postoffice", HOME);
         if (stat (path, &mystat)!=0)
         {
             mkdir (path, 0700);
@@ -455,7 +456,7 @@ void MailBox::SaveMailBox (void)
 
     if (stat (HOME, &mystat)==0)
     {
-        sprintf (path, "%s/.postoffice", HOME);
+        snprintf (path, sizeof (path), "%s/.postoffice", HOME);
         if (stat (path, &mystat)!=0)
         {
             mkdir (path, 0700);
@@ -533,12 +534,23 @@ void MailBox::SaveMailBox (void)
                 M = (MailMessage *) M->BNext;
             }
 
+            // On disk before it replaces the old one (Neo-PostOffice).
+            fflush (OUT);
+            fsync (fileno (OUT));
             fclose (OUT);
 			
 			// move the new file on top of the old one. Congratulations, your index
 			// dump is now atomical.
 			
 			rename (path, oldpath);
+
+			// And the message texts with it: GDBM keeps recent writes in
+			// memory and syncs at most every 15 seconds on its own, so a
+			// crash could lose messages fetched just before (and deleted
+			// from a POP3 server since).
+#ifdef USE_GDBM
+			if (DB) DB->StoreIndex (true);
+#endif
 
             Lock->UnlockR();
             VLock->UnlockR();
@@ -923,12 +935,38 @@ static std::string rebuild_raw (MailMessage *M)
         while (!body.empty() && (body.back() == '\n' || body.back() == '\r')) body.pop_back();
         body += "\n";
         out += std::string ("--") + boundary + "\n";
-        out += std::string ("Content-Type: ") + (P->ContentType && *P->ContentType ? P->ContentType : "text/plain") + "\n";
+        // Parts parsed by Neo-PostOffice carry their transfer encoding as
+        // the parameter x-neo-cte; older ones do not.
+        std::string type = P->ContentType && *P->ContentType ? P->ContentType : "text/plain";
+        std::string cte = mailheaders::Param (type, "x-neo-cte");
+        size_t cut = type.find ("; x-neo-cte=");
+        if (cut != std::string::npos) type.erase (cut);
+        out += "Content-Type: " + type + "\n";
         if (P->FileName && *P->FileName)
-            out += std::string ("Content-Disposition: attachment; filename=\"") + P->FileName + "\"\n";
+        {
+            // Plain ASCII as is, anything else as UTF-8 (RFC 2231).
+            bool plain = true;
+            for (const char *c = P->FileName; *c; ++c)
+                if ((unsigned char) *c < 0x20 || (unsigned char) *c > 0x7e || *c == '"' || *c == '\\') plain = false;
+            if (plain)
+                out += std::string ("Content-Disposition: attachment; filename=\"") + P->FileName + "\"\n";
+            else
+            {
+                out += "Content-Disposition: attachment; filename*=utf-8''";
+                for (const char *c = P->FileName; *c; ++c)
+                {
+                    unsigned char u = *c;
+                    if (isalnum (u) || strchr ("-._~", u)) out += (char) u;
+                    else { char hex[4]; snprintf (hex, sizeof (hex), "%%%02X", u); out += hex; }
+                }
+                out += "\n";
+            }
+        }
+        bool text = strncasecmp (type.c_str(), "text/", 5) == 0;
+        if (!cte.empty())
+            out += "Content-Transfer-Encoding: " + cte + "\n";
         // A non-text part that is all base64 was base64 in the original.
-        bool text = !P->ContentType || !*P->ContentType || strncasecmp (P->ContentType, "text/", 5) == 0;
-        if (!text && !body.empty() &&
+        else if (!text && !body.empty() &&
             body.find_first_not_of ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n") == std::string::npos)
             out += "Content-Transfer-Encoding: base64\n";
         out += "\n" + body;

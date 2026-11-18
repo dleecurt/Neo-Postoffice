@@ -54,6 +54,17 @@ MailPart::~MailPart (void)
 	if (Contents) delete[] (Contents);
 }
 
+// The stored content type of a part: its type, plus "; x-neo-cte=..."
+// when it is base64 or quoted-printable (Neo-PostOffice).
+static std::string part_type (const std::string &type, const std::string &encoding)
+{
+	std::string out = type.empty() ? "text/plain" : type;
+	while (!out.empty() && (out.back() == ' ' || out.back() == ';' || out.back() == '\r')) out.pop_back();
+	if (strcasestr (encoding.c_str(), "base64")) out += "; x-neo-cte=base64";
+	else if (strcasestr (encoding.c_str(), "quoted-printable")) out += "; x-neo-cte=quoted-printable";
+	return out;
+}
+
 void MailPart::Set (const char *contenttype, const char *filename, const char *description, unsigned long contentsize, const char *contents)
 {
 	if (ContentType ) delete[] (ContentType);
@@ -98,14 +109,9 @@ MailMessage::MailMessage (MailBox *M, const char *msgid) : BTreeNode (msgid, M->
 
 MailMessage::~MailMessage (void)
 {
-	// The original condition here ended in "(! Flags & MMFL_ONDISK)", which is
-	// always false, so this store-on-destroy never ran. Enabling it would write
-	// to the mailbox database from the destructor (possibly during shutdown),
-	// so it stays disabled until that path has been reviewed:
-	//
-	// if ((Flags & MMFL_ORIGINAL) && (Flags & MMFL_HAVEBODY) &&
-	//     (Flags & MMFL_INRAM) && !(Flags & MMFL_ONDISK))
-	//     StoreFile();
+	// (PostOffice 0.7 had a store-on-destroy here that could never run. It
+	// is not needed: ProcessBody stores every message as it is parsed, and
+	// saving the mailbox syncs the store.)
 	delete (HeaderNames);
 	delete (HeaderValues);
 	delete (Subscribers);
@@ -330,6 +336,7 @@ void MailMessage::ProcessHeaders (char *Hdr)
 		lin = X.Get (i);
 		if ((lin[0] == '\t') || (lin[0] == ' '))
 		{
+			if (HeaderValues->Count == 0) continue;	// nothing to continue (malformed)
 			while ((*lin == '\t')||(*lin == ' ')) ++lin;
 			bnd = HeaderValues->Get (HeaderValues->Count -1);
 			tmp = new char [strlen (lin) + strlen (bnd) + 3];
@@ -387,83 +394,39 @@ void MailMessage::ProcessBody (char *body)
 {
 	int	  didmultipart = 0;
 	char *contenttype;
-	char *boundary;
-	char *mimetype;
 
     Parent->GrimReaper();
 
 	Count = 0;
 	
 	contenttype = Header ("Content-Type"); // Get the Content-Type header
-	if (*contenttype)
+	std::string ctype = contenttype;
+	size_t ct0 = ctype.find_first_not_of (" \t");
+	if (ct0 != std::string::npos) ctype.erase (0, ct0);
+
+	// Any multipart type (mixed, alternative, related, signed, report...)
+	// is split at its boundary lines (Neo-PostOffice; 0.7 handled mixed and
+	// alternative only, and found the boundary anywhere in the text).
+	if (strncasecmp (ctype.c_str(), "multipart/", 10) == 0)
 	{
-		dprintf ("<--- Content-Type: %s --->\n", contenttype);
-		WordList CT;
-		CT.MakeGenericQuoted (contenttype, ';'); // Seperate arguments
-		mimetype = strdupp (CT.Get(0));
-		chopwhitespace (mimetype);
-		if ( (strcasecmp (mimetype, "multipart/alternative") == 0) || // a.k.a. OutLook HTML Cannon
-			 (strcasecmp (mimetype, "multipart/mixed") == 0) )
-		{
-			dprintf ("Korben Dallas MULTIPART\n");
-			for (int i = 1; i<CT.Count;++i)
-			{
-				WordList Sub;
-				char *subname;
-				char *subval;
-				char *tmp;
-				
-				Sub.MakeGenericQuoted (CT.Get(i), '='); // Split parameters
-				subname = Sub.Get (0);
-				chopwhitespace (subname);
-				dprintf ("checking subname: '%s'\n", subname);
-				if ((strcasecmp (subname, "boundary") == 0) && Sub.Count > 1) // boundary parameter?
-				{
-					subval = strchr (CT.Get(i),'=') + 1;
-					while ( (*subval == ' ') || (*subval == '\t') ) ++subval; // find value
-					chopwhitespace (subval);
-					if (subval[0] == '\"') // value between double quotes
-					{
-						++subval;
-						tmp = strchr (subval, '\"'); // find second quote
-						if (tmp) *tmp = 0;
-					}
-					else if (subval[0] == '\'') // value between single quotes
-					{
-						++subval;
-						tmp = strchr (subval, '\''); // find second quote
-						if (tmp) *tmp = 0;
-					}
-					boundary = strdupp (subval); // value unquoted
-					dprintf ("boundary=%s\n", boundary);
-					if (strlen (boundary) > 3)
-					{
-						char *partstart;
-						char *partend;
-						char *part;
-						
-						didmultipart = 1;
-						partstart = strstr (body, boundary); // find first part
-						while (partstart)
-						{
-							partstart += strlen (boundary);
-							while (*partstart < 32) ++partstart;
-							partend = strstr (partstart, boundary); // find end of part
-							if (partend)
-							{
-								part = substr (partstart, partend);
-								AddPart (part);
-								delete[] (part);
-							}
-							partstart = partend;
-						}
-					}
-					delete[] (boundary);
-				}
-			}
-		}
-		delete[] (mimetype);
+		std::string boundary = mailheaders::Param (ctype, "boundary");
+		if (!boundary.empty()) didmultipart = SplitMultipart (boundary.c_str(), body, 0);
 	}
+
+	// A single-part message that is not plain text, or is encoded, is one
+	// part with its own type and encoding.
+	std::string cte = Header ("Content-Transfer-Encoding");
+	bool encoded = strcasestr (cte.c_str(), "base64") || strcasestr (cte.c_str(), "quoted-printable");
+	if (!didmultipart && !ctype.empty() && (encoded || strncasecmp (ctype.c_str(), "text/plain", 10) != 0))
+	{
+		std::string filename = mailheaders::Param (Header ("Content-Disposition"), "filename");
+		if (filename.empty()) filename = mailheaders::Param (ctype, "name");
+		AddPart (part_type (ctype, cte).c_str(), "", filename.c_str(), body);
+		didmultipart = 1;
+	}
+	// Plain text keeps its declared charset for the message view.
+	const char *plaintype = ctype.empty() ? "text/plain" : ctype.c_str();
+
 	if (!didmultipart) // This wasn't a multipart message I guess, well, add it all as text/plain then
 	{
 		int doingplain=1;
@@ -492,7 +455,7 @@ void MailMessage::ProcessBody (char *body)
 							Bd.Add ("\n");
 							Bd.Add ((unsigned char) 0);
 							if (Bd.Pos > 16) // filter out noise
-								AddPart ((char *) "text/plain","","", (char *) Bd.Data);
+								AddPart (plaintype,"","", (char *) Bd.Data);
 							Bd.Pos = 0;
 							doingplain = 0;
 						}
@@ -529,13 +492,13 @@ void MailMessage::ProcessBody (char *body)
 				}
 				else
 				{
-					AddPart ((char *) "text/plain","","", (char *) Bd.Data);
+					AddPart (plaintype,"","", (char *) Bd.Data);
 				}
 			}
 		}
 		else // really a plain message
 		{
-			AddPart ("text/plain","","", body);
+			AddPart (plaintype,"","", body);
 		}
 	}
 
@@ -580,83 +543,88 @@ MailPart *MailMessage::GetPart (int cnt)
 	return P;
 }
 
-void MailMessage::AddPart (const char *part)
+// Splits a multipart body (RFC 2046): a part starts after a line
+// "--boundary" and ends before the line break in front of the next one;
+// "--boundary--" closes it. Text before the first and after the last
+// boundary line is ignored.
+bool MailMessage::SplitMultipart (const char *boundary, const char *body, int depth)
 {
-	WordList W;
-	char *ln;
-	const char *end;
-	const char *body;
-	int     i;
-	char contenttype[256];
-	char description[256];
-	char filename[256];
-	WordList HNames, HValues;
-	
-	contenttype[0] = 0;
-	description[0] = 0;
-	filename[0] = 0;
-	
-	if ((end = strchr (part, '\n')))
+	std::string delim = std::string ("--") + boundary;
+	const char *p = body, *start = NULL;
+	bool any = false;
+	while (*p)
 	{
-		ln = substr (part, end);
-		while (ln && (strlen (ln) > 1))
+		const char *eol = strchr (p, '\n');
+		size_t len = eol ? (size_t) (eol - p) : strlen (p);
+		if (len >= delim.size() && strncmp (p, delim.c_str(), delim.size()) == 0)
 		{
-			char *colonpos;
-			char *hdrname;
-			char *hdrvalue;
-			const char *crsr = ln;
-
-			if ( ((ln[0] == ' ') || (ln[0] == '\t')) && HValues.Count)
+			const char *q = p + delim.size(), *lend = p + len;
+			bool close = lend - q >= 2 && q[0] == '-' && q[1] == '-';
+			if (close) q += 2;
+			while (q < lend && (*q == ' ' || *q == '\t' || *q == '\r')) ++q;
+			if (q == lend)		// a boundary line
 			{
-				while ( (*crsr==' ') || (*crsr=='\t') ) ++crsr;
-				hdrvalue = new char [strlen (HValues.Get(HValues.Count -1)) + strlen (crsr) + 1];
-				strcpy (hdrvalue, HValues.Get (HValues.Count -1));
-				strcat (hdrvalue, crsr);
-				HValues.Set (HValues.Count-1, hdrvalue);
-				delete[] hdrvalue;
-			}
-			else
-			{
-				colonpos = strchr (ln, ':');
-				if (colonpos)
+				if (start)
 				{
-					hdrname = substr (ln, colonpos);
-					hdrvalue = colonpos+1;
-					while ( (*hdrvalue==' ') || (*hdrvalue=='\t') ) ++hdrvalue;
-					HNames.Add_ (hdrname);
-					HValues.Add (hdrvalue);
+					const char *end = p;
+					if (end > start && end[-1] == '\n') --end;
+					if (end > start && end[-1] == '\r') --end;
+					std::string part (start, end);
+					AddPart (part.c_str(), depth);
+					any = true;
 				}
+				if (close) return any;
+				start = eol ? eol + 1 : lend;
 			}
-			
-			crsr = end+1;
-			delete[] (ln);
-			end = strchr (crsr, '\n');
-			if (end)
-			{
-				ln = substr (crsr,end);
-			}
-			else ln = NULL;
 		}
-		if (ln) delete[] (ln);
-		if (end)
-		{
-			body = end+1;
-			
-			i = HNames.Find ("Content-Type");
-			if (i>=0)
-			{
-				strncpy (contenttype, HValues.Get(i), 255);
-				contenttype[255] = 0;
-			}
-			i = HNames.Find ("Content-Description");
-			if (i>=0)
-			{
-				strncpy (description, HValues.Get(i), 255);
-				description[255] = 0;
-			}
-			AddPart (contenttype, description, filename, body);
-		}
+		if (!eol) break;
+		p = eol + 1;
 	}
-	HNames.Clear();
-	HValues.Clear();
+	if (start && *start)		// no closing line: the last part runs to the end
+	{
+		AddPart (start, depth);
+		any = true;
+	}
+	return any;
+}
+
+// Adds one part of a multipart message: its headers, then its body.
+// Nested multiparts are split in turn.
+void MailMessage::AddPart (const char *part, int depth)
+{
+	// Where the headers end: a part that starts with an empty line has none.
+	const char *body;
+	std::string head;
+	if (part[0] == '\n') body = part + 1;
+	else if (part[0] == '\r' && part[1] == '\n') body = part + 2;
+	else
+	{
+		const char *e1 = strstr (part, "\n\n"), *e2 = strstr (part, "\n\r\n");
+		const char *e = e1 && (!e2 || e1 < e2) ? e1 : e2;
+		if (e)
+		{
+			head.assign (part, e + 1);
+			body = e + (e == e1 ? 2 : 3);
+		}
+		else if (strchr (part, ':') && strchr (part, ':') < (strchr (part, '\n') ? strchr (part, '\n') : part + strlen (part)))
+		{
+			head = part;			// only headers
+			body = part + strlen (part);
+		}
+		else body = part;			// no headers at all
+	}
+	std::vector<mailheaders::Header> h = mailheaders::Parse (head + "\n");
+	std::string ctype = mailheaders::Get (h, "Content-Type");
+	std::string cte = mailheaders::Get (h, "Content-Transfer-Encoding");
+	std::string desc = mailheaders::Decode (mailheaders::Get (h, "Content-Description"));
+	std::string filename = mailheaders::Param (mailheaders::Get (h, "Content-Disposition"), "filename");
+	if (filename.empty()) filename = mailheaders::Param (ctype, "name");
+	if (ctype.empty()) ctype = "text/plain";		// RFC 2045 default
+
+	if (strncasecmp (ctype.c_str(), "multipart/", 10) == 0 && depth < 8)
+	{
+		std::string boundary = mailheaders::Param (ctype, "boundary");
+		if (!boundary.empty() && SplitMultipart (boundary.c_str(), body, depth + 1)) return;
+	}
+	AddPart (part_type (ctype, cte).c_str(), desc.c_str(), filename.c_str(), body);
 }

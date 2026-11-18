@@ -352,36 +352,39 @@ See the git history for details. In summary:
   arrived).
 - Maildir, MH and mbox mailboxes can run a fetch command such as getmail
   or fetchmail before every check, with its errors shown.
+- MIME: nested multiparts, parts without headers, boundaries of any
+  length, RFC 2231 file names, and base64 or quoted-printable text in any
+  character set are shown correctly (8-bit text without a character set
+  is read as ISO-8859-1). `https://` and `ftp://` links are recognized.
+- Copies of POP3 messages are fetched again from the server when it
+  still has them; rebuilt copies keep each part's transfer encoding.
+- Message texts are synced to disk with the mailbox index, and a GDBM
+  store whose index lost messages in a crash repairs it on reading
+  (such messages showed up empty).
+- The settings store (`Var`) deleted and renamed the wrong entries and
+  miscounted them; escaped separators in settings now work. Deleting a
+  message updates the count beside the mailbox, and rebuilding the
+  mailbox list keeps the selection and scroll position.
+- The composer's Message → Send and Discard menu items work. Recipient
+  lists with quoted names, comments and groups are split correctly.
+  Deeply quoted replies no longer overflow a buffer.
+- Settings that do not apply to a mailbox type (collection method,
+  expiry on the server) are greyed out. Fixed-size `sprintf` calls were
+  replaced by `snprintf`.
 
 ## Known issues and ideas
 
 Found while modernizing and left for later:
 
-- Only `http://` links are recognized (no `https://`); NNTP and the
-  built-in SMTP client have no TLS support (send through the system MTA
-  or msmtp instead).
-- Message text in 8-bit without a declared character set shows `?`
-  instead of accented letters in the message view (headers are fine).
-- After closing the Config window, Check does nothing until a folder is
-  clicked. Deleting a message does not update the count next to the
-  mailbox name until the next check.
-- SQL mailbox: messages cannot be moved between folders from the client,
-  and the collection-method and expiry settings, which do not apply to
-  it, are not greyed out.
+- NNTP and the built-in SMTP client have no TLS support (send through
+  the system MTA or msmtp instead).
+- HTML-only messages show only an attachment line; there is no HTML to
+  text view. The message list has no keyboard navigation.
+- SQL mailbox: messages cannot be moved between folders from the client.
 - The tools in `src/postoffice/update.cpp` and `checkmail.cpp` are not
   built; they contain the original author's database server and login.
-- The composer's Message → Discard menu item has no action; closing the
-  window through the window manager discards the message.
-- The MIME parser ignores boundaries of three characters or fewer and
-  leaves the `--` of each boundary line at the end of the previous part.
-- `WordList::MakeGeneric()` tests `*tmp-1` instead of `*(tmp-1)`, so
-  escaped separators in preference values have never worked. It is left
-  as is because fixing it would change how existing settings are read.
-- `Var::Delete()` (the settings store) unlinks the wrong entries when
-  the first entry is deleted, and its count is off by one. The POP3
-  client no longer uses it for `uidl.dat`; the settings still do, which
-  probably explains stray entries such as an empty `folders = ""` that
-  hides a mailbox's folders. It needs a careful fix of its own.
+- Copies rebuilt from the local copy (when the source no longer has the
+  original) flatten nested multiparts into one `multipart/mixed`.
 - `~MailMessage()` contains a store-on-destroy that never ran in the
   original (see the comment there); it stays disabled until reviewed.
 

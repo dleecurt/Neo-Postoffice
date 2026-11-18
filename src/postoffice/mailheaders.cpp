@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <iconv.h>
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +87,12 @@ static std::string to_utf8 (const std::string &charset, const std::string &in)
 	return out;
 }
 
+std::string ToUTF8 (const std::string &text, const std::string &charset)
+{
+	if (charset.empty()) return podb::Utf8 (text.c_str());
+	return to_utf8 (charset, text);
+}
+
 static std::string decode_b64 (const std::string &s)
 {
 	std::string out;
@@ -121,6 +128,117 @@ static std::string decode_q (const std::string &s)
 		else out += s[i];
 	}
 	return out;
+}
+
+// Quoted-printable bodies (RFC 2045): =XX bytes and "=" soft line breaks.
+static std::string decode_qp_body (const std::string &s)
+{
+	std::string out;
+	out.reserve (s.size());
+	for (size_t i = 0; i < s.size(); ++i)
+	{
+		if (s[i] != '=') { out += s[i]; continue; }
+		if (i + 2 < s.size() && isxdigit ((unsigned char) s[i+1]) && isxdigit ((unsigned char) s[i+2]))
+		{
+			out += (char) strtol (s.substr (i + 1, 2).c_str(), NULL, 16);
+			i += 2;
+			continue;
+		}
+		// A soft line break: "=", maybe trailing blanks, then the line end.
+		size_t j = i + 1;
+		while (j < s.size() && (s[j] == ' ' || s[j] == '\t')) ++j;
+		if (j < s.size() && s[j] == '\r') ++j;
+		if (j < s.size() && s[j] == '\n') { i = j; continue; }
+		if (j == s.size()) { i = j; continue; }
+		out += '=';			// not valid quoted-printable: keep it
+	}
+	return out;
+}
+
+std::string DecodeBody (const std::string &body, const std::string &encoding)
+{
+	std::string e = trim (encoding);
+	if (strcasecmp (e.c_str(), "base64") == 0) return decode_b64 (body);
+	if (strcasecmp (e.c_str(), "quoted-printable") == 0) return decode_qp_body (body);
+	return body;
+}
+
+std::string Param (const std::string &value, const char *name)
+{
+	size_t n = strlen (name);
+	std::string simple, extended;
+	std::map<int, std::string> pieces;		// RFC 2231 continuations name*0*=...
+	size_t pos = value.find (';');
+	while (pos != std::string::npos)
+	{
+		++pos;
+		while (pos < value.size() && isspace ((unsigned char) value[pos])) ++pos;
+		size_t eq = value.find ('=', pos);
+		if (eq == std::string::npos) break;
+		std::string key = trim (value.substr (pos, eq - pos));
+		// The value: quoted (with \ escapes) or up to the next ';'.
+		size_t v = eq + 1;
+		while (v < value.size() && isspace ((unsigned char) value[v])) ++v;
+		std::string val;
+		if (v < value.size() && value[v] == '"')
+		{
+			for (++v; v < value.size() && value[v] != '"'; ++v)
+			{
+				if (value[v] == '\\' && v + 1 < value.size()) ++v;
+				val += value[v];
+			}
+			pos = value.find (';', v);
+		}
+		else
+		{
+			pos = value.find (';', v);
+			val = trim (value.substr (v, pos == std::string::npos ? std::string::npos : pos - v));
+		}
+		if (strncasecmp (key.c_str(), name, n) != 0) continue;
+		std::string rest = key.substr (n);
+		if (rest.empty()) simple = val;
+		else if (rest == "*") extended = val;
+		else if (rest[0] == '*' && isdigit ((unsigned char) rest[1]))
+			pieces[atoi (rest.c_str() + 1)] = (rest.back() == '*' ? "*" : "") + val;
+	}
+	// RFC 2231: charset'language'percent-encoded text
+	auto decode2231 = [](const std::string &v, bool encoded, std::string &charset) -> std::string
+	{
+		std::string text = v;
+		if (encoded)
+		{
+			size_t a = v.find ('\''), b = a == std::string::npos ? a : v.find ('\'', a + 1);
+			if (b != std::string::npos) { if (charset.empty()) charset = v.substr (0, a); text = v.substr (b + 1); }
+		}
+		std::string out;
+		for (size_t i = 0; i < text.size(); ++i)
+		{
+			if (encoded && text[i] == '%' && i + 2 < text.size() && isxdigit ((unsigned char) text[i+1]) &&
+				isxdigit ((unsigned char) text[i+2]))
+			{
+				out += (char) strtol (text.substr (i + 1, 2).c_str(), NULL, 16);
+				i += 2;
+			}
+			else out += text[i];
+		}
+		return out;
+	};
+	std::string charset;
+	if (!extended.empty()) return ToUTF8 (decode2231 (extended, true, charset), charset);
+	if (!pieces.empty())
+	{
+		std::string out;
+		bool first = true;
+		for (auto &p : pieces)
+		{
+			bool enc = !p.second.empty() && p.second[0] == '*';
+			std::string v = enc ? p.second.substr (1) : p.second;
+			out += first ? decode2231 (v, enc, charset) : decode2231 ((enc ? "''" : "") + v, enc, charset);
+			first = false;
+		}
+		return ToUTF8 (out, charset);
+	}
+	return Decode (simple);
 }
 
 std::string Decode (const std::string &in)

@@ -90,7 +90,7 @@ void MBoxHandler::CheckGroup (const char */*groupname*/)
 	
 	for (int ix=0;ix<MBFiles->Count;++ix)
 	{
-		sprintf (msg, "Checking MBox");
+		snprintf (msg, sizeof (msg), "Checking MBox");
 		JOBQ.Stat (jid, msg);
 		JOBQ.Progress (jid, (100*ix)/(MBFiles->Count));
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");

@@ -420,9 +420,9 @@ RCLDLL wString& FormatNumber(double number, long  wide, wString& dest, bool whol
 		{
 			double num = Round(number, 2);
                         if(wholenum)
-                                sprintf(buffer, "%0.0f", num);
+                                snprintf(buffer, 256, "%0.0f", num);
                         else
-                                sprintf(buffer, "%0.2f", num);
+                                snprintf(buffer, 256, "%0.2f", num);
 			CommaDelimitNumber(buffer, amount);
 			buffer[0] = '\0';
 			if(wide > 0 && wide < 250-(long )strlen(amount))

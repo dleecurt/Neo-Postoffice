@@ -9,6 +9,7 @@
 #include "formatter.h"
 #include "mailbox.h"
 #include <strings.h>
+#include <algorithm>
 #include <string>
 #include <FL/Fl_Menu_Item.H>
 #include "itc.h"
@@ -297,6 +298,20 @@ void update_tree (Fl_Scroll *scr)
 	char buf[512];
 	int first = 0;
 
+	// Remember the selected folder and the scroll position, to keep them
+	// when the tree is rebuilt (Neo-PostOffice).
+	std::string sel_box, sel_folder;
+	int scroll_y = scr->yposition();
+	if (TREE && TREE->selected() && TREE->selected()->data())
+	{
+		BoxData *B = (BoxData *) TREE->selected()->data();
+		if (B->mailbox && B->foldername)
+		{
+			sel_box = B->mailbox->Name;
+			sel_folder = B->foldername;
+		}
+	}
+
 	// Remember which mailboxes are open, so rebuilding the tree (when a
 	// mailbox adds a folder by itself) does not close them.
 	if (TREE)
@@ -309,6 +324,9 @@ void update_tree (Fl_Scroll *scr)
 		}
 	}
 
+	// Back to the top first: the new tree is placed unscrolled, and the
+	// scroll position is set again below.
+	scr->scroll_to (0, 0);
 	i = scr->children()-1;
 	while (i>=2)
 	{
@@ -337,7 +355,7 @@ void update_tree (Fl_Scroll *scr)
 		{
 			Fl_Toggle_Node *nod;
 			
-			sprintf (buf, "%s (%d)", MailBoxList[x]->Name, MailBoxList[x]->Count);
+			snprintf (buf, sizeof (buf), "%s (%d)", MailBoxList[x]->Name, MailBoxList[x]->Count);
 			// Neo-PostOffice: mailbox nodes carry their mailbox (folder "") for
 			// the right-click menu and so selecting one makes it current.
 			nod = TREE->add_next (buf, 1, &pixmap_folder, (void *) new BoxData (MailBoxList[x], (char *) ""));
@@ -367,8 +385,45 @@ void update_tree (Fl_Scroll *scr)
 	TREE->alternate_color(TREE->color());
 	TREE->trim_color (TREE->color());
 	scr->end();
+
+	// Select the same folder again (by name: the mailboxes may have been
+	// made anew) and scroll back to where the tree was.
+	if (!sel_box.empty())
+	{
+		int depth = 0;
+		TREE->traverse_start ();
+		for (Fl_Toggle_Node_Base *nb = TREE->traverse_start (); nb; nb = TREE->traverse_forward (0, depth))
+		{
+			Fl_Toggle_Node *n = (Fl_Toggle_Node *) nb;
+			BoxData *B = (BoxData *) n->data();
+			if (B && B->mailbox && sel_box == B->mailbox->Name && sel_folder == B->foldername)
+			{
+				TREE->select_range (n, n, 0);
+				break;
+			}
+		}
+	}
+	int max_y = TREE->h() - scr->h() + 4;
+	scr->scroll_to (scr->xposition(), std::max (0, std::min (scroll_y, max_y)));
 	scr->redraw();
 	Fl::flush();
+}
+
+// Updates the message counts next to the mailbox names without rebuilding
+// the tree (Neo-PostOffice).
+void update_tree_counts (void)
+{
+	if (!TREE) return;
+	char buf[512];
+	for (Fl_Toggle_Node_Base *nb = TREE->first(); nb; nb = nb->next_node())
+	{
+		Fl_Toggle_Node *n = (Fl_Toggle_Node *) nb;
+		BoxData *B = (BoxData *) n->data();
+		if (!B || !B->mailbox) continue;
+		snprintf (buf, sizeof (buf), "%s (%d)", B->mailbox->Name, B->mailbox->Count);
+		if (!n->label() || strcmp (n->label(), buf) != 0) n->label (buf);
+	}
+	TREE->redraw ();
 }
 
 //===============================================================================

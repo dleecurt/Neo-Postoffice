@@ -124,6 +124,7 @@ void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
 void clear_folder_index (void);
+void update_tree_counts (void);
 
 // Breaks lines longer than width at spaces, so that a long error message
 // fits in its dialog (Neo-PostOffice).
@@ -490,6 +491,7 @@ void cb_delete (Fl_Button */*w*/, void */*d*/)
 	}
 	//currentmailbox->SaveMailBox();
 	update_folder();
+	update_tree_counts();
 }
 
 //===============================================================================
@@ -688,7 +690,7 @@ int main (int argc, char *argv[])
 
 	spl->position ((flw-spl->w())/2,(flh-spl->h())/2);
 
-	sprintf (buf, "%s/.postoffice", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice", getenv ("HOME"));
 	if (stat (buf, &mystat)!=0)
 	{
 		mkdir (buf, 0700);
@@ -696,7 +698,7 @@ int main (int argc, char *argv[])
 	}
 	else
 	{
-		sprintf (buf, "%s/.postoffice/resource.rc", getenv ("HOME"));
+		snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
 		if (stat (buf, &mystat)!=0)
 		{
 			start_wizard();
@@ -708,7 +710,7 @@ int main (int argc, char *argv[])
 	sl_splash->label ("Loading preferences");
 	Fl::wait(0.01); Fl::flush(); Fl::wait(0.01);
 
-	sprintf (buf, "%s/.postoffice/resource.rc", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
 	PREFERENCES.Load (buf);
 	_USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
 	_LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
@@ -740,7 +742,15 @@ int main (int argc, char *argv[])
 		if (strcasecmp (MBoxes->Get (i), "outbox"))
 		{
 			sl_splash->value(30+((60*i)/MBoxes->Count));
-			sprintf (buf, locs("Opening mailbox: %s","opening_mailbox"), MBoxes->Get(i));
+			// The text comes from the language file: put the name in its
+			// %s without using it as a format string.
+			{
+				std::string text = locs("Opening mailbox: %s","opening_mailbox");
+				size_t at = text.find ("%s");
+				if (at != std::string::npos) text.replace (at, 2, MBoxes->Get(i));
+				else text += std::string (" ") + MBoxes->Get(i);
+				snprintf (buf, sizeof (buf), "%s", text.c_str());
+			}
 			sl_splash->label (buf);
 			Fl::wait(0.01);  Fl::flush(); Fl::wait(0.01);
 			dprintf ("[startup] Creating Mailbox: %s\n", MBoxes->Get(i));
@@ -823,7 +833,7 @@ int main (int argc, char *argv[])
 	o = br_folderindex;
     	o->column_widths (xwidths);
 
-	sprintf (currentfolder, "Inbox");
+	snprintf (currentfolder, sizeof (currentfolder), "Inbox");
 	
 	ITCMessage *M = NULL;
 	MailMessage *MS = NULL;
@@ -842,6 +852,7 @@ int main (int argc, char *argv[])
 		// Neo-PostOffice: handle everything that is waiting (up to a limit, so
 		// the window stays responsive), not one message per pass: a mailbox
 		// that brings in thousands of messages posts one notice for each.
+		bool counts_changed = false;
 		for (int drained = 0; drained < 500 && (M = PIPE->GetNextMessage()); ++drained)
 		{
 			CCacheNode *CC;
@@ -860,6 +871,7 @@ int main (int argc, char *argv[])
 					break;
 
 				case CLASS_NEWARTICLE:
+					counts_changed = true;
 					if (currentmailbox)
 					{
 						Ms = currentmailbox->Find (M->Message->Get(1));
@@ -965,6 +977,7 @@ int main (int argc, char *argv[])
 						{
 							B->RemoveMessage (M->Message->Get(1));
 							if (B == currentmailbox) update_folder();
+							update_tree_counts();
 						}
 						break;
 					}
@@ -985,6 +998,7 @@ int main (int argc, char *argv[])
 			}
 			delete (M);
 		}
+		if (counts_changed) update_tree_counts();
 	}
 }
 
@@ -1165,6 +1179,7 @@ void displaymessage (MailMessage *M)
 {
 	char			 buf[514];
 	char			*body;
+	std::string		 text_utf8;		// a text part, decoded
 	char			*wrappoint = NULL;
 	//WordList		*dbr;
 	char			*nval;
@@ -1346,7 +1361,15 @@ void displaymessage (MailMessage *M)
 			
 			if (strcasecmp (CTH.Get(0), "text/plain") == 0)
 			{
-				body = P->Contents;
+				// Undo the transfer encoding and convert the charset to UTF-8
+				// (Neo-PostOffice: 0.7 showed the stored text as it was, so
+				// quoted-printable showed =20 and 8-bit text showed ?).
+				std::string ptype = P->ContentType ? P->ContentType : "";
+				text_utf8 = mailheaders::ToUTF8 (
+					mailheaders::DecodeBody (std::string (P->Contents, P->ContentSize), mailheaders::Param (ptype, "x-neo-cte")),
+					mailheaders::Param (ptype, "charset"));
+				for (char &c : text_utf8) if (c == 0) c = ' ';
+				body = (char *) text_utf8.c_str();
 				dprintf ("currentmessage.Clear()\n");
 				currentmessage[mdi_current].Clear();
 				dprintf ("currentmessage.MakeGeneric()\n");
@@ -1505,7 +1528,13 @@ void displaymessage (MailMessage *M)
 				}
 				else
 				{
-					sprintf (buf, "%i: \"%s\" %s (%i bytes): %s\n", i, P->FileName, P->ContentType, (int) P->ContentSize, P->Description);
+					// The part number, its name and type (without the stored
+					// encoding parameter).
+					std::string shown_type = P->ContentType ? P->ContentType : "";
+					size_t cut = shown_type.find ("; x-neo-cte=");
+					if (cut != std::string::npos) shown_type.erase (cut);
+					snprintf (buf, sizeof (buf), "%i: \"%s\" %s (%i bytes): %s\n", ik + 1, P->FileName ? P->FileName : "",
+							  shown_type.c_str(), (int) P->ContentSize, P->Description ? P->Description : "");
 					mdi_views[mdi_current]->add_header ((char *) locs("Attachment","attachment"), buf);
 				}
 			}
@@ -1684,7 +1713,7 @@ void update_status (void)
 			tmp = JOBQ.Progress (i);
 			if (tmp)
 			{
-				sprintf (str, ": %i%%", tmp);
+				snprintf (str, sizeof (str), ": %i%%", tmp);
 				strncat (STATUS, str, 500);
 			}
 			strncat (STATUS, "] ", 500);
@@ -1695,11 +1724,11 @@ void update_status (void)
 				double speed = tmp / ((time (NULL) - ti +1));
 				if (speed > 1024)
 				{
-					sprintf (str, "(%.2fKb/s)", speed/1024.0);
+					snprintf (str, sizeof (str), "(%.2fKb/s)", speed/1024.0);
 				}
 				else
 				{
-					sprintf (str, "(%i bytes/s)", (int) speed);
+					snprintf (str, sizeof (str), "(%i bytes/s)", (int) speed);
 				}
 				strncat (STATUS, str, 500);
 			}
@@ -1711,67 +1740,61 @@ void update_status (void)
 	bt_status->redraw();
 }
 
+// Adds the addresses in a To/Cc/Bcc value to list (Neo-PostOffice: the
+// original treated an apostrophe as a quote, so "Pat O'Neil <p@x>, b@y"
+// became one broken address). Commas inside double quotes, <...> and
+// (comments) do not separate; "Name <addr>" gives addr; groups
+// ("Team: a@x, b@y;") give their members.
 void extract_recipients (WordList *list, char *rcpt)
 {
-	WordList *tmp = new WordList;
-	WordList *tmp2 = new WordList;
-	char *t;
-	int i,j;
-	int crsr=0;
-	int cstart = 0;
-	int quote = 0;
-
-	dprintf ("checking out %s\n", rcpt);
-
-
-	
-	while (rcpt[crsr])
+	std::vector<std::string> items;
+	std::string cur;
+	bool in_quote = false, in_angle = false;
+	int comment = 0;
+	for (const char *p = rcpt; p && *p; ++p)
 	{
-		if ((rcpt[crsr] == ',') && (!quote))
+		char c = *p;
+		if (in_quote)
 		{
-			tmp->Add_ (t = substr(rcpt, cstart, crsr-cstart));
-			dprintf ("added %s\n", t);
-			cstart = crsr+1;
+			if (c == '\\' && p[1]) { cur += c; cur += *++p; continue; }
+			if (c == '"') in_quote = false;
 		}
-		else if ((rcpt[crsr] =='\"')||(rcpt[crsr] =='\''))
+		else if (comment)
 		{
-			if ((quote) && (quote==rcpt[crsr])) quote = 0;
-			else
-			{
-				if (!quote) quote = rcpt[crsr];
-			}
+			if (c == '\\' && p[1]) { ++p; continue; }
+			if (c == '(') ++comment;
+			else if (c == ')') --comment;
+			continue;				// comments are dropped
 		}
-		++crsr;
+		else if (c == '"') in_quote = true;
+		else if (c == '(') { ++comment; continue; }
+		else if (c == '<') in_angle = true;
+		else if (c == '>') in_angle = false;
+		else if ((c == ',' || c == ';') && !in_angle) { items.push_back (cur); cur.clear(); continue; }
+		else if (c == ':' && !in_angle) { cur.clear(); continue; }	// a group name
+		cur += c;
 	}
-	t = substr(rcpt, cstart, crsr-cstart);
-	if (strlen (t)) tmp->Add_ (t);
-	else delete[] t;
+	items.push_back (cur);
 
-	if (tmp->Count)
+	for (std::string &item : items)
 	{
-		for (i=0;i<tmp->Count;++i)
+		std::string addr;
+		size_t lt = item.rfind ('<'), gt = item.rfind ('>');
+		if (lt != std::string::npos && gt != std::string::npos && gt > lt) addr = item.substr (lt + 1, gt - lt - 1);
+		else
 		{
-			t = tmp->Get(i);
-			dprintf ("considering %s\n", t);
-			if (wild_match ("*<*@*>", t))
-			{
-				t = strchr (t, '<');
-				list->Add_ (substr (t, 1, strlen(t)-2));
-				dprintf ("added %s\n", list->Get (list->Count -1));
-			}
-			else
-			{
-				tmp2->MakeGeneric (tmp->Get(i), ' ');
-				for (j=0;j<tmp2->Count;++j)
-				{
-					if (strchr (tmp2->Get(j), '@'))
-					{
-						list->Add (tmp2->Get(j));
-						dprintf ("added %s\n", list->Get (list->Count -1));
-					}
-				}
-			}
+			// A bare address: the word with the @ in it.
+			size_t at = item.find ('@');
+			if (at == std::string::npos) continue;
+			size_t a = item.find_last_of (" \t\r\n", at), e = item.find_first_of (" \t\r\n", at);
+			addr = item.substr (a == std::string::npos ? 0 : a + 1,
+								e == std::string::npos ? std::string::npos : e - (a == std::string::npos ? 0 : a + 1));
 		}
+		size_t f = addr.find_first_not_of (" \t\r\n"), l = addr.find_last_not_of (" \t\r\n");
+		if (f == std::string::npos) continue;
+		addr = addr.substr (f, l - f + 1);
+		if (addr.find ('@') == std::string::npos) continue;
+		list->Add (addr.c_str());
 	}
 }
 
@@ -1788,7 +1811,7 @@ void cb_exit (Fl_Window *w, void *v)
 	
 	if (w)
 	{
-		sprintf (buf, "%i,%i,%i,%i", w->x(), w->y(), w->w(), w->h());
+		snprintf (buf, sizeof (buf), "%i,%i,%i,%i", w->x(), w->y(), w->w(), w->h());
 		PREFERENCES.Set_char_tree ("postoffice/state/main/geometry", buf);
 		w->hide();
 	}
@@ -1811,24 +1834,24 @@ void cb_quit (Fl_Window */*b*/, void */*v*/)
 	e->show();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
 	
-	sprintf (tag, "Making safety backup of preferences");
+	snprintf (tag, sizeof (tag), "Making safety backup of preferences");
 	bt_exitline->label (tag);
 	bt_exitline->value (10);
 	bt_exitline->redraw();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
 
-	sprintf (buf, "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
 	PREFERENCES.Save (buf);
 
-	sprintf (tag, "Saving preferences");
+	snprintf (tag, sizeof (tag), "Saving preferences");
 	bt_exitline->label (tag);
 	bt_exitline->value (20);
 	bt_exitline->redraw();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
 
-	sprintf (buf, "%s/.postoffice/resource.rc", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
 	PREFERENCES.Save (buf);
-	sprintf (buf, "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
+	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
 	unlink (buf);
 	
 	int mbc;
@@ -1840,7 +1863,7 @@ void cb_quit (Fl_Window */*b*/, void */*v*/)
 		ExitThread *thr = new ExitThread;
 		thr->Run ((void *) MailBoxList[i]);
 		
-		sprintf (tag, "Saving mailbox '%s'", MailBoxList[i]->Name);
+		snprintf (tag, sizeof (tag), "Saving mailbox '%s'", MailBoxList[i]->Name);
 		bt_exitline->label (tag);
 		bt_exitline->value (20 + ( (65*i)/mbc ));
 		bt_exitline->redraw();
@@ -1848,7 +1871,7 @@ void cb_quit (Fl_Window */*b*/, void */*v*/)
 
 		while (thr->Started) Fl::wait (0.02);
 
-		sprintf (tag, "Terminating thread '%s'", MailBoxList[i]->Name);
+		snprintf (tag, sizeof (tag), "Terminating thread '%s'", MailBoxList[i]->Name);
 		bt_exitline->label (tag);
 		bt_exitline->value (30 + ( (65*i)/mbc ));
 		bt_exitline->redraw();
@@ -1863,7 +1886,7 @@ void cb_quit (Fl_Window */*b*/, void */*v*/)
 		++i;
 	}
 
-	sprintf (tag, "Sending financial data to IRS");
+	snprintf (tag, sizeof (tag), "Sending financial data to IRS");
 	bt_exitline->label (tag);
 	bt_exitline->value (100);
 	bt_exitline->redraw();

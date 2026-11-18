@@ -22,6 +22,7 @@
 #include "gdbmtools.h"
 
 #include <gdbm.h>
+#include <string>
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
@@ -123,6 +124,7 @@ void GDBMStorage::Store (MailMessage *M)
 		// Find the associated StorageNode
 		
 		StorageNode *N = Find_ (M->MsgID);
+		if (!N) N = Recover_ (M->MsgID);
 		
 		// Create a search key;
 		
@@ -277,7 +279,13 @@ bool GDBMStorage::Retrieve (MailMessage *M)
 	// Get the associated StorageNode
 	
 	StorageNode *Nod = Find_ (M->MsgID);
-	
+
+	// Neo-PostOffice: the index record is only rewritten now and then, so
+	// after a crash it can miss messages whose records are in the database.
+	// Look for them there and put them back in the index.
+	if (!Nod) Nod = Recover_ (M->MsgID);
+	if (!Nod) result = false;
+
 	if (Nod)
 	{
 		// Key storage
@@ -511,6 +519,38 @@ void GDBMStorage::Delete (StorageNode *N)
 	}
 }
 
+// Neo-PostOffice: rebuilds the index node of a message whose records are in
+// the database but not in the index (lost in a crash). Called with the lock
+// held; returns NULL when the database has no headers for it.
+StorageNode *GDBMStorage::Recover_ (const char *msgid)
+{
+	if (!DB || !msgid) return NULL;
+	std::string key = std::string (msgid) + "/hdr";
+	datum keydat = { &key[0], (int) key.size() };
+	datum mydat = gdbm_fetch (DB, keydat);
+	if (!mydat.dptr) return NULL;
+	size_t total = mydat.dsize;
+	free (mydat.dptr);
+
+	int parts = 0;
+	for (;; ++parts)
+	{
+		char suffix[16];
+		snprintf (suffix, sizeof (suffix), ".%02i/dat", parts);
+		key = std::string (msgid) + suffix;
+		keydat.dptr = &key[0];
+		keydat.dsize = (int) key.size();
+		mydat = gdbm_fetch (DB, keydat);
+		if (!mydat.dptr) break;
+		total += mydat.dsize;
+		free (mydat.dptr);
+	}
+	eprintf ("[gdbmstorage] %s: restored the index entry of %s (%i parts)\n", Filename, msgid, parts);
+	Add (msgid, total, parts);
+	lastsync = 0;		// write the repaired index at the next chance
+	return Find_ (msgid);
+}
+
 //===============================================================================
 // METHOD		StoreIndex
 // SYNOPSIS		Saves the index-structure of the database to disk if it hasn't
@@ -677,13 +717,13 @@ void GDBMStorage::StoreNode (StorageNode *N)
 		
 		// Field two: size
 		
-		sprintf (buf, "%zu", N->Size);
+		snprintf (buf, sizeof (buf), "%zu", N->Size);
 		BF->Add (buf);
 		BF->Add ((unsigned char) '\t');
 		
 		// Field three: MailPart count
 		
-		sprintf (buf, "%i", N->Count);
+		snprintf (buf, sizeof (buf), "%i", N->Count);
 		BF->Add (buf);
 		BF->Add ((unsigned char) '\n');
 		

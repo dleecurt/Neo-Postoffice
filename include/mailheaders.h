@@ -28,6 +28,20 @@ namespace mailheaders
 	// Splits "Name <addr>", "addr (Name)" or "addr" into name and address.
 	void				SplitAddress (const std::string &from, std::string &name, std::string &addr);
 
+	// A parameter of a header value such as Content-Type or
+	// Content-Disposition ("text/plain; charset=utf-8"): unquoted, RFC 2231
+	// forms (name*=utf-8''...) and encoded words decoded. "" if absent.
+	std::string			Param (const std::string &value, const char *name);
+
+	// Undoes a body's Content-Transfer-Encoding (base64, quoted-printable);
+	// other encodings (7bit, 8bit, binary) are returned as they are.
+	std::string			DecodeBody (const std::string &body, const std::string &encoding);
+
+	// Converts text in the given charset to UTF-8. With no charset (or one
+	// iconv does not know), UTF-8 is kept and anything else is taken as
+	// ISO-8859-1.
+	std::string			ToUTF8 (const std::string &text, const std::string &charset);
+
 	// Reads an RFC 5322 date ("Mon, 10 Nov 2025 10:00:00 +0100", obsolete
 	// zone names and comments tolerated). Returns 0 if it cannot be read.
 	time_t				ParseDate (const std::string &value);

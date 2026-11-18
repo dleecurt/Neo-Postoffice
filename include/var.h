@@ -72,6 +72,7 @@ class Var
 
 							 First = NULL;
 							 Last = NULL;
+							 Count = 0;
 
 							 for (i=0;i<16;++i)
 							 {
@@ -127,6 +128,7 @@ class Var
 	
 	private:
 		Value			*_Find (const char *);
+		void			 Rebuild (void);
 		Value			*_Find (unsigned long, const char *);
 
 		unsigned int	 CacheChecksum[16];

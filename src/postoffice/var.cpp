@@ -148,17 +148,17 @@ char *Value::Get_char (void)
 	
 	switch (TYPE)
 	{
-		case VT_INT		: sprintf (Buffer, "%i", iValue);
+		case VT_INT		: snprintf (Buffer, sizeof (Buffer), "%i", iValue);
 						  Set_char (Buffer);
 						  TYPE = VT_INT;
 						  return cValue;
 						  break;
-		case VT_LONG	: sprintf (Buffer, "%ld", lValue);
+		case VT_LONG	: snprintf (Buffer, sizeof (Buffer), "%ld", lValue);
 						  Set_char (Buffer);
 						  TYPE = VT_LONG;
 						  return cValue;
 						  break;
-		case VT_SHORT	: sprintf (Buffer, "%i", sValue);
+		case VT_SHORT	: snprintf (Buffer, sizeof (Buffer), "%i", sValue);
 						  Set_char (Buffer);
 						  TYPE = VT_SHORT;
 						  return cValue;
@@ -279,6 +279,7 @@ Var::Var (Var *Org)
 	//Lock = new ASemaphore ("var");
 
 	First = Last = NULL;
+	Count = 0;
 	int i;
 	
 	for (i=0;i<16;++i)
@@ -308,6 +309,12 @@ void Var::CopyFrom (Var *Org)
 	
 	First = NULL;
 	Last = NULL;
+	Count = 0;
+	for (int i = 0; i < 16; ++i)
+	{
+		CacheChecksum[i] = 0;
+		CacheValue[i] = NULL;
+	}
 
 	Value *X;
 	Value *V = Org->First;
@@ -371,6 +378,7 @@ void Var::Clear (void)
 	
 	First = NULL;
 	Last = NULL;
+	Count = 0;
 }
 
 Value *Var::Find (const char *Val)
@@ -473,11 +481,7 @@ void Var::Add (Value *Val)
 						V = NULL;
 					}
 				}
-				else
-				{
-					V = NULL;
-					--Count;
-				}
+				else V = NULL;		// the first entry is the root itself
 			}
 			else if (Val->Checksum < V->Checksum)
 			{
@@ -755,215 +759,39 @@ u_short Var::Get_type (const char *Val)
 	else return 0;
 }
 
-void Var::Delete (const char *NewName)
+// Rebuilds the lookup tree (rooted at First) and the cache from the list,
+// after an entry was removed or renamed. The original code relinked the
+// tree by hand and lost or duplicated entries when the first one was
+// removed (Neo-PostOffice).
+void Var::Rebuild (void)
 {
-	Value *myValue, *linkValue, *Lo, *Hi, *Sa, *V;
-	int i;
-	
-	myValue = _Find (NewName);
-	if (myValue == First)
+	Count = 0;
+	for (Value *V = First; V; V = V->Next)
+		V->Parent = V->LowerNode = V->HigherNode = V->SameNode = NULL;
+	for (Value *V = First; V; V = V->Next)
 	{
-		Lo = myValue->LowerNode;
-		Hi = myValue->HigherNode;
-		Sa = myValue->SameNode;
-		
-		if (myValue->Next)
-		{
-			myValue->Next->Prev = NULL;
-			First = myValue->Next;
-		}
-		else
-		{
-			First = Last = NULL;
-		}
-		
-		if ((V = Sa)) // Do we have a same node?
-		{
-			if (V->Prev) // Is it not the first? (shouldn't happen since we are)
-			{
-				if (V->Next) // And not the last?
-				{
-					V->Prev->Next = V->Next; // Unlink it out of the regular chain
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					else
-					{
-						V->Next = NULL;
-					}
-					First = V;
-				}
-				else // it is the last
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			if (Hi) Hi->Parent = NULL;
-			if (Lo) Lo->Parent = NULL;
-			Sa->Parent = NULL;
-			if (Lo) Relink (Lo);
-			if (Hi) Relink (Hi);
-		}
-		else if ((V = Lo))
-		{
-			if (V->Prev)
-			{
-				if (V->Next)
-				{
-					V->Prev->Next = V->Next;
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					else
-					{
-						V->Next = NULL;
-					}
-					First = V;
-				}
-				else
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			if (Hi) Hi->Parent = NULL;
-			Lo->Parent = NULL;
-			if (Sa) Sa->Parent = NULL;
-			if (Sa) Relink (Sa);
-			if (Hi) Relink (Hi);
-		}
-		else if ((V = Hi))
-		{
-			if (V->Prev)
-			{
-				if (V->Next)
-				{
-					V->Prev->Next = V->Next;
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					else
-					{
-						V->Next = NULL;
-					}
-					First = V;
-				}
-				else
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			Hi->Parent = NULL;
-			if (Lo) Lo->Parent = NULL;
-			if (Sa) Sa->Parent = NULL;
-			if (Lo) Relink (Lo);
-			if (Sa) Relink (Sa);
-		}
-		delete (myValue);
+		++Count;
+		if (V != First) Relink (V);
 	}
-	else if (myValue)
-	{
-		if ((linkValue = myValue->Parent))
-		{
-			if (linkValue->HigherNode == myValue)
-			{
-				linkValue->HigherNode = NULL;
-			}
-			else if (linkValue->LowerNode == myValue)
-			{
-				linkValue->LowerNode = NULL;
-			}
-			else if (linkValue->SameNode == myValue)
-			{
-				linkValue->SameNode = NULL;
-			}
-			else
-			{
-				dprintf ("ASSERT FAILED\n");
-				// something fucked up, what to do?
-			}
-		}
-		if (myValue->HigherNode)
-		{
-			myValue->HigherNode->Parent = NULL;
-			Relink (myValue->HigherNode);
-			myValue->HigherNode = NULL;
-		}
-		if (myValue->LowerNode)
-		{
-			myValue->LowerNode->Parent = NULL;
-			Relink (myValue->LowerNode);
-			myValue->LowerNode = NULL;
-		}
-		if (myValue->SameNode)
-		{
-			myValue->SameNode->Parent = NULL;
-			Relink (myValue->SameNode);
-			myValue->SameNode = NULL;
-		}
-		if (myValue->Prev)
-		{
-			if (myValue->Next)
-			{
-				myValue->Prev->Next = myValue->Next;
-				myValue->Next->Prev = myValue->Prev;
-			}
-			else
-			{
-				myValue->Prev->Next = NULL;
-				Last = myValue->Prev;
-			}
-		}
-		else
-		{
-			if (myValue->Next)
-			{
-				myValue->Next->Prev = NULL;
-				First = myValue->Next;
-			}
-			else
-			{
-				First = Last = NULL;
-			}
-		}
-	}
-	for (i=0;i<16;++i)
+	for (int i = 0; i < 16; ++i)
 	{
 		CacheChecksum[i] = 0;
 		CacheValue[i] = NULL;
 	}
+}
+
+void Var::Delete (const char *Name)
+{
+	Lock.LockRW();
+	Value *V = _Find (Name);
+	if (V)
+	{
+		if (V->Prev) V->Prev->Next = V->Next; else First = V->Next;
+		if (V->Next) V->Next->Prev = V->Prev; else Last = V->Prev;
+		delete V;
+		Rebuild ();
+	}
+	Lock.UnlockRW();
 }
 
 bool Var::Exists (const char *name)
@@ -972,311 +800,20 @@ bool Var::Exists (const char *name)
 	return false;
 }
 
+// Renames OldName to NewName, keeping its place in the list (and so in
+// the saved file). Nothing happens if OldName does not exist or NewName
+// is already taken by another entry. (The original looked up NewName.)
 void Var::Rename (const char *OldName, const char *NewName)
 {
-	Value *myValue, *linkValue, *Lo, *Hi, *Sa, *V, *tV;
-	int i;
-	
-	tV = First;
-	while (tV)
+	Lock.LockRW();
+	Value *V = _Find (OldName);
+	Value *Taken = _Find (NewName);
+	if (V && (!Taken || Taken == V))
 	{
-		tV = tV->Next;
+		V->Rename (NewName);
+		Rebuild ();
 	}
-	
-	myValue = _Find (NewName);
-	if (myValue == First)
-	{
-		Lo = myValue->LowerNode;
-		Hi = myValue->HigherNode;
-		Sa = myValue->SameNode;
-		
-		myValue->Next->Prev = NULL;
-		First = myValue->Next;
-		
-		if ((V = Sa))
-		{
-			if (V->Prev)
-			{
-				if (V->Next)
-				{
-					V->Prev->Next = V->Next;
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-				else
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-			Hi->Parent = NULL;
-			Lo->Parent = NULL;
-			Sa->Parent = NULL;
-			Relink (Lo);
-			Relink (Hi);
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-		}
-		else if ((V = Lo))
-		{
-			if (V->Prev)
-			{
-				if (V->Next)
-				{
-					V->Prev->Next = V->Next;
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-				else
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-			Hi->Parent = NULL;
-			Lo->Parent = NULL;
-			Sa->Parent = NULL;
-			Relink (Sa);
-			Relink (Hi);
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-		}
-		else if ((V = Hi))
-		{
-			if (V->Prev)
-			{
-				if (V->Next)
-				{
-					V->Prev->Next = V->Next;
-					V->Next->Prev = V->Prev;
-					V->Prev = NULL;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-				else
-				{
-					V->Prev->Next = NULL;
-					Last = V->Prev;
-					if (First)
-					{
-						V->Next = First->Next;
-						if (First->Next) First->Next->Prev = V;
-					}
-					First = V;
-				}
-			}
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-			Hi->Parent = NULL;
-			Lo->Parent = NULL;
-			Sa->Parent = NULL;
-			tV = First;
-			while (tV)
-			{
-				tV = tV->Next;
-			}
-			Relink (Lo);
-			Relink (Sa);
-		}
-		delete (myValue);
-	}
-	else if (myValue)
-	{
-		dprintf ("[rename] newname exists\n");
-		if ((linkValue = myValue->Parent))
-		{
-			if (linkValue->HigherNode == myValue)
-			{
-				linkValue->HigherNode = NULL;
-			}
-			else if (linkValue->LowerNode == myValue)
-			{
-				linkValue->LowerNode = NULL;
-			}
-			else if (linkValue->SameNode == myValue)
-			{
-				linkValue->SameNode = NULL;
-			}
-			else
-			{
-				// something fucked up, what to do?
-			}
-		}
-		if (myValue->HigherNode)
-		{
-			myValue->HigherNode->Parent = NULL;
-			Relink (myValue->HigherNode);
-			myValue->HigherNode = NULL;
-		}
-		if (myValue->LowerNode)
-		{
-			myValue->LowerNode->Parent = NULL;
-			Relink (myValue->LowerNode);
-			myValue->LowerNode = NULL;
-		}
-		if (myValue->SameNode)
-		{
-			myValue->SameNode->Parent = NULL;
-			Relink (myValue->SameNode);
-			myValue->SameNode = NULL;
-		}
-		if (myValue->Prev)
-		{
-			if (myValue->Next)
-			{
-				myValue->Prev->Next = myValue->Prev;
-				myValue->Next->Prev = myValue->Prev;
-			}
-			else
-			{
-				myValue->Prev->Next = NULL;
-				Last = myValue->Prev;
-			}
-		}
-		else
-		{
-			if (myValue->Next)
-			{
-				myValue->Next->Prev = NULL;
-				First = myValue->Next;
-			}
-			else
-			{
-				First = Last = NULL;
-			}
-		}
-	}
-	
-	myValue = _Find (OldName);
-	if (myValue == First)
-	{
-		Lo = myValue->LowerNode;
-		Hi = myValue->HigherNode;
-		Sa = myValue->SameNode;
-		myValue->Rename (NewName);
-		myValue->LowerNode = myValue->HigherNode = myValue->SameNode = NULL;
-		if (Lo)
-		{
-			Lo->Parent = NULL;
-			Relink (Lo);
-		}
-		if (Hi)
-		{
-			Hi->Parent = NULL;
-			Relink (Hi);
-		}
-		if (Sa)
-		{
-			Sa->Parent = NULL;
-			Relink (Sa);
-		}
-	}	
-	else if (myValue)
-	{
-		if ((linkValue = myValue->Parent))
-		{
-			if (linkValue->HigherNode == myValue)
-			{
-				linkValue->HigherNode = NULL;
-			}
-			else if (linkValue->LowerNode == myValue)
-			{
-				linkValue->LowerNode = NULL;
-			}
-			else if (linkValue->SameNode == myValue)
-			{
-				linkValue->SameNode = NULL;
-			}
-			else
-			{
-				// something fucked up, what to do?
-			}
-		}
-		if (myValue->HigherNode)
-		{
-			myValue->HigherNode->Parent = NULL;
-			Relink (myValue->HigherNode);
-			myValue->HigherNode = NULL;
-		}
-		if (myValue->LowerNode)
-		{
-			myValue->LowerNode->Parent = NULL;
-			Relink (myValue->LowerNode);
-			myValue->LowerNode = NULL;
-		}
-		if (myValue->SameNode)
-		{
-			myValue->SameNode->Parent = NULL;
-			Relink (myValue->SameNode);
-			myValue->SameNode = NULL;
-		}
-		myValue->Rename (NewName);
-		Relink (myValue);
-		dprintf ("[rename] relinked\n");
-	}
-	else
-	{
-		dprintf ("[rename] oldname not found ---> debug <---\n");
-		myValue = First;
-		while (myValue)
-		{
-			dprintf ("[      ] %s\n", myValue->Name);
-			myValue = myValue->Next;
-		}
-	}
-
-	for (i=0;i<16;++i)
-	{
-		CacheChecksum[i] = 0;
-		CacheValue[i] = NULL;
-	}
+	Lock.UnlockRW();
 }
 
 void Var::Relink (Value *V)

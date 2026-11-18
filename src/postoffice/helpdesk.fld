@@ -858,11 +858,13 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           MenuItem {} {
             label Send
+            callback cb_compose_menu_send
             xywh {0 0 100 20} labelsize 12
             code0 {xloc(o, "send");}
           }
           MenuItem {} {
             label Discard
+            callback cb_compose_menu_discard
             xywh {0 0 100 20} labelsize 12
             code0 {xloc(o, "discard");}
           }
@@ -1400,7 +1402,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   xywh {317 256 283 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
                 } {
                   MenuItem {} {
-                    label {Fetch Headers seperately}
+                    label {Fetch headers separately}
                     xywh {35 35 100 20} labelsize 12
                     code0 {xloc(o, "fetch_hdr_sep");}
                   }
