@@ -57,6 +57,9 @@ public:
 	ASemaphore				 Lock;
 };
 
+class NetStream;
+
+// POP3 (pop3handler.cpp), over TLS, STLS or plain.
 class POP3Handler : public MailHandler
 {
 public:
@@ -70,52 +73,41 @@ public:
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
 	int						 PostMessage (WordList *, MailMessage *);
-//	WordList				*ServerGrouplist (void);
 	
 private:
-	
-	Var						*UIMsgID;
-	Connection				*Con;
-	int						 State;
-	Var						*TransMsgID;
-	int						 HighestHandled;
-	
-	int						 CheckReply (char *, int);
-	int						 LastChecked;
+	NetStream				*Net;
+	std::map<std::string, std::string> Uidl;	// UIDL -> Message-ID (uidl.dat)
+	std::map<std::string, int> Numbers;			// UIDL -> number, this session
+	std::vector<std::string> Order;				// UIDLs in server order
+	std::string				 LastError;			// shown once
+
+	bool					 Session (int jid);
+	bool					 EndSession (void);
+	bool					 Command (const std::string &cmd, std::string &reply);
+	bool					 ReadMulti (std::string &text, int jid, long size);
+	bool					 FetchBody (const char *msgid, int jid);
+	std::string				 UidOf (const char *msgid);
+	std::string				 UidlFile (void);
+	void					 LoadUidl (void);
+	void					 SaveUidl (void);
+	void					 Report (const std::string &what);
+	void					 ShowStatus (int jid, const std::string &text);
 };
 
-class IMAP4Handler : public MailHandler
+// A mailbox whose protocol is not available in this version (IMAP4, until
+// the new IMAP client exists). Its settings are kept; checking it shows a
+// note once.
+class UnavailableHandler : public MailHandler
 {
 public:
-	IMAP4Handler (MailBox *, Var *);
-	~IMAP4Handler (void);
-	
-	void					 OpenConnection (void);
-	void					 CloseConnection (void);
-	void					 GetBody (char *);
+	UnavailableHandler (MailBox *, Var *, const char *what);
+	~UnavailableHandler (void);
 	void					 CheckGroup (const char *);
-	void					 DeleteMessage (char *);
-	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
-//	WordList				*ServerGrouplist (void);
-	
-		//void					 MoveMessage (char *, char *, char *);
-	
 private:
-	
-	Var						*UIMsgID;
-	Connection				*Con;
-	int						 State;
-	Var						*TransMsgID;
-	int						 HighestHandled;
-	
-	int						CheckReply();
-	int						 CheckReply (char *, int);
-	int						CmdNum;
-	char					CmdPrefix;
-	void					SendCmd(const char*);
-	
+	std::string				 What;
+	bool					 Told;
 };
+
 class SQLHandler : public MailHandler
 {
 public:

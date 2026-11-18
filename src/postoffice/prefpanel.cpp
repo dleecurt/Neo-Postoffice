@@ -132,6 +132,10 @@ PrefJournal JOURNAL;
 //										a guideline.
 //===============================================================================
 
+#include <string>
+extern MailBox		*currentmailbox;
+extern char			 currentfolder[64];
+
 void show_delivery (void);
 
 void func_view_protocol (void)
@@ -184,6 +188,12 @@ void func_view_protocol (void)
 				in_prefs_protocol_pop3_host->value (PREFS_CURRENTBOX->Get_char ("host"));
 				in_prefs_protocol_pop3_user->value (PREFS_CURRENTBOX->Get_char ("user"));
 				in_prefs_protocol_pop3_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
+				in_prefs_protocol_pop3_port->value (PREFS_CURRENTBOX->Get_int ("port") > 0 ? PREFS_CURRENTBOX->Get_char ("port") : "");
+				in_prefs_protocol_pop3_passcmd->value (PREFS_CURRENTBOX->Get_char ("passcmd"));
+				in_prefs_protocol_pop3_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
+				// Mailboxes from before encryption existed have none set.
+				const char *sec = PREFS_CURRENTBOX->Get_char ("security");
+				ch_prefs_protocol_pop3_security->value (strcmp (sec, "tls") == 0 ? 0 : strcmp (sec, "starttls") == 0 ? 1 : 2);
 			}
 			break;
 
@@ -229,13 +239,8 @@ void func_view_protocol (void)
 			gr_prefs_protocol_mbox->hide();
 			gr_prefs_protocol_nntp->hide();
 			gr_prefs_protocol_imap4->show();
-			if (PREFS_CURRENTBOX)
-			{
-				PREFS_CURRENTBOX->Set_char ("protocol","imap4");
-				in_prefs_protocol_imap4_host->value (PREFS_CURRENTBOX->Get_char ("host"));
-				in_prefs_protocol_imap4_user->value (PREFS_CURRENTBOX->Get_char ("user"));
-				in_prefs_protocol_imap4_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
-			}
+			// IMAP4 cannot be chosen any more (the menu item is hidden); an
+			// existing IMAP4 mailbox shows a note and keeps its settings.
 			break;
 
 		case 5:
@@ -991,18 +996,20 @@ void cb_prefs_protocol_pop3 (Fl_Input */*i*/, void */*v*/)
 		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_pop3_host->value());
 		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_pop3_user->value());
 		PREFS_CURRENTBOX->Set_char ("pass", (char *) in_prefs_protocol_pop3_pass->value());
+		PREFS_CURRENTBOX->Set_char ("port", (char *) in_prefs_protocol_pop3_port->value());
+		PREFS_CURRENTBOX->Set_char ("passcmd", (char *) in_prefs_protocol_pop3_passcmd->value());
+		PREFS_CURRENTBOX->Set_char ("cafile", (char *) in_prefs_protocol_pop3_cafile->value());
 		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
 	}
 }
 
-void cb_prefs_protocol_imap4 (Fl_Input */*i*/, void */*v*/)
+void cb_prefs_protocol_pop3_security (Fl_Choice *c, void */*v*/)
 {
-	if (PREFS_CURRENTBOX)
+	static const char *values[] = { "tls", "starttls", "none" };
+	if (PREFS_CURRENTBOX && c->value() >= 0 && c->value() <= 2)
 	{
 		PREFS_MBOX_CHANGE=1;
-		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_imap4_host->value());
-		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_imap4_user->value());
-		PREFS_CURRENTBOX->Set_char ("pass", (char *) in_prefs_protocol_imap4_pass->value());
+		PREFS_CURRENTBOX->Set_char ("security", (char *) values[c->value()]);
 		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
 	}
 }
@@ -1094,6 +1101,7 @@ void cb_prefs_mailbox_add (Fl_Button */*b*/, void */*v*/)
 	in_prefs_mailboxname->value ("Untitled");
 	PREFS_CURRENTBOX = LPREFERENCES.Get_collection("postoffice")->Get_collection("mailboxes")->Get_collection("Untitled");
 	PREFS_CURRENTBOX->Set_char ("host","host.domain.com");
+	PREFS_CURRENTBOX->Set_char ("security","tls");	// for POP3 (and IMAP later)
 	cb_prefs_mailboxes(br_prefs_mailboxes, (void *) NULL);
 }
 
@@ -1410,6 +1418,10 @@ void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 //	br_folderindex->clear();
 	br_message->clear();
 
+	// The mailboxes are deleted and made again below: remember which one is
+	// shown, to point at its new self afterwards (Neo-PostOffice).
+	std::string shown_box = currentmailbox ? currentmailbox->Name : "";
+
 	if (PREFS_MBOX_CHANGE)
 	{
 		i = scr->children()-1;
@@ -1449,6 +1461,11 @@ void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 		MailBoxList[bx++] = OUTBOX = new MailBox (PIPE);
 		MailBoxList[bx] = (MailBox *) NULL;
 		delete (MBoxes);
+
+		currentmailbox = NULL;
+		for (int k = 0; MailBoxList[k]; ++k)
+			if (MailBoxList[k] != OUTBOX && shown_box == MailBoxList[k]->Name) currentmailbox = MailBoxList[k];
+		if (!currentmailbox) currentfolder[0] = 0;
 	}
 	update_tree (current_boxlist);
     fl_cursor (FL_CURSOR_DEFAULT,(Fl_Color) 0, (Fl_Color) 7);

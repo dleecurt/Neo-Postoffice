@@ -17,4 +17,8 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 // last lines of its output in err if it failed.
 bool run_fetch_command (const char *command, std::string &err);
 
+// Runs a password command (pass show ..., secret-tool lookup ...) and
+// returns the first line it prints. Its error output goes into err.
+bool run_password_command (const char *command, std::string &password, std::string &err);
+
 #endif

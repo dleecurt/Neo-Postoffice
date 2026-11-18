@@ -5101,7 +5101,7 @@ Fl_Menu_Item menu_ch_prefs_protocol[] = {
  {"POP3 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"NNTP/Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"IMAP4 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"IMAP4 Account", 0,  0, 0, 16, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Maildir", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MH (nmh)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
@@ -5123,17 +5123,26 @@ Fl_Group *gr_prefs_protocol_pop3=(Fl_Group *)0;
 
 Fl_Input *in_prefs_protocol_pop3_host=(Fl_Input *)0;
 
+Fl_Input *in_prefs_protocol_pop3_port=(Fl_Input *)0;
+
+Fl_Choice *ch_prefs_protocol_pop3_security=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_prefs_protocol_pop3_security[] = {
+ {"TLS (port 995)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"STARTTLS (port 110)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"None (unencrypted)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
 Fl_Input *in_prefs_protocol_pop3_user=(Fl_Input *)0;
 
 Fl_Input *in_prefs_protocol_pop3_pass=(Fl_Input *)0;
 
+Fl_Input *in_prefs_protocol_pop3_passcmd=(Fl_Input *)0;
+
+Fl_Input *in_prefs_protocol_pop3_cafile=(Fl_Input *)0;
+
 Fl_Group *gr_prefs_protocol_imap4=(Fl_Group *)0;
-
-Fl_Input *in_prefs_protocol_imap4_host=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_imap4_user=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_imap4_pass=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_nntp=(Fl_Group *)0;
 
@@ -5885,14 +5894,21 @@ Fl_Window* make_prefs_window() {
             gr_prefs_protocol_pop3->color((Fl_Color)51);
             gr_prefs_protocol_pop3->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             gr_prefs_protocol_pop3->hide();
-            { Fl_Group* o = new Fl_Group(235, 85, 370, 20);
-              { in_prefs_protocol_pop3_host = new Fl_Input(375, 85, 230, 20);
+            { Fl_Group* o = new Fl_Group(240, 82, 365, 20);
+              { in_prefs_protocol_pop3_host = new Fl_Input(375, 82, 150, 20);
                 in_prefs_protocol_pop3_host->labelsize(12);
                 in_prefs_protocol_pop3_host->textsize(12);
                 in_prefs_protocol_pop3_host->callback((Fl_Callback*)cb_prefs_protocol_pop3);
                 in_prefs_protocol_pop3_host->when(FL_WHEN_CHANGED);
               } // Fl_Input* in_prefs_protocol_pop3_host
-              { Fl_Button* o = new Fl_Button(240, 85, 80, 20, "POP3 Host");
+              { in_prefs_protocol_pop3_port = new Fl_Input(565, 82, 40, 20, "Port");
+                in_prefs_protocol_pop3_port->tooltip("Empty: 995 for TLS, 110 otherwise.");
+                in_prefs_protocol_pop3_port->labelsize(12);
+                in_prefs_protocol_pop3_port->textsize(12);
+                in_prefs_protocol_pop3_port->callback((Fl_Callback*)cb_prefs_protocol_pop3);
+                in_prefs_protocol_pop3_port->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_pop3_port
+              { Fl_Button* o = new Fl_Button(240, 82, 110, 20, "POP3 Host");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
@@ -5900,35 +5916,88 @@ Fl_Window* make_prefs_window() {
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 115, 365, 20);
-              { in_prefs_protocol_pop3_user = new Fl_Input(375, 115, 230, 20);
+            { Fl_Group* o = new Fl_Group(240, 107, 365, 20);
+              { Fl_Group* o = new Fl_Group(375, 107, 230, 20);
+                o->box(FL_BORDER_FRAME);
+                o->color(FL_FOREGROUND_COLOR);
+                { ch_prefs_protocol_pop3_security = new Fl_Choice(376, 108, 229, 19);
+                  ch_prefs_protocol_pop3_security->tooltip("TLS: encrypted from the start (port 995). STARTTLS: port 110, then encrypted;"
+" fails if the server cannot. None: only for a server on your own machine or ne"
+"twork.");
+                  ch_prefs_protocol_pop3_security->down_box(FL_BORDER_BOX);
+                  ch_prefs_protocol_pop3_security->labelsize(12);
+                  ch_prefs_protocol_pop3_security->textsize(12);
+                  ch_prefs_protocol_pop3_security->callback((Fl_Callback*)cb_prefs_protocol_pop3_security);
+                  ch_prefs_protocol_pop3_security->menu(menu_ch_prefs_protocol_pop3_security);
+                } // Fl_Choice* ch_prefs_protocol_pop3_security
+                o->end();
+              } // Fl_Group* o
+              { Fl_Button* o = new Fl_Button(240, 107, 110, 20, "Encryption");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+              } // Fl_Button* o
+              o->end();
+            } // Fl_Group* o
+            { Fl_Group* o = new Fl_Group(240, 132, 365, 20);
+              { in_prefs_protocol_pop3_user = new Fl_Input(375, 132, 230, 20);
                 in_prefs_protocol_pop3_user->labelsize(12);
                 in_prefs_protocol_pop3_user->textsize(12);
                 in_prefs_protocol_pop3_user->callback((Fl_Callback*)cb_prefs_protocol_pop3);
                 in_prefs_protocol_pop3_user->when(FL_WHEN_CHANGED);
               } // Fl_Input* in_prefs_protocol_pop3_user
-              { Fl_Button* o = new Fl_Button(240, 115, 75, 20, "Username");
+              { Fl_Button* o = new Fl_Button(240, 132, 110, 20, "Username");
                 o->box(FL_NO_BOX);
-                o->color((Fl_Color)48);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "username");
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 145, 365, 20);
-              { in_prefs_protocol_pop3_pass = new Fl_Input(375, 145, 230, 20);
+            { Fl_Group* o = new Fl_Group(240, 157, 365, 20);
+              { in_prefs_protocol_pop3_pass = new Fl_Input(375, 157, 230, 20);
                 in_prefs_protocol_pop3_pass->type(5);
                 in_prefs_protocol_pop3_pass->labelsize(12);
                 in_prefs_protocol_pop3_pass->textsize(12);
                 in_prefs_protocol_pop3_pass->callback((Fl_Callback*)cb_prefs_protocol_pop3);
                 in_prefs_protocol_pop3_pass->when(FL_WHEN_CHANGED);
               } // Fl_Input* in_prefs_protocol_pop3_pass
-              { Fl_Button* o = new Fl_Button(240, 145, 75, 20, "Password");
+              { Fl_Button* o = new Fl_Button(240, 157, 110, 20, "Password");
                 o->box(FL_NO_BOX);
                 o->labelsize(12);
                 o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "password");
+              } // Fl_Button* o
+              o->end();
+            } // Fl_Group* o
+            { Fl_Group* o = new Fl_Group(240, 182, 365, 20);
+              { in_prefs_protocol_pop3_passcmd = new Fl_Input(375, 182, 230, 20);
+                in_prefs_protocol_pop3_passcmd->tooltip("Optional. A command whose first line of output is the password, used instead "
+"of the password above: for example pass show mail/pop or secret-tool lookup se"
+"rvice pop3 user me.");
+                in_prefs_protocol_pop3_passcmd->labelsize(12);
+                in_prefs_protocol_pop3_passcmd->textsize(12);
+                in_prefs_protocol_pop3_passcmd->callback((Fl_Callback*)cb_prefs_protocol_pop3);
+                in_prefs_protocol_pop3_passcmd->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_pop3_passcmd
+              { Fl_Button* o = new Fl_Button(240, 182, 110, 20, "Password command");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+              } // Fl_Button* o
+              o->end();
+            } // Fl_Group* o
+            { Fl_Group* o = new Fl_Group(240, 207, 365, 20);
+              { in_prefs_protocol_pop3_cafile = new Fl_Input(375, 207, 230, 20);
+                in_prefs_protocol_pop3_cafile->tooltip("Optional. A PEM file with your own certificate authority, trusted in addition"
+" to the system\'s (for a server with a certificate from a local CA).");
+                in_prefs_protocol_pop3_cafile->labelsize(12);
+                in_prefs_protocol_pop3_cafile->textsize(12);
+                in_prefs_protocol_pop3_cafile->callback((Fl_Callback*)cb_prefs_protocol_pop3);
+                in_prefs_protocol_pop3_cafile->when(FL_WHEN_CHANGED);
+              } // Fl_Input* in_prefs_protocol_pop3_cafile
+              { Fl_Button* o = new Fl_Button(240, 207, 110, 20, "CA file");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
@@ -5939,53 +6008,12 @@ Fl_Window* make_prefs_window() {
             gr_prefs_protocol_imap4->color((Fl_Color)51);
             gr_prefs_protocol_imap4->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             gr_prefs_protocol_imap4->hide();
-            { Fl_Group* o = new Fl_Group(235, 85, 370, 20);
-              { in_prefs_protocol_imap4_host = new Fl_Input(375, 85, 230, 20);
-                in_prefs_protocol_imap4_host->labelsize(12);
-                in_prefs_protocol_imap4_host->textsize(12);
-                in_prefs_protocol_imap4_host->callback((Fl_Callback*)cb_prefs_protocol_imap4);
-                in_prefs_protocol_imap4_host->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_imap4_host
-              { Fl_Button* o = new Fl_Button(240, 85, 80, 20, "IMAP4 Host");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "imap4_host");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 115, 365, 20);
-              { in_prefs_protocol_imap4_user = new Fl_Input(375, 115, 230, 20);
-                in_prefs_protocol_imap4_user->labelsize(12);
-                in_prefs_protocol_imap4_user->textsize(12);
-                in_prefs_protocol_imap4_user->callback((Fl_Callback*)cb_prefs_protocol_imap4);
-                in_prefs_protocol_imap4_user->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_imap4_user
-              { Fl_Button* o = new Fl_Button(240, 115, 75, 20, "Username");
-                o->box(FL_NO_BOX);
-                o->color((Fl_Color)48);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "username");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 145, 365, 20);
-              { in_prefs_protocol_imap4_pass = new Fl_Input(375, 145, 230, 20);
-                in_prefs_protocol_imap4_pass->type(5);
-                in_prefs_protocol_imap4_pass->labelsize(12);
-                in_prefs_protocol_imap4_pass->textsize(12);
-                in_prefs_protocol_imap4_pass->callback((Fl_Callback*)cb_prefs_protocol_imap4);
-                in_prefs_protocol_imap4_pass->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_imap4_pass
-              { Fl_Button* o = new Fl_Button(240, 145, 75, 20, "Password");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "password");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
+            { Fl_Box* o = new Fl_Box(245, 85, 360, 140, "IMAP4 is not available in this version of Neo-PostOffice. A new IMAP client i"
+"s planned; this mailbox\'s settings are kept for it. Meanwhile, mbsync or Offl"
+"ineIMAP can keep a Maildir in step with the server: see the README.");
+              o->labelsize(12);
+              o->align(Fl_Align(133|FL_ALIGN_INSIDE));
+            } // Fl_Box* o
             gr_prefs_protocol_imap4->end();
           } // Fl_Group* gr_prefs_protocol_imap4
           { gr_prefs_protocol_nntp = new Fl_Group(230, 75, 390, 160);

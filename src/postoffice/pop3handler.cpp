@@ -1,855 +1,617 @@
 //===============================================================================
-// POSTOFFICE - X11 Office Communication Handler
-// ---------------------------------------------
-// All sourcecode, unless differently annotated, written by Pim van Riezen
-// Sourcecode and resulting binaries are covered by the GNU Lesser General Public
-// License (GNU LGPL). For more information and the literal text of the license
-// agreement, check the Free Software Foundation's website on http://www.fsf.org/
-// 
-// Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
+// POP3Handler (Neo-PostOffice)
+// ----------------------------
+// Collects mail from a POP3 server (RFC 1939), over TLS (port 995), after
+// STLS (RFC 2595, port 110) or, for a server on your own network, without
+// encryption. Rewritten for Neo-PostOffice on NetStream; the settings and
+// the uidl.dat file of PostOffice 0.7 are kept.
+//
+// - Every operation (check, fetching a body, deleting, expiring) is one
+//   session: connect, log in, UIDL, the work, QUIT. POP3 servers lock the
+//   mailbox during a session and only show new mail to a new one, and
+//   deletions only take effect at QUIT.
+// - A message is known by its UIDL. uidl.dat maps each UIDL to the
+//   Message-ID it was filed under; a UIDL in it is never fetched again.
+//   Messages without a Message-ID get a stable one made from the UIDL.
+// - Collection: 0 fetches headers (the body when the message is opened),
+//   1 whole messages, 2 whole messages that are then deleted from the
+//   server. Deleting happens only after the messages and uidl.dat are
+//   saved, so a crash cannot lose mail.
+// - The password is the "pass" setting, or the first line printed by the
+//   "passcmd" setting (pass show ..., secret-tool lookup ...).
+//
+// GNU LGPL like PostOffice itself.
 //===============================================================================
 
 #include "mailbox.h"
+#include "mailheaders.h"
+#include "netstream.h"
+#include "sendpipe.h"
 #include "var.h"
-#include "reg.h"
-#include "chop.h"
+#include "status.h"
+
+#include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
 
 #include "debug.h"
-#include "status.h"
 
 extern JobList JOBQ;
 
-MailHandler::~MailHandler (void)
-{
-}
-
-void MailHandler::OpenConnection (void)
-{
-}
-
-void MailHandler::CloseConnection (void)
-{
-}
-
-void MailHandler::GetBody (char */*x*/)
-{
-}
-
-void MailHandler::CheckGroup (const char */*x*/)
-{
-}
-
-void MailHandler::DeleteMessage (char */*x*/)
-{
-}
-
-void MailHandler::Expire (void)
-{
-}
-
-//WordList *MailHandler::ServerGrouplist (void)
-//{
-//	return (WordList *) NULL;
-//}
-
-int MailHandler::PostMessage (WordList */*x*/, MailMessage */*m*/)
-{
-	return 0;
-}
-
 POP3Handler::POP3Handler (MailBox *_Parent, class Var *_Parameters)
 {
-	char buf[64];
 	Parameters = new Var (_Parameters);
 	Parent = _Parent;
-	Con = new Connection (1);
 	ConnectionOpen = 0;
-	LastChecked = 0;
-	HighestHandled = 0;
-	TransMsgID = new Var;
-	UIMsgID = new Var;
-	sprintf (buf, "%s/uidl.dat", Parent->DirectoryPrefix);
-	UIMsgID->Load (buf);
+	Net = new NetStream;
+	Net->Cancelled = [this]() { return Parent->ToCollector->UrgentPending; };
+	LoadUidl ();
 	Parent->ToCollector->AddPriorityClass (CLASS_GETBODY);
 }
 
-// So long and thanks for all the fish.
-
 POP3Handler::~POP3Handler (void)
 {
-	if (Con)
+	delete Net;
+	delete Parameters;
+}
+
+std::string POP3Handler::UidlFile (void)
+{
+	return std::string (Parent->DirectoryPrefix) + "/uidl.dat";
+}
+
+// uidl.dat has a line 'UIDL = "Message-ID"' for each message, as in
+// PostOffice 0.7 (which kept it in a Var).
+void POP3Handler::LoadUidl (void)
+{
+	Uidl.clear ();
+	FILE *F = fopen (UidlFile().c_str(), "r");
+	if (!F) return;
+	char line[1024];
+	while (fgets (line, sizeof (line), F))
 	{
-		if (ConnectionOpen) // Hmm, last one out turns off the lights.
+		char *eq = strstr (line, " = \"");
+		char *end = strrchr (line, '"');
+		if (!eq || !end || end <= eq + 3) continue;
+		std::string uid (line, eq - line);
+		size_t a = uid.find_first_not_of (" \t");
+		if (a == std::string::npos) continue;
+		Uidl[uid.substr (a)] = std::string (eq + 4, end - (eq + 4));
+	}
+	fclose (F);
+}
+
+// Written whole to a private file, then renamed over the old one.
+void POP3Handler::SaveUidl (void)
+{
+	std::string tmp = UidlFile() + ".new";
+	int fd = open (tmp.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+	FILE *F = fd >= 0 ? fdopen (fd, "w") : NULL;
+	if (!F)
+	{
+		if (fd >= 0) close (fd);
+		eprintf ("[pop3] cannot save %s\n", tmp.c_str());
+		return;
+	}
+	for (auto &kv : Uidl) fprintf (F, "%s = \"%s\"\n", kv.first.c_str(), kv.second.c_str());
+	bool ok = fflush (F) == 0 && fsync (fileno (F)) == 0;
+	ok = (fclose (F) == 0) && ok;
+	if (!ok || rename (tmp.c_str(), UidlFile().c_str()) != 0)
+		eprintf ("[pop3] cannot save %s\n", UidlFile().c_str());
+}
+
+// Errors are shown once, until a different one happens or an operation
+// succeeds, so that a server that is down does not bring up a dialog at
+// every automatic check.
+void POP3Handler::Report (const std::string &what)
+{
+	if (what == LastError || Parent->ToCollector->UrgentPending) return;
+	LastError = what;
+	Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Parent->Name, what.c_str());
+}
+
+void POP3Handler::ShowStatus (int jid, const std::string &text)
+{
+	JOBQ.Stat (jid, (char *) text.c_str());
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+}
+
+//-------------------------------------------------------------------------------
+// Protocol
+//-------------------------------------------------------------------------------
+
+// Sends a command (if any) and reads its one-line reply. A "-ERR" reply
+// returns false with the server's text in reply; a connection problem
+// returns false with the stream closed.
+bool POP3Handler::Command (const std::string &cmd, std::string &reply)
+{
+	if (!cmd.empty() && !Net->Write (cmd + "\r\n")) { reply = Net->Error(); return false; }
+	if (!Net->ReadLine (reply)) { reply = Net->Error(); return false; }
+	if (reply.compare (0, 3, "+OK") == 0) return true;
+	if (reply.compare (0, 4, "-ERR") == 0)
+	{
+		reply = reply.substr (4);
+		size_t a = reply.find_first_not_of (' ');
+		reply = a == std::string::npos ? "" : reply.substr (a);
+		if (reply.empty()) reply = "no reason given";
+		return false;
+	}
+	reply = "unexpected reply from the server: " + reply.substr (0, 200);
+	Net->Close ();
+	return false;
+}
+
+// The text after a positive multi-line reply, up to the line ".", with the
+// leading dot of dot-stuffed lines removed and LF line ends.
+bool POP3Handler::ReadMulti (std::string &text, int jid, long size)
+{
+	std::string line;
+	size_t reported = 0;
+	text.clear ();
+	for (;;)
+	{
+		if (!Net->ReadLine (line)) return false;
+		if (line == ".") return true;
+		if (!line.empty() && line[0] == '.') text.append (line, 1, std::string::npos);
+		else text += line;
+		text += '\n';
+		if (jid && text.size() - reported > 65536)
 		{
-			Con->Close();
-			ConnectionOpen = 0;
+			reported = text.size();
+			JOBQ.XFer (jid, (int) text.size());
+			if (size > 0) JOBQ.Progress (jid, (int) std::min (100L, (long) (100.0 * text.size() / size)));
+			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 		}
-		delete (Con);
-		Con = NULL;
+	}
+}
+
+// Connects, logs in and reads the UIDL list into Numbers.
+bool POP3Handler::Session (int jid)
+{
+	if (Net->IsOpen()) return true;
+	Numbers.clear ();
+	Order.clear ();
+
+	std::string host = Parameters->Get_char ("host");
+	std::string security = Parameters->Get_char ("security");
+	if (security != "tls" && security != "starttls") security = "none";
+	int port = Parameters->Get_int ("port");
+	if (port <= 0) port = security == "tls" ? 995 : 110;
+	std::string cafile = Parameters->Get_char ("cafile");
+	if (cafile.compare (0, 2, "~/") == 0 && getenv ("HOME")) cafile = getenv ("HOME") + cafile.substr (1);
+
+	if (host.empty())
+	{
+		Report (std::string ("No POP3 server is set for ") + Parent->Name + " (Config \xe2\x86\x92 Mailboxes).");
+		return false;
 	}
 
-	delete (Parameters); // We don't need pants where we're going.
-	delete (TransMsgID);
+	ShowStatus (jid, "Connecting to " + host);
+	std::string reply;
+	if (!Net->Connect (host, port) ||
+		(security == "tls" && !Net->StartTLS (cafile)))
+	{
+		Report ("Cannot reach the POP3 server: " + Net->Error() + ".");
+		return false;
+	}
+	if (!Command ("", reply))
+	{
+		Report ("The POP3 server " + host + " did not greet: " + reply + ".");
+		Net->Close ();
+		return false;
+	}
+	if (security == "starttls")
+	{
+		if (!Command ("STLS", reply))
+		{
+			Report ("The POP3 server " + host + " does not offer STARTTLS (STLS): " + reply +
+					". Choose TLS (port 995) or ask the provider; mail is not fetched without encryption.");
+			Net->Close ();
+			return false;
+		}
+		if (!Net->StartTLS (cafile))
+		{
+			Report ("Cannot start TLS with " + host + ": " + Net->Error() + ".");
+			return false;
+		}
+	}
+
+	// Log in.
+	std::string password, err;
+	const char *passcmd = Parameters->Get_char ("passcmd");
+	if (passcmd && *passcmd)
+	{
+		ShowStatus (jid, "Getting the password");
+		if (!run_password_command (passcmd, password, err))
+		{
+			Report (std::string ("Cannot get the password for ") + Parent->Name + ": " + err);
+			Net->Close ();
+			return false;
+		}
+	}
+	else password = Parameters->Get_char ("pass");
+	if (password.empty())
+	{
+		Report (std::string ("No password is set for ") + Parent->Name +
+				": enter one, or a password command, in Config \xe2\x86\x92 Mailboxes.");
+		Net->Close ();
+		return false;
+	}
+
+	ShowStatus (jid, "Logging in to " + host);
+	if (!Command (std::string ("USER ") + Parameters->Get_char ("user"), reply) ||
+		!Command ("PASS " + password, reply))
+	{
+		std::fill (password.begin(), password.end(), '\0');
+		Report (Net->IsOpen() ? "The POP3 server " + host + " refused the login: " + reply + "."
+							  : "The connection to " + host + " was lost while logging in: " + reply + ".");
+		Net->Close ();
+		return false;
+	}
+	std::fill (password.begin(), password.end(), '\0');
+
+	// The messages in this session, by UIDL.
+	std::string list;
+	if (!Command ("UIDL", reply) || !ReadMulti (list, 0, 0))
+	{
+		Report (Net->IsOpen() ? "The POP3 server " + host + " does not support UIDL, which is needed: " + reply + "."
+							  : "The connection to " + host + " was lost: " + Net->Error() + ".");
+		Net->Close ();
+		return false;
+	}
+	size_t pos = 0;
+	while (pos < list.size())
+	{
+		size_t nl = list.find ('\n', pos);
+		std::string line = list.substr (pos, nl - pos);
+		pos = nl == std::string::npos ? list.size() : nl + 1;
+		int n = 0;
+		char uid[256];
+		if (sscanf (line.c_str(), "%d %255s", &n, uid) == 2 && n > 0)
+		{
+			Numbers[uid] = n;
+			Order.push_back (uid);
+		}
+	}
+	ConnectionOpen = 1;
+	return true;
+}
+
+// Ends the session; QUIT makes the server carry out the deletions.
+bool POP3Handler::EndSession (void)
+{
+	bool ok = true;
+	if (Net->IsOpen())
+	{
+		std::string reply;
+		ok = Command ("QUIT", reply);
+		if (!ok && Net->IsOpen()) Report ("The POP3 server did not accept QUIT (deletions were not done): " + reply + ".");
+		Net->Close ();
+	}
+	ConnectionOpen = 0;
+	Numbers.clear ();
+	Order.clear ();
+	return ok;
 }
 
 void POP3Handler::OpenConnection (void)
 {
-	char *msg;
-	char *pHost = Parameters->Get_char ("host");
-	int   pPort = Parameters->Get_int ("port");
-	int	  failures = 0;
-
-	// Verify parameters
-
-	if (pPort == 0) pPort = 110;
-
-	if ( (strlen (pHost) == 0) || (pPort == 0) )
-	{
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-								   "pop3handler", "Invalid Hostname or Port in preferences. You blew it.");
-		return;
-	}
-
-	int jid = JOBQ.NewJob (Parent->Name);
-
-	// Send State information - An Informed User Is A Happy User(TM). Not that I care.
-
-	msg = new char[ strlen (pHost) + 32];
-	sprintf (msg, "Contacting host %s", pHost);
-	JOBQ.Stat (jid, msg);
-	JOBQ.Progress (jid, 18);
-	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-	delete[] (msg);	
-
-	// Open Connection
-
-	iprintf ("[pop3handler] Contacting pop3://%s:*@%s:%i/\n", Parameters->Get_char ("user"), pHost, pPort);
-	dprintf ("[clue zJzxh47]\n");
-
-	Con->Open (pHost, pPort);
-	
-	msg = new char[64];
-	while ((Con->Connected == ST_CONNECTING)&&(failures++<96)&&(!Parent->ToCollector->UrgentPending))
-	{
-		JOBQ.Progress (jid, 18+failures);
-        Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-		dprintf ("[clue fails=%i]\n", failures);
-		Con->Handle (msg, 63); // Wait till it's *really* open
-	}
-	delete[] (msg);
-	if (failures >95)
-	{
-		iprintf ("[pop3handler] Timeout during Connection::Open()\n");
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", "Connection to POP3 server timed out.");
-		JOBQ.EndJob (jid);
-		return;
-	}
-
-	JOBQ.Progress (jid, 50);
-	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-	if (Parent->ToCollector->UrgentPending)
-	{
-		JOBQ.EndJob (jid);
-		return;
-	}
-	
-	// Verify connection
-
-	if (Con->Connected == ST_CONNECTED) // Send state information
-	{
-		JOBQ.Stat (jid, "Connection established");
-        Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-		//Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Connection established");
-	}
-	else // Connection failed, bail out with an annoying error.
-	{
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-								   "pop3handler", "Could not connect to POP3 server, try smoke signals.");
-		JOBQ.EndJob (jid);
-		return;
-	}
-
-	msg = new char[255];
-	msg[0] = 0;
-
-	if (CheckReply (msg, 255)) // POP3 servers say hello first
-	{
-		iprintf ("[pop3handler] < %s", msg);
-		sprintf (msg, "USER %s\n", Parameters->Get_char ("user"));
-		iprintf ("[pop3handler] > %s", msg);
-		Con->Send (msg, 10); // Send username, quelle surprise.
-		
-		if (CheckReply (msg, 255))
-		{
-			iprintf ("[pop3handler] < %s", msg);
-			if (Parent->ToCollector->UrgentPending) return;
-			JOBQ.Progress (jid, 75);
-			JOBQ.Stat (jid, "Sending Password");
-			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-			sprintf (msg, "PASS %s\n", Parameters->Get_char ("pass"));
-			iprintf ("[pop3handler] > PASS *\n");
-			Con->Send (msg, 10); // Send password.
-			if (CheckReply (msg, 255))
-			{
-				JOBQ.Progress (jid, 100);
-				JOBQ.Stat (jid, "Authentication succeeded");
-				Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-				ConnectionOpen = 1; // The eagle has landed.
-			}
-		}
-		else
-		{
-			iprintf ("[pop3handler] < %s", msg);
-			iprintf ("[pop3handler] Transaction aborted\n");
-		}
-	}
-   	else
-	{
-		iprintf ("[pop3handler] < %s", msg);
-		iprintf ("[pop3handler] Transaction aborted\n");
-	}
-	if (!ConnectionOpen) // If it's not open, it must be closed.
-	{
-		Con->Close(); // Confirm this narrow view of life.
-	}
-	
-	JOBQ.EndJob (jid);
-
-	delete[] (msg); // Clean up the mess
-	HighestHandled = 0; // Make a fresh start
+	// Sessions are opened by each operation.
 }
 
 void POP3Handler::CloseConnection (void)
 {
-	char msg[64];
-	
-	iprintf ("[pop3handler] Connection::Close()\n");
-	if (ConnectionOpen)
-	{
-		Con->SendF (10, "QUIT\n");
-		CheckReply (msg, 63);
-	}
-	Con->Close();
-	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Connection closed");
-	ConnectionOpen = 0;
+	EndSession ();
 }
 
-//====================================================================================================
-// Internal handler to take care of pop3 protocol replies. In case of an error reply it automatically
-// takes care of informing the UI thread.
-//====================================================================================================
-
-int POP3Handler::CheckReply (char *buf, int len)
+// The UIDL a message was filed under.
+std::string POP3Handler::UidOf (const char *msgid)
 {
-	int res;
-	buf[0] = 0;
-
-	while (((res = Con->Handle (buf, len)) == 0) && (!Parent->ToCollector->UrgentPending));
-	if (Parent->ToCollector->UrgentPending) return 0;
-	if (res < 0) eprintf ("connection error\n");
-	//if (buf[0]) printf ("<<< %s", buf);
-	if (buf[0] == '+') return 1;
-	else
-	{
-		if (buf[0] == '-') // Some kind of oddbals protocol error, let the user figure it out.
-		{
-			choplf (buf);
-			char *errorstring = new char[strlen (buf+1) + 96];
-			sprintf (errorstring, "I wanted it to zig, and the POPserver zagged. \"Behold,\" he "
-								  "whispered, \"%s\".", buf+1);
-			Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", errorstring);
-			delete[] (errorstring);
-		}
-	}
-	return 0;
+	for (auto &kv : Uidl)
+		if (kv.second == msgid) return kv.first;
+	return "";
 }
 
-//====================================================================================================
-// POP3 has no methods to check for a particular group. The groupname argument is therefor lost
-// in the line noise. Unfortunately POP3 numbers messages in a mailbox in quite an unsafe way,
-// which means we need to keep track of a temporary translation table from MsgIds to each message
-// in the mailbox. This is kludged together by keeping a seperate table mapping UIDs to message-
-// ids, so that between sessions the first table can be reliably rebuilt.
-//====================================================================================================
-
-void POP3Handler::CheckGroup (const char *groupname)
+// The Message-ID of a fetched message, or a stable one made from its UIDL.
+static std::string message_id (const std::string &text, const std::string &uid, const std::string &host)
 {
-	char 		 msg[64];
-	int  		 numberofmessages;
-	AsyncBuffer	 msgbuffer(4096);
-	char		 buf[256];
-	char		 msgid[128];
-	int			 done = 0;
-	int			 i,j,k;
-	int			 fetchbodies = 0;
-	int			 deletemail = 0;
-	WordList	 UIDL;
-	char		*tmp;
-	Var			*nUIMsgID;
-	ITCMessage	*M;
+	std::string id = mailheaders::Get (mailheaders::Parse (text), "Message-ID");
+	size_t a = id.find ('<'), b = id.find ('>', a == std::string::npos ? 0 : a);
+	if (a != std::string::npos && b != std::string::npos) id = id.substr (a, b - a + 1);
+	else id.clear ();
+	// Characters the index and settings files cannot hold.
+	for (char &c : id) if (c == '"' || c == '\\' || (unsigned char) c < ' ') c = '_';
+	if (id.size() > 2 && id.size() < 250) return id;
 
-	int			start;
-	
-	msgid[0] = 0;
+	std::string safe;
+	for (char c : uid)
+		safe += (isalnum ((unsigned char) c) || c == '.' || c == '-') ? std::string (1, c) : "_";
+	return "<pop3." + safe + "@" + host + ">";
+}
 
-	iprintf ("[pop3handler] CheckGroup (%s)\n", groupname);
+//-------------------------------------------------------------------------------
+// Checking
+//-------------------------------------------------------------------------------
 
-	if (!ConnectionOpen) OpenConnection(); // Open the connection on demand
-	if (Parent->ToCollector->UrgentPending) return;
-	
-	if (ConnectionOpen) // Verify the connection is now really open
+void POP3Handler::CheckGroup (const char * /*groupname*/)
+{
+	int collection = Parameters->Get_int ("collection");
+	bool fetchbodies = collection > 0;
+	bool deletemail = collection > 1 && strcasecmp (Parameters->Get_char ("writeprotect"), "Y") != 0;
+	std::string host = Parameters->Get_char ("host");
+
+	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Progress (jid, 1);
+	if (!Session (jid))
 	{
-		int jid = JOBQ.NewJob (Parent->Name);
-		JOBQ.Stat (jid, "Peeking at pop3 box");
-		JOBQ.Progress (jid, 5);
-        Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-		Con->SendF (10, "STAT\n"); // Determine the amount of messages waiting for us
-		iprintf ("[pop3handler] > STAT\n");
-		if (CheckReply (msg, 63))
-		{
-
-			iprintf ("[pop3handler] < %s", msg);
-			if (Parent->ToCollector->UrgentPending) return;
-			numberofmessages = atoi (msg+4);
-			//if (numberofmessages>32) numberofmessages=32;
-
-			sprintf (buf, "%i messages on pop3 server", numberofmessages);
-			JOBQ.Progress (jid, 10);
-			JOBQ.Stat (jid, buf);
-            Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-			
-			Con->SendF (10, "UIDL\n");
-			iprintf ("[pop3handler] > UIDL\n");
-			if (CheckReply (msg, 63))
-			{
-				JOBQ.Progress (jid, 15);
-                Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-				iprintf ("[pop3handler] < %s", msg);
-				if (Parent->ToCollector->UrgentPending) return;
-				for (i=0;i<numberofmessages;++i)
-				{
-					JOBQ.Progress (jid, 15 + ((20*i)/numberofmessages));
-                    if (JOBQ.Changed (jid)) Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-					buf[0] = 0;
-					while ((j = Con->Handle (buf, 255)) == 0);
-					if (j<0)
-					{
-						ConnectionOpen = 0;
-						Con->Close();
-						Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", "peer closed my connection!");
-						JOBQ.EndJob (jid);
-						return;
-					}
-					choplf (buf);
-					if ((tmp = strchr (buf, ' ')))
-					{
-						UIDL.Add (tmp+1);
-					}
-				}
-				while ((j = Con->Handle (buf, 255)) == 0);
-			}
-			else
-			{
-				iprintf ("[pop3handler] < %s", msg);
-				iprintf ("[pop3handler] Transaction possibly aborted\n");
-			}
-			JOBQ.Progress (jid, 35);
-
-			if (Parameters->Get_int ("collection") > 0) fetchbodies = 1;
-			if (Parameters->Get_int ("collection") > 1) deletemail = 1;
-
-			//if (HighestHandled) start = HighestHandled-1;
-			start = LastChecked;
-			//start = 0; // else start = 0;
-
-			nUIMsgID = new Var;
-			
-			for (k=0;k<start;++k)
-			{
-				tmp = UIMsgID->Get_char (UIDL.Get(k));
-				nUIMsgID->Set_char (UIDL.Get(k), tmp);
-			}
-			for (k=start;(k<numberofmessages)&&(!Parent->ToCollector->UrgentPending);k+=16) // Split into groups of 16
-			{
-				for (i=k;(i<numberofmessages)&&(i-k < 16)&&(!Parent->ToCollector->UrgentPending);++i) // Queue up RETR/TOP commands (breakfast serials are served)
-				{
-					JOBQ.Progress (jid, 35 + ((60 * i)/numberofmessages));
-                    if (JOBQ.Changed (jid)) Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-					
-					if (strlen (tmp = UIMsgID->Get_char (UIDL.Get(i))) > 0)
-					{
-						LastChecked = i;
-						nUIMsgID->Set_char (UIDL.Get(i), tmp);
-						TransMsgID->Set_int (tmp, i+1);
-						if (!Parent->Have (tmp))
-						{
-							sprintf (buf, "Checking %s", tmp);
-							JOBQ.Stat (jid, buf);
-							Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-							
-							UIMsgID->Delete (UIDL.Get(i));
-							if (fetchbodies) sprintf (msg, "RETR %i\n", i+1);
-							else sprintf (msg, "TOP %i 0\n", i+1);
-							iprintf ("[pop3handler] > %s", msg);
-							Con->Send (msg, 10);
-						}
-						if (Parent->ToCollector->UrgentPending) i = k = numberofmessages;
-					}
-					else
-					{
-						Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-						
-						if (fetchbodies) sprintf (msg, "RETR %i\n", i+1);
-						else sprintf (msg, "TOP %i 0\n", i+1);
-						Con->Send (msg, 10);
-						iprintf ("[pop3handler] > %s", msg);
-					}
-					
-					//printf ("cmmd %i\n", i);
-				}
-				for (i=k;(i<numberofmessages)&&(i-k < 16)&&(!Parent->ToCollector->UrgentPending);++i) // Iterate through each sent RETR command
-				{
-					JOBQ.Progress (jid, 36 + ((60 * i)/numberofmessages));
-                    if (JOBQ.Changed (jid)) Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-					if (strlen (tmp = UIMsgID->Get_char (UIDL.Get(i))) == 0)
-					{			
-						if (CheckReply (msg, 63)) // See if it generated a positive reply
-						{
-							sprintf (buf, "processing message %i", i);
-							Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, buf);
-							
-							msgid[0] = 0; // Clean msgid
-							
-							done = 0;
-							msgbuffer.Pos = 0;
-							
-							while (!done) // For each line in the message
-							{
-								buf[0] = 0;
-								if (Con->Handle (buf, 255) < 0) // Make sure the connection is still alive
-								{
-									done = 1;
-									Con->Close();
-									ConnectionOpen = 0;
-									Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL,
-															   "pop3handler",
-															   "There I was, collecting mail, minding my own business, and this punkass "
-															   "POP3 daemon started acting like a pain, dropping connections all over.");
-								}
-								else
-								{
-									if (buf[0]) // See if we received actual data
-									{
-										if ((buf[0]=='.') && (buf[1] < 32)) done = 1; // End of message reached
-										else
-										{
-											choplf (buf);
-											strcat (buf, "\n");
-											msgbuffer.Add (buf);
-											if (!msgid[0]) // Check if we already have the msgid
-											{
-												if (wild_match ("Message-ID:*", buf)) // See of this is the message-id
-												{
-													char *tmp;
-													
-													choplf (buf);
-
-													// Seperate value from headername
-
-													tmp = strchr (buf,':');
-													if (*tmp) ++tmp;
-													while ( (*tmp==' ') || (*tmp=='\t') ) ++tmp;
-
-													// copy over msgid
-													
-													strncpy (msgid, tmp, 127);
-													msgid[127] = 0;
-
-													// store the msgid in the translation table
-													
-													TransMsgID->Set_int (msgid, i+1);
-												}
-											}
-										}
-									}
-								}
-							}
-							if (ConnectionOpen) // Only interested in completely transfered messages thank you
-							{
-								if (strlen (msgid) < 1) // In the odd case there is no msgid we'll have to make one up
-								{
-									sprintf (msgid, "<POP3_%i-%08d@%s>", (unsigned int) time(NULL), i, Parameters->Get_char ("host"));
-																			   // Of course this is inherently unstable and
-																			   // should not happen, but we need _some_
-																			   // id for the message. Oh heck, any message
-																			   // evil enough not to have a Message-ID set by
-																			   // the server deserves to haunt the user,
-																			   // begging him to LART the sender AND the
-																			   // author of the mailerdaemon.
-								}
-								nUIMsgID->Set_char (UIDL.Get(i), msgid);
-								if (! (Parent->Have (msgid))) // Make sure this isn't a double
-								{
-									sprintf (buf, "processing message %i msgid %s", i, msgid);
-									Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, buf);
-								
-									MailMessage *X = new MailMessage (Parent, msgid);
-
-									if (!msgbuffer.Data)
-									{
-										eprintf ("!!!!!!!!!!!!!!!!!!!!!!!!! Assert failed: msgbuffer.Data\n");
-									}
-									else
-									{
-										msgbuffer.Add ((unsigned char) 0);
-										if (fetchbodies) X->ProcessMessage ((char *) msgbuffer.Data);
-										else X->ProcessHeaders ((char *) msgbuffer.Data);
-									}
-									if (deletemail) X->Flags |= MMFL_ORIGINAL; // If we're going to delete the mail from the
-																			   // server it's essential to turn on the preservation
-																			   // bits to prevent the message from getting flushed away.
-									
-									Parent->Deliver (X);  // And now it's safely out of our hands.
-									Parent->Lock->LockRW();
-									for (j=0;j<X->Subscribers->Count();++j)
-									{
-										ViewListNode *VLN = X->Subscribers->Get(j);
-										if (VLN) Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, VLN->View->Name, X->MsgID);
-									}
-									Parent->Lock->UnlockRW();
-									HighestHandled = i+1; // Save session state
-									msgbuffer.Pos = 0;
-									msgid[0] = 0;
-								}
-							}
-						}
-						else
-						{
-							eprintf ("error: %s\n", msg);
-						}
-						if (!ConnectionOpen) i = numberofmessages; // In case things messed up, bail out
-						msgbuffer.Pos = 0; // Clear the buffer
-					}
-				}
-				if ( (Parent->ToCollector->PriorityPending) &&
-				     ((M = Parent->ToCollector->GetNextMessage (CLASS_GETBODY))) )
-				{
-					GetBody (M->Message->Get(0));
-					Parent->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get(0));
-					delete (M);
-				}
-			}
-
-			delete (UIMsgID);
-			UIMsgID = nUIMsgID;
-
-			// Save configuration in backup file
-
-			Parent->SaveMailBox();
-			sprintf (buf, "%s/uidl.dat.new", Parent->DirectoryPrefix);
-			UIMsgID->Save (buf);
-			
-			// Atomically replace the original file
-			
-			char buf2[256];
-			sprintf (buf2, "%s/uidl.dat", Parent->DirectoryPrefix);
-			rename (buf, buf2);
-			
-			if (fetchbodies && deletemail) // Delete mail from server?
-			{
-				if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y")) // Make sure write protect isn't on
-				{
-					for (i=start; (i<HighestHandled)&&(!Parent->ToCollector->UrgentPending); ++i) // Queue up the DELE commands
-					{
-						Con->SendF (10, "DELE %i\n", i+1);
-					}
-					for (i=start; (i<HighestHandled)&&(!Parent->ToCollector->UrgentPending); ++i) // And verify confirmation
-					{
-						if (CheckReply (msg, 63) < 0) // Connection-related error
-						{
-							i = HighestHandled; // Bail out and stuff
-							ConnectionOpen = 0;
-							Con->Close();
-						}
-						
-					}
-					Con->SendF (10, "QUIT\n");
-					CheckReply (msg, 63);
-					Con->Close();
-					ConnectionOpen = 0;
-				}
-			}
-		}
 		JOBQ.EndJob (jid);
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+		return;
 	}
-	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+
+	std::vector<std::string> fresh;
+	for (const std::string &uid : Order)
+		if (!Uidl.count (uid)) fresh.push_back (uid);
+	ShowStatus (jid, std::to_string (Order.size()) + " messages on the server, " + std::to_string (fresh.size()) + " new");
+
+	bool complete = true;
+	size_t done = 0;
+	for (const std::string &uid : fresh)
+	{
+		if (Parent->ToCollector->UrgentPending) { complete = false; break; }
+
+		// A message the user is waiting for goes first.
+		ITCMessage *M;
+		while (Parent->ToCollector->PriorityPending && (M = Parent->ToCollector->GetNextMessage (CLASS_GETBODY)))
+		{
+			FetchBody (M->Message->Get(0), jid);
+			Parent->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get(0));
+			delete M;
+		}
+		if (!Net->IsOpen()) { complete = false; break; }
+
+		int n = Numbers[uid];
+		JOBQ.Progress (jid, (int) (5 + 90 * done / fresh.size()));
+		ShowStatus (jid, "Fetching message " + std::to_string (done + 1) + " of " + std::to_string (fresh.size()));
+		std::string reply, text;
+		if (!Command ((fetchbodies ? "RETR " : "TOP ") + std::to_string (n) + (fetchbodies ? "" : " 0"), reply))
+		{
+			if (!Net->IsOpen())
+			{
+				Report ("The connection to " + host + " was lost: " + reply + ".");
+				complete = false;
+				break;
+			}
+			eprintf ("[pop3] message %d: %s\n", n, reply.c_str());
+			continue;			// this one is skipped and tried again next time
+		}
+		long size = atol (reply.c_str() + 3);
+		if (!ReadMulti (text, jid, size))
+		{
+			Report ("The connection to " + host + " was lost: " + Net->Error() + ".");
+			complete = false;
+			break;
+		}
+
+		std::string msgid = message_id (text, uid, host);
+		Uidl[uid] = msgid;
+		if (!Parent->Have (&msgid[0]))
+		{
+			MailMessage *X = new MailMessage (Parent, &msgid[0]);
+			if (fetchbodies) X->ProcessMessage (&text[0]);
+			else X->ProcessHeaders (&text[0]);
+			// Kept locally even when it is gone from the server.
+			if (deletemail) X->Flags |= MMFL_ORIGINAL;
+			Parent->Deliver (X);
+			Parent->Lock->LockRW();
+			for (int j = 0; j < X->Subscribers->Count(); ++j)
+			{
+				ViewListNode *VLN = X->Subscribers->Get (j);
+				if (VLN) Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, VLN->View->Name, X->MsgID);
+			}
+			Parent->Lock->UnlockRW();
+		}
+		// Save as we go, so that a crash does not fetch everything again.
+		if (++done % 25 == 0)
+		{
+			Parent->SaveMailBox ();
+			SaveUidl ();
+		}
+	}
+
+	// Forget UIDLs that are no longer on the server (only after a complete
+	// list, so that an interrupted check cannot cause fetching twice).
+	if (complete)
+	{
+		for (auto it = Uidl.begin(); it != Uidl.end(); )
+			it = Numbers.count (it->first) ? std::next (it) : Uidl.erase (it);
+	}
+	Parent->SaveMailBox ();
+	SaveUidl ();
+
+	// Only now, with everything saved, delete from the server.
+	if (deletemail && Net->IsOpen() && !Parent->ToCollector->UrgentPending)
+	{
+		int count = 0;
+		for (const std::string &uid : Order)
+		{
+			if (!Uidl.count (uid)) continue;		// not fetched (yet)
+			std::string reply;
+			if (!Command ("DELE " + std::to_string (Numbers[uid]), reply))
+			{
+				if (!Net->IsOpen()) break;
+				eprintf ("[pop3] DELE %d: %s\n", Numbers[uid], reply.c_str());
+			}
+			else ++count;
+			if (count % 20 == 0) ShowStatus (jid, "Deleting fetched messages from the server (" + std::to_string (count) + ")");
+		}
+	}
+
+	bool ok = Net->IsOpen() && EndSession ();
+	if (!ok) EndSession ();
+	if (ok && complete) LastError.clear ();
+	// Redraw the mailbox tree, for the new message counts.
+	if (done > 0) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name);
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+}
+
+//-------------------------------------------------------------------------------
+// Bodies, deleting, expiring
+//-------------------------------------------------------------------------------
+
+// Fetches the body of a message that was collected as headers, within the
+// open session.
+bool POP3Handler::FetchBody (const char *msgid, int jid)
+{
+	MailMessage *X = Parent->Find ((char *) msgid);
+	if (!X || (X->Flags & MMFL_HAVEBODY)) return true;
+	std::string uid = UidOf (msgid);
+	if (uid.empty() || !Numbers.count (uid))
+	{
+		Report ("This message is no longer on the POP3 server, so its text cannot be fetched.");
+		return false;
+	}
+	int n = Numbers[uid];
+	ShowStatus (jid, "Fetching the message text");
+	std::string reply, text;
+	if (!Command ("RETR " + std::to_string (n), reply))
+	{
+		Report ("The POP3 server did not send the message: " + reply + ".");
+		return false;
+	}
+	if (!ReadMulti (text, jid, atol (reply.c_str() + 3)))
+	{
+		Report ("The connection was lost while fetching the message: " + Net->Error() + ".");
+		return false;
+	}
+	size_t body = text.find ("\n\n");
+	body = body == std::string::npos ? text.size() : body + 2;
+	std::string b = text.substr (body);
+	X->ProcessBody (&b[0]);
+	X->StoreFile ();
+	return true;
 }
 
 void POP3Handler::GetBody (char *msgid)
 {
-	MailMessage 	*X = Parent->Find (msgid);
-	char			 msg[512];
-	int				 done;
-	int				 headersdone;
-	int				 result;
-	int				 xfer = 0;
-	int				 oldxfer = 0;
-	AsyncBuffer		 msgbuffer(3072);
-
-	if (X) // If the msgid could be found...
+	MailMessage *X = Parent->Find (msgid);
+	if (!X || (X->Flags & MMFL_HAVEBODY)) return;
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (Session (jid))
 	{
-		if (!(X->Flags & MMFL_HAVEBODY)) // And is not pointing to an already downloaded message...
-		{
-			if (!ConnectionOpen) // Open the connection as needed
-			{
-				OpenConnection();
-				if (ConnectionOpen) CheckGroup (""); // And update the translation table (Ireland awards one Kludge point).
-			}
-			if (ConnectionOpen) // Check to see if the connection is really open now
-			{
-				int jid = JOBQ.NewJob (Parent->Name);
-				int popid = TransMsgID->Get_int (msgid); // Lookup in translation table
-				if (popid)
-				{
-					sprintf (msg, "Fetching POP message %i", popid);
-					JOBQ.Stat (jid, msg);
-					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-					
-					sprintf (msg, "RETR %i\n", popid);
-					Con->Send (msg, 10); // Tell the POP3 server to tango
-					msg[0] = 0;
-					if (CheckReply (msg, 511)) 			 // And wait for its stern lead
-					{
-						int totalsize = 0;
-						if (strchr (msg, ' '))
-						{
-							totalsize = atoi (strchr (msg, ' ') +1);
-						}
-						done = headersdone = 0; // Reaffirm our position in the Time Space Continuum
-						while (!done)
-						{
-							msg[0] = 0;
-							if ( (result = Con->Handle (msg, 511)) < 0 ) // Bad mojo in the connection handler
-							{
-								ConnectionOpen = 0; // Burn our bridges
-								Con->Close();
-								
-								Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, // And whine to the user
-														   "pop3handler",
-														   "Server disconnected during body retrieval. That bastard.");
-								done = 1;
-								headersdone = 0;
-							}
-							if (result > 0) // Runes were scribed by the server
-							{
-								if (headersdone) // Are we processing real data yet?
-								{
-									if ((msg[0]=='.')&&(msg[1]<32)) done = 1; // Beware of the Death Dot
-									else
-									{
-										choplf (msg);
-										msgbuffer.Add (msg); // Or feed the force
-										msgbuffer.Add ("\n");
-									}
-									//if (msg[0]) printf ("<<< %s", msg);
-								}
-								else if ((msg[0]=='\n')||(msg[0]=='\r')) // Nope, is there an end to the header misery yet?
-								{
-									headersdone = 1;
-								}
-								xfer += strlen (msg);
-								if (xfer - oldxfer > 256)
-								{
-									oldxfer = xfer;
-									sprintf (msg, "Fetching POP message %i: %d bytes", popid, xfer);
-									JOBQ.Stat (jid, msg);
-									JOBQ.XFer (jid, xfer);
-									if (totalsize) JOBQ.Progress (jid, (100*xfer)/totalsize);
-									Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-								}
-								msg[0] = 0;
-								//else if (msg[0]) printf ("<H> (%i) %s", strlen (msg), msg);
-							}
-							if (Parent->ToCollector->UrgentPending) done=1;
-						}
-						if ((!Parent->ToCollector->UrgentPending) && (ConnectionOpen)) // Did we survive El Tango del Muerte?
-						{
-							msgbuffer.Add ((unsigned char) 0);
-							X->ProcessBody ((char *) msgbuffer.Data); // Let the message absorb the data
-							X->StoreFile();
-							Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
-						}
-						else if (!Parent->ToCollector->UrgentPending)
-						{
-							Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, // Complain
-													   "pop3handler",
-													   "That B*TCH closed the connection!");
-						}
-					} else dprintf ("fail 3: error reply: %s\n", msg);
-				}
-				JOBQ.EndJob (jid);
-			} else dprintf ("fail 2: connection closed\n");
-		}
-		else dprintf ("fail 1: already have body\n");
+		if (FetchBody (msgid, jid) && EndSession ()) LastError.clear ();
+		else EndSession ();
 	}
-	else // No such message in our database, let's moan a bit for old time's sake.
-	{
-		sprintf (msg, "Could not locate Message \"%s\" in internal database. You probably did not want to hear this.", msgid);
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", msg);
-	}
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
+// Deletes the message on the server, together with any other deletions
+// waiting in the queue (one session for all of them).
 void POP3Handler::DeleteMessage (char *msgid)
 {
-	int popid;		// Translated id number in the popbox
-	char msg[63];
-
-	if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y")) // Make sure write protect isn't on
+	std::vector<std::string> ids = { msgid };
+	ITCMessage *M;
+	while ((M = Parent->ToCollector->GetNextMessage (CLASS_DELETE)))
 	{
-		if (!ConnectionOpen)
+		ids.push_back (M->Message->Get(0));
+		delete M;
+	}
+	if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y") == 0) return;
+	// In the delete-after-fetching mode they are no longer on the server.
+	if (Parameters->Get_int ("collection") > 1) return;
+
+	std::vector<std::string> uids;
+	for (const std::string &id : ids)
+	{
+		std::string uid = UidOf (id.c_str());
+		if (!uid.empty()) uids.push_back (uid);
+	}
+	if (uids.empty()) return;
+
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (Session (jid))
+	{
+		ShowStatus (jid, "Deleting " + std::to_string (uids.size()) + " message(s) on the server");
+		for (const std::string &uid : uids)
 		{
-			OpenConnection(); // Open connection on demand
-			if (ConnectionOpen) CheckGroup ("*");
-		}
-		if (ConnectionOpen)
-		{
-			popid = TransMsgID->Get_int (msgid);
-			dprintf ("popid = %i\n", popid);
-			if (popid)
+			if (!Numbers.count (uid)) continue;		// already gone
+			std::string reply;
+			if (!Command ("DELE " + std::to_string (Numbers[uid]), reply))
 			{
-				Con->SendF (10, "DELE %i\n", popid);
-				sprintf (msg, "Deleting message %i", popid);
-				Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, msg);
-				dprintf ("%s\n", msg);
-				
-				if (CheckReply (msg, 63) < 0)
-				{
-					Con->Close();
-					ConnectionOpen = 0;
-				}
+				if (!Net->IsOpen()) { Report ("The connection was lost while deleting: " + reply + "."); break; }
+				eprintf ("[pop3] DELE: %s\n", reply.c_str());
 			}
 		}
+		if (Net->IsOpen() && EndSession ()) LastError.clear ();
+		else EndSession ();
 	}
-	else eprintf ("[error] Write Protect\n");
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
+// Deletes messages left on the server: those fetched completely longer
+// ago than "expire_onserver_received" days, and those only fetched as
+// headers longer ago than "expire_onserver_notreceived" days (these are
+// also removed here, as their text can no longer be fetched).
 void POP3Handler::Expire (void)
 {
-	time_t expire_onserver_received = 86400 * Parameters->Get_int ("expire_onserver_received");
-	time_t expire_onserver_notreceived = 86400 * Parameters->Get_int ("expire_onserver_notreceived");
-	Value *X;
-	MailMessage *M;
+	if (strcasecmp (Parameters->Get_char ("writeprotect"), "Y") == 0) return;
+	time_t received = 86400L * Parameters->Get_int ("expire_onserver_received");
+	time_t notreceived = 86400L * Parameters->Get_int ("expire_onserver_notreceived");
+	if (received <= 0 && notreceived <= 0) return;
+
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (!Session (jid)) { JOBQ.EndJob (jid); return; }
+	ShowStatus (jid, "Expiring messages on the server");
+	time_t now = time (NULL);
 	int count = 0;
-	int popid = 0;
-	int total_to_delete=0;
-//	int total_deleted=0;
-//	int i;
-	char msg[256];
-	WordList WH;
-	
-	if (!ConnectionOpen) OpenConnection();
-	if (ConnectionOpen)
+	std::vector<std::string> remove;
+	for (const std::string &uid : Order)
 	{
-		CheckGroup ("blah");
-		X = UIMsgID->First;
-		total_to_delete = (UIMsgID->Count - 500);
-		dprintf ("%i messages, deleting %i\n", UIMsgID->Count, total_to_delete);
-		while ((X) && (total_to_delete > 0))
+		if (!Net->IsOpen() || Parent->ToCollector->UrgentPending) break;
+		auto known = Uidl.find (uid);
+		if (known == Uidl.end()) continue;
+		const char *msgid = known->second.c_str();
+		MailMessage *X = Parent->Find ((char *) msgid);
+		if (!X) continue;
+		bool have = X->Flags & MMFL_HAVEBODY;
+		time_t age = now - X->ReceiveDate;
+		if ((have && received > 0 && age > received) || (!have && notreceived > 0 && age > notreceived))
 		{
-			if (WH.Find (X->Get_char()) < 0)
+			std::string reply;
+			if (Command ("DELE " + std::to_string (Numbers[uid]), reply))
 			{
-				WH.Add (X->Get_char());
-				M = Parent->Find (X->Get_char());
-				if (M)
-				{
-					if ( (expire_onserver_received>0) &&
-					     (M->Flags & MMFL_HAVEBODY) && 
-					     ((time(NULL) - M->ReceiveDate) > expire_onserver_received))
-					{
-						if ((popid = TransMsgID->Get_int (M->MsgID)))
-						{
-							++count;
-							sprintf (msg, "Expiring %i %s", popid, M->MsgID);
-							Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, msg);
-							
-							Con->SendF (10, "DELE %i\n", popid);
-							dprintf ("DELE %i\n", popid);
-							if (count == 16)
-							{
-								for (count=0;count<16;++count)
-								{
-									if (CheckReply (msg, 255) < 0)
-									{
-										Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", "got hung up during expiry phase");
-										return;
-									}
-									--total_to_delete;
-								}
-								count = 0;
-							}
-						}
-					}
-					else if ((expire_onserver_notreceived>0) && (!(M->Flags & MMFL_HAVEBODY)) && ( (time(NULL) - M->ReceiveDate) > expire_onserver_notreceived))
-					{
-						if ((popid = TransMsgID->Get_int (M->MsgID)))
-						{
-							++count;
-							sprintf (msg, "Expiring (unread) %i %s", popid, M->MsgID);
-							Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, msg);
-							
-							Con->SendF (10, "DELE %i\n", popid);
-							dprintf ("DELE %i\n", popid);
-							if (count == 16)
-							{
-								for (count=0;count<16;++count)
-								{
-									if (CheckReply (msg, 255) < 0)
-									{
-										Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", "got hung up during expiry phase");
-										return;
-									}
-									--total_to_delete;
-								}
-								count = 0;
-							}
-							Parent->RemoveMessage (M->MsgID);
-						}
-					}
-				}
+				++count;
+				if (!have) remove.push_back (msgid);
 			}
-			X = X->Next;
 		}
-		while (count)
-		{
-			if (CheckReply (msg, 255) < 0)
-			{
-				Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "pop3handler", "got hung up during expiry phase");
-				return;
-			}
-			--count;			
-		}
-		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "closing connection");
-		//int popid = TransMsgID->Get_int (msgid);
-		
-		LastChecked = 0;
-		
-		Con->SendF (10, "QUIT\n");
-		CheckReply (msg, 63);
-		CloseConnection();
 	}
+	if (Net->IsOpen() && EndSession ())
+	{
+		// The window removes them (and updates the list).
+		for (std::string &id : remove)
+			Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, id.c_str());
+		if (!remove.empty()) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name);
+		LastError.clear ();
+		ShowStatus (jid, "Expired " + std::to_string (count) + " message(s) on the server");
+	}
+	else EndSession ();
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
-int POP3Handler::PostMessage (WordList */*r*/, MailMessage */*m*/)
+int POP3Handler::PostMessage (WordList * /*r*/, MailMessage * /*m*/)
 {
-	dprintf ("[pop3handler] postmessage not implemented\n");
-	return 0;
+	return 0;	// POP3 only collects; mail is sent from the outbox
 }

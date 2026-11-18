@@ -26,6 +26,7 @@ void start_wizard (void)
 	if (strlen (PREFERENCES.Get_char_tree ("postoffice/mailboxes/Personal/host")))
 	{
 		PREFERENCES.Set_char_tree ("postoffice/mailboxes/Personal/protocol","pop3");
+		PREFERENCES.Set_char_tree ("postoffice/mailboxes/Personal/security","tls");
 		PREFERENCES.Set_char_tree ("postoffice/mailboxes/Personal/folders/Inbox/filters","7,subs,accept,0,Inbox");
 		if (atoi (PREFERENCES.Get_char_tree ("tmp/listfolder")))
 			PREFERENCES.Set_char_tree("postoffice/mailboxes/Personal/folders/Lists/filters","7,subs,accept,0,Lists,Sender,subs,accept,0,owner-");

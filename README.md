@@ -15,8 +15,9 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 
 ## Features
 
-- POP3, IMAP4 and NNTP (Usenet) support, or a fetch command (getmail,
-  fetchmail) run before each check of a local mailbox; outgoing mail is queued in the
+- POP3 over TLS or STARTTLS, NNTP (Usenet), or a fetch command (getmail,
+  fetchmail, mbsync) run before each check of a local mailbox; IMAP4 is
+  being rewritten (see below); outgoing mail is queued in the
   outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
   client
 - Local mbox files, Maildir (with Maildir++ folders) and MH folders
@@ -34,7 +35,7 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 On Debian 13 (trixie):
 
     sudo apt install build-essential cmake libfltk1.4-dev libgdbm-dev \
-                     libx11-dev libxext-dev libpq-dev
+                     libx11-dev libxext-dev libpq-dev libssl-dev
     cmake -S . -B build
     cmake --build build -j$(nproc)
     ./build/postoffice
@@ -78,6 +79,52 @@ On first start a wizard asks for your name and e-mail address and,
 optionally, a POP3 and an NNTP server. Settings live in
 `~/.postoffice/resource.rc`. Remove or rename `~/.postoffice` to start
 over.
+
+## POP3 mailboxes
+
+Config → Mailboxes → *POP3 Account* collects mail from a POP3 server:
+
+- **Encryption**: *TLS* (port 995, the default for new mailboxes),
+  *STARTTLS* (port 110, then encrypted; if the server cannot, nothing is
+  sent and an error says so), or *None* for a server on your own machine
+  or network. *Port* overrides the usual port. Mailboxes set up before
+  this option existed keep working unencrypted until it is changed.
+- **Certificates** are always checked against the system's certificate
+  authorities and the host name. *CA file* adds a PEM file with your own
+  CA, for a server whose certificate comes from a local CA. There is no
+  way to accept an unchecked certificate.
+- **Password**: the *Password* field, or a *Password command* whose
+  first line of output is the password, for example
+  `pass show mail/pop` or `secret-tool lookup service pop3 user me`;
+  then nothing secret is kept in the settings. The settings file
+  (`~/.postoffice/resource.rc`) is now private to you (mode 600).
+- **Collection method**: headers only (the text is fetched when you open
+  a message), complete messages, or complete messages deleted from the
+  server afterwards. Deleting from the server happens only after the
+  messages are safely stored. Deleting a message here also deletes it on
+  the server (unless the mailbox is write-protected); *File → Expire*
+  removes messages left on the server after the days set below the
+  collection method.
+
+Each check is one short session (log in, list, fetch, log out), so new
+mail is always seen and the server mailbox is not kept locked. Every
+message is fetched once: `uidl.dat` in the mailbox directory remembers
+which ones were. Errors (server down, refused login, untrusted
+certificate) are shown once, not at every automatic check.
+
+## IMAP4
+
+The original IMAP4 client could not work with today's servers and has
+been removed; a new one, with TLS, folders and flags kept in step with
+the server, is planned. *IMAP4* is no longer offered for new mailboxes;
+an existing IMAP4 mailbox keeps its settings for the new client and
+shows a note when checked. See [docs/imap-plan.md](docs/imap-plan.md).
+
+Until then, mbsync (isync) or OfflineIMAP can keep a local Maildir in
+step with an IMAP server in both directions: folders, read state, flags,
+deletions and moves. Set up a *Maildir* mailbox on that directory with
+`mbsync -a` (or `offlineimap -o -u quiet`) as its *Fetch command*: every
+check then brings new mail in and sends your changes back.
 
 ## Sending mail
 
@@ -291,6 +338,18 @@ See the git history for details. In summary:
   old-FreeBSD and Windows code was removed, along with the `LINUX`
   build define. Connection addresses are formatted with `inet_ntop`
   instead of a byte-order guess that printed some of them backwards.
+- POP3 rewritten on a new network layer (`netstream.cpp`): TLS (995) and
+  STARTTLS with certificate and host name checks and an optional own CA,
+  a password command, one session per operation, lines of any length,
+  dot-unstuffing, stable IDs for messages without a Message-ID, and
+  deletion only after messages are saved. Deletions are sent in one
+  session, and messages expired as headers leave the list.
+- The old IMAP4 client was removed (it could not work); IMAP4 mailboxes
+  keep their settings for a new client.
+- The settings file and `uidl.dat` are private (mode 600). Long error
+  messages are wrapped. Changing mailbox settings no longer leaves the
+  window pointing at a deleted mailbox (a crash when its next message
+  arrived).
 - Maildir, MH and mbox mailboxes can run a fetch command such as getmail
   or fetchmail before every check, with its errors shown.
 
@@ -298,9 +357,9 @@ See the git history for details. In summary:
 
 Found while modernizing and left for later:
 
-- Only `http://` links are recognized (no `https://`); POP3, IMAP4,
-  NNTP and the built-in SMTP client have no TLS support (send through
-  the system MTA or msmtp instead).
+- Only `http://` links are recognized (no `https://`); NNTP and the
+  built-in SMTP client have no TLS support (send through the system MTA
+  or msmtp instead).
 - Message text in 8-bit without a declared character set shows `?`
   instead of accented letters in the message view (headers are fine).
 - After closing the Config window, Check does nothing until a folder is
@@ -318,7 +377,11 @@ Found while modernizing and left for later:
 - `WordList::MakeGeneric()` tests `*tmp-1` instead of `*(tmp-1)`, so
   escaped separators in preference values have never worked. It is left
   as is because fixing it would change how existing settings are read.
-- The IMAP4 handler prints debug output to standard output.
+- `Var::Delete()` (the settings store) unlinks the wrong entries when
+  the first entry is deleted, and its count is off by one. The POP3
+  client no longer uses it for `uidl.dat`; the settings still do, which
+  probably explains stray entries such as an empty `folders = ""` that
+  hides a mailbox's folders. It needs a careful fix of its own.
 - `~MailMessage()` contains a store-on-destroy that never ran in the
   original (see the comment there); it stays disabled until reviewed.
 

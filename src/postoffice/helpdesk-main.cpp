@@ -124,6 +124,27 @@ void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
 void clear_folder_index (void);
+
+// Breaks lines longer than width at spaces, so that a long error message
+// fits in its dialog (Neo-PostOffice).
+static std::string wrap_text (const char *text, size_t width)
+{
+	std::string out;
+	size_t col = 0, last_space = std::string::npos;
+	for (const char *p = text; *p; ++p)
+	{
+		out += *p;
+		if (*p == '\n') { col = 0; last_space = std::string::npos; continue; }
+		if (*p == ' ') last_space = out.size() - 1;
+		if (++col > width && last_space != std::string::npos)
+		{
+			out[last_space] = '\n';
+			col = out.size() - 1 - last_space;
+			last_space = std::string::npos;
+		}
+	}
+	return out;
+}
 void new_folderitem (MailMessage *);
 
 void set_status (const char *);
@@ -829,7 +850,7 @@ int main (int argc, char *argv[])
 			{
 				case CLASS_GOTBODY :
 					//currentmailbox->Lock->LockR();
-					MS = currentmailbox->Find (M->Message->Get(0));
+					MS = currentmailbox ? currentmailbox->Find (M->Message->Get(0)) : NULL;
 					//currentmailbox->Lock->UnlockR();
 					if (MS) displaymessage (MS);
 					break;
@@ -952,7 +973,7 @@ int main (int argc, char *argv[])
 				case CLASS_ERROR :
 					errorstring = new char [strlen (M->Message->Get(0)) + strlen (M->Message->Get(1)) + 64];
 					sprintf (errorstring, "Error in [%s]\n%s", M->Message->Get(0), M->Message->Get(1));
-					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ("%s", errorstring);
+					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ("%s", wrap_text (errorstring, 90).c_str());
 					eprintf ("\n*** ERROR ***\n%s\n", errorstring);
 
 					delete[] errorstring;

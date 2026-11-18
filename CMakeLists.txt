@@ -56,6 +56,9 @@ else()
   set(PO_FLTK_LIBS po_fltk)
 endif()
 
+# OpenSSL (or LibreSSL on OpenBSD) for TLS to mail servers (Debian: libssl-dev)
+find_package(OpenSSL 1.1 REQUIRED)
+
 find_path(GDBM_INCLUDE_DIR gdbm.h REQUIRED)
 find_library(GDBM_LIBRARY gdbm REQUIRED)
 
@@ -139,9 +142,9 @@ set(PO_GUI_SOURCES
 set(PO_BACKEND_SOURCES
   base64.cpp btree.cpp buffer.cpp ccache.cpp checksum.cpp chop.cpp
   connection.cpp debug.cpp eaddr.cpp encode.cpp envelope.cpp folderxpm.cpp
-  formatter.cpp gdbmstorage.cpp gdbmtools.cpp imap4handler.cpp itc.cpp
+  formatter.cpp gdbmstorage.cpp gdbmtools.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
-  localmailhandler.cpp maildirhandler.cpp sendpipe.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
+  localmailhandler.cpp mailhandler.cpp maildirhandler.cpp netstream.cpp sendpipe.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
   nntphandler.cpp sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
@@ -160,7 +163,7 @@ target_include_directories(postoffice PRIVATE
   ${GDBM_INCLUDE_DIR})
 target_link_libraries(postoffice PRIVATE
   po_settings toggletree rcledit
-  ${GDBM_LIBRARY} X11::X11 X11::Xext Threads::Threads ${CMAKE_DL_LIBS} m)
+  ${GDBM_LIBRARY} OpenSSL::SSL OpenSSL::Crypto X11::X11 X11::Xext Threads::Threads ${CMAKE_DL_LIBS} m)
 if(PO_POSTGRESQL)
   target_include_directories(postoffice PRIVATE ${PQ_INCLUDE_DIR})
   target_link_libraries(postoffice PRIVATE ${PQ_LIBRARY})

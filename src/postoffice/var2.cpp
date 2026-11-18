@@ -9,6 +9,9 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <string.h>
 #include <strings.h>
 #include <stdlib.h>
@@ -160,9 +163,13 @@ void Var::Save (const char *fname)
 //	Value *myValue;
 	FILE *F;
 	
-	F = fopen (fname, "w");
-	if (F)
+	// Private to the user: the settings hold passwords (Neo-PostOffice).
+	int fd = open (fname, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+	if (fd >= 0)
 	{
+		fchmod (fd, 0600);		// also for a file that was there before
+		F = fdopen (fd, "w");
+		if (!F) { close (fd); return; }
 		Save (F, 0);
 		fclose (F);
 	}

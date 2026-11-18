@@ -98,7 +98,8 @@ static std::string short_output (const std::string &text)
 // what it writes. The program gets its own process group, so that a
 // timeout stops everything it started (sh -c "getmail ..."). label names
 // it in err.
-static bool run_program (std::vector<std::string> args, int in, const std::string &label, std::string &err)
+static bool run_program (std::vector<std::string> args, int in, const std::string &label, std::string &err,
+						 std::string *stdout_text = NULL)
 {
 	// The arguments, ready before fork (the child only calls exec).
 	std::vector<char *> argv;
@@ -106,6 +107,7 @@ static bool run_program (std::vector<std::string> args, int in, const std::strin
 	argv.push_back (NULL);
 
 	int out[2], failed[2];		// output of the program; errno if exec fails
+	int so[2] = { -1, -1 };		// its standard output alone, if wanted
 	if (pipe2 (out, O_CLOEXEC) != 0)
 	{
 		err = "cannot start " + label + ": " + strerror (errno);
@@ -118,13 +120,19 @@ static bool run_program (std::vector<std::string> args, int in, const std::strin
 		close (in); close (out[0]); close (out[1]);
 		return false;
 	}
+	if (stdout_text && pipe2 (so, O_CLOEXEC) != 0)
+	{
+		err = "cannot start " + label + ": " + strerror (errno);
+		close (in); close (out[0]); close (out[1]); close (failed[0]); close (failed[1]);
+		return false;
+	}
 
 	pid_t pid = fork();
 	if (pid == 0)
 	{
 		setpgid (0, 0);
 		dup2 (in, 0);
-		dup2 (out[1], 1);
+		dup2 (stdout_text ? so[1] : out[1], 1);
 		dup2 (out[1], 2);
 		dup2 (failed[1], 3);
 		fcntl (3, F_SETFD, FD_CLOEXEC);
@@ -139,10 +147,12 @@ static bool run_program (std::vector<std::string> args, int in, const std::strin
 	close (in);
 	close (out[1]);
 	close (failed[1]);
+	if (so[1] >= 0) close (so[1]);
 	if (pid < 0)
 	{
 		err = "cannot start " + label + ": " + strerror (fork_errno);
 		close (out[0]); close (failed[0]);
+		if (so[0] >= 0) close (so[0]);
 		return false;
 	}
 	setpgid (pid, pid);		// also here, in case the parent gets there first
@@ -151,18 +161,28 @@ static bool run_program (std::vector<std::string> args, int in, const std::strin
 	std::string output;
 	time_t start = time (NULL);
 	bool timed_out = false;
+	int open_fds = so[0] >= 0 ? 2 : 1;
 	for (;;)
 	{
-		struct pollfd p = { out[0], POLLIN, 0 };
-		int r = poll (&p, 1, 1000);
+		struct pollfd p[2] = { { out[0], POLLIN, 0 }, { so[0], POLLIN, 0 } };
+		int r = poll (p, so[0] >= 0 ? 2 : 1, 1000);
 		if (r < 0 && errno != EINTR) break;
-		if (r > 0)
+		for (int k = 0; r > 0 && k < 2; ++k)
 		{
+			if (p[k].fd < 0 || !(p[k].revents & (POLLIN | POLLHUP | POLLERR))) continue;
 			char buf[1024];
-			ssize_t n = read (out[0], buf, sizeof (buf));
-			if (n <= 0) break;
-			if (output.size() < 16384) output.append (buf, n);
+			ssize_t n = read (p[k].fd, buf, sizeof (buf));
+			if (n <= 0)
+			{
+				close (p[k].fd);
+				if (k == 0) out[0] = -1; else so[0] = -1;
+				--open_fds;
+				continue;
+			}
+			std::string &dest = k == 0 ? output : *stdout_text;
+			if (dest.size() < 16384) dest.append (buf, n);
 		}
+		if (open_fds == 0) break;
 		if (time (NULL) - start > RUN_TIMEOUT)
 		{
 			kill (-pid, SIGTERM);
@@ -170,7 +190,8 @@ static bool run_program (std::vector<std::string> args, int in, const std::strin
 			break;
 		}
 	}
-	close (out[0]);
+	if (out[0] >= 0) close (out[0]);
+	if (so[0] >= 0) close (so[0]);
 
 	int status = 0;
 	while (waitpid (pid, &status, 0) < 0 && errno == EINTR) {}
@@ -237,6 +258,27 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 	std::vector<std::string> args = { path, "-i", "-f", mailfrom ? mailfrom : "", "--" };
 	for (int i = 0; i < Recipients->Count; ++i) args.push_back (Recipients->Get (i));
 	return run_program (args, in, path, err);
+}
+
+bool run_password_command (const char *command, std::string &password, std::string &err)
+{
+	int in = open ("/dev/null", O_RDONLY | O_CLOEXEC);
+	if (in < 0)
+	{
+		err = std::string ("cannot open /dev/null: ") + strerror (errno);
+		return false;
+	}
+	std::string out;
+	if (!run_program ({ "/bin/sh", "-c", command }, in, "the password command", err, &out)) return false;
+	// The first line, as pass(1) and secret-tool print it.
+	password = out.substr (0, out.find ('\n'));
+	if (!password.empty() && password.back() == '\r') password.pop_back();
+	if (password.empty())
+	{
+		err = "the password command printed no password";
+		return false;
+	}
+	return true;
 }
 
 bool run_fetch_command (const char *command, std::string &err)

@@ -1571,7 +1571,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               }
               MenuItem {} {
                 label {IMAP4 Account}
-                xywh {30 30 100 20} labelsize 12
+                xywh {30 30 100 20} labelsize 12 hide
                 code0 {xloc(o, "proto_imap4");}
               }
               MenuItem {} {
@@ -1657,86 +1657,107 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
           } {
             Fl_Group {} {open
-              xywh {235 85 370 20}
+              xywh {240 82 365 20}
             } {
               Fl_Input in_prefs_protocol_pop3_host {
                 callback cb_prefs_protocol_pop3
-                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
+                xywh {375 82 150 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Input in_prefs_protocol_pop3_port {
+                label Port
+                callback cb_prefs_protocol_pop3
+                tooltip {Empty: 995 for TLS, 110 otherwise.} xywh {565 82 40 20} labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
                 label {POP3 Host}
-                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
+                xywh {240 82 110 20} box NO_BOX labelsize 12 align 20
                 code0 {xloc(o, "pop3_host");}
               }
             }
             Fl_Group {} {open
-              xywh {240 115 365 20}
+              xywh {240 107 365 20}
             } {
-              Fl_Input in_prefs_protocol_pop3_user {
-                callback cb_prefs_protocol_pop3
-                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
+              Fl_Group {} {open
+                xywh {375 107 230 20} box BORDER_FRAME color 0
+              } {
+                Fl_Choice ch_prefs_protocol_pop3_security {
+                  callback cb_prefs_protocol_pop3_security open
+                  tooltip {TLS: encrypted from the start (port 995). STARTTLS: port 110, then encrypted; fails if the server cannot. None: only for a server on your own machine or network.} xywh {376 108 229 19} down_box BORDER_BOX labelsize 12 textsize 12
+                } {
+                  MenuItem {} {
+                    label {TLS (port 995)}
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                  MenuItem {} {
+                    label {STARTTLS (port 110)}
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                  MenuItem {} {
+                    label {None (unencrypted)}
+                    xywh {0 0 100 20} labelsize 12
+                  }
+                }
               }
               Fl_Button {} {
-                label Username
-                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc(o, "username");}
+                label Encryption
+                xywh {240 107 110 20} box NO_BOX labelsize 12 align 20
               }
             }
             Fl_Group {} {open
-              xywh {240 145 365 20}
+              xywh {240 132 365 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_user {
+                callback cb_prefs_protocol_pop3
+                xywh {375 132 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label Username
+                xywh {240 132 110 20} box NO_BOX labelsize 12 align 20
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 157 365 20}
             } {
               Fl_Input in_prefs_protocol_pop3_pass {
                 callback cb_prefs_protocol_pop3
-                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
+                xywh {375 157 230 20} type Secret labelsize 12 when 1 textsize 12
               }
               Fl_Button {} {
                 label Password
-                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "password");}
+                xywh {240 157 110 20} box NO_BOX labelsize 12 align 20
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 182 365 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_passcmd {
+                callback cb_prefs_protocol_pop3
+                tooltip {Optional. A command whose first line of output is the password, used instead of the password above: for example pass show mail/pop or secret-tool lookup service pop3 user me.} xywh {375 182 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {Password command}
+                xywh {240 182 110 20} box NO_BOX labelsize 12 align 20
+              }
+            }
+            Fl_Group {} {open
+              xywh {240 207 365 20}
+            } {
+              Fl_Input in_prefs_protocol_pop3_cafile {
+                callback cb_prefs_protocol_pop3
+                tooltip {Optional. A PEM file with your own certificate authority, trusted in addition to the system's (for a server with a certificate from a local CA).} xywh {375 207 230 20} labelsize 12 when 1 textsize 12
+              }
+              Fl_Button {} {
+                label {CA file}
+                xywh {240 207 110 20} box NO_BOX labelsize 12 align 20
               }
             }
           }
           Fl_Group gr_prefs_protocol_imap4 {
             xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
           } {
-            Fl_Group {} {open
-              xywh {235 85 370 20}
-            } {
-              Fl_Input in_prefs_protocol_imap4_host {
-                callback cb_prefs_protocol_imap4
-                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label {IMAP4 Host}
-                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "imap4_host");}
-              }
-            }
-            Fl_Group {} {open
-              xywh {240 115 365 20}
-            } {
-              Fl_Input in_prefs_protocol_imap4_user {
-                callback cb_prefs_protocol_imap4
-                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label Username
-                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc(o, "username");}
-              }
-            }
-            Fl_Group {} {open
-              xywh {240 145 365 20}
-            } {
-              Fl_Input in_prefs_protocol_imap4_pass {
-                callback cb_prefs_protocol_imap4
-                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label Password
-                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "password");}
-              }
+            Fl_Box {} {
+              label {IMAP4 is not available in this version of Neo-PostOffice. A new IMAP client is planned; this mailbox's settings are kept for it. Meanwhile, mbsync or OfflineIMAP can keep a Maildir in step with the server: see the README.}
+              xywh {245 85 360 140} labelsize 12 align 149
             }
           }
           Fl_Group gr_prefs_protocol_nntp {

@@ -169,7 +169,8 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     }
 	else if (strcasecmp (PREFROOT->Get_char ("protocol"), "imap4") == 0)
 	{
-		Handler = new IMAP4Handler (this, PREFROOT);
+		// The old IMAP4 client was removed; a new one will take these settings.
+		Handler = new UnavailableHandler (this, PREFROOT, "IMAP4");
 	}
 	
     // Open all views
