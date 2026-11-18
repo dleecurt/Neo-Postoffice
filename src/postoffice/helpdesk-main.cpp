@@ -403,8 +403,7 @@ static void message_context_menu (Fl_Toggle_Node *n)
 	std::vector<std::string> ids = selected_msgids();
 	if (std::find (ids.begin(), ids.end(), id) == ids.end())
 	{
-		br_folderindex->select_range (n, n, 0);
-		br_folderindex->redraw();
+		br_folderindex->select_only (n);
 	}
 	bool maildir = currentmailbox->Handler && currentmailbox->Handler->KeepsFlags();
 	Fl_Menu_Item items[] = {
@@ -824,6 +823,7 @@ int main (int argc, char *argv[])
 	br_folderindex->draw_lines (1);
 	br_folderindex->callback ((Fl_Callback *) cb_selectmessage);
 	br_folderindex->drag_enable (1);	// drag messages onto folders
+	br_folderindex->keyboard_nav (1);	// arrow keys move through the list
 	br_folderindex_->end();
 	br_folderindex_->resizable (br_folderindex);
 	br_folderindex_->type (Fl_Scroll::VERTICAL);

@@ -4,6 +4,8 @@
 #include <FL/Fl_Group.H>
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
+#include <FL/Fl_Scroll.H>
+#include <vector>
 
 #include <FL/Fl_Toggle_Node.H>
 #include <FL/Fl_Toggle_Tree.H>
@@ -51,6 +53,7 @@ static const int no_columns[1] = {0};
 
 Fl_Toggle_Tree::Fl_Toggle_Tree(int x, int y, int w, int h) : Fl_Toggle_Tree_Base(x, y, w, h) {
   pixmap_offset_ = 16;
+  keynav_ = 0;
   label_offset_ = 40;
   current_ = 0;
   state_ = FL_TOGGLE_NONE;
@@ -98,6 +101,7 @@ Fl_Toggle_Tree::Fl_Toggle_Tree(int x, int y, int w, int h) : Fl_Toggle_Tree_Base
 }
 
 Fl_Toggle_Tree::~Fl_Toggle_Tree() {
+  Fl::remove_timeout(key_callback_, this);
   delete edit_input_;
 }
 
@@ -308,7 +312,13 @@ int Fl_Toggle_Tree::handle(int event) {
   switch (event) {
   case FL_ENTER:
     return 1;
+  case FL_FOCUS:
+  case FL_UNFOCUS:
+    return keynav_;
+  case FL_KEYBOARD:
+    return keynav_ ? handle_key(Fl::event_key()) : 0;
   case FL_PUSH: {
+    if (keynav_ && Fl::focus() != this) take_focus();
     dragging_ = 0;
     drag_node_ = 0;
     if (Fl::event_button() == FL_RIGHT_MOUSE) {
@@ -581,4 +591,111 @@ void Fl_Toggle_Tree::edit_callback(Fl_Callback0*c) {
 
 void Fl_Toggle_Tree::edit_callback(Fl_Callback1*c, long p) {
   edit_input_->callback(c, p);
+}
+
+//-------------------------------------------------------------------------------
+// Neo-PostOffice: keyboard navigation
+//-------------------------------------------------------------------------------
+
+// The distance of a visible node from the top of the tree, or -1.
+int Fl_Toggle_Tree::node_offset(Fl_Toggle_Node_Base* node) {
+  int depth = 0, off = 0;
+  traverse_start(first_);
+  for (Fl_Toggle_Node_Base* n = first_; n; n = traverse_forward(1, depth)) {
+    if (n == node) return off;
+    off += height(n);
+  }
+  return -1;
+}
+
+// Scrolls the enclosing Fl_Scroll so that node is in view.
+void Fl_Toggle_Tree::show_node(Fl_Toggle_Node_Base* node) {
+  Fl_Scroll* scroll = dynamic_cast<Fl_Scroll*>(parent());
+  int off = node_offset(node);
+  if (!scroll || off < 0) return;
+  int top = y() + off, bottom = top + height(node);
+  int view_top = scroll->y() + Fl::box_dy(scroll->box());
+  int view_bottom = scroll->y() + scroll->h() - Fl::box_dy(scroll->box());
+  if (scroll->hscrollbar.visible()) view_bottom -= scroll->hscrollbar.h();
+  int ypos = scroll->yposition();
+  if (top < view_top) ypos -= view_top - top;
+  else if (bottom > view_bottom) ypos += bottom - view_bottom;
+  else return;
+  if (ypos < 0) ypos = 0;
+  scroll->scroll_to(scroll->xposition(), ypos);
+  // Fl_Scroll copies the old picture when it scrolls and the tree only
+  // redraws changed rows: draw it all, or a stale selection stays.
+  scroll->redraw();
+}
+
+void Fl_Toggle_Tree::key_callback_(void* v) {
+  Fl_Toggle_Tree* tree = (Fl_Toggle_Tree*) v;
+  // The list may have been rebuilt since the key press.
+  if (!tree->current_ || tree->node_offset(tree->current_) < 0) return;
+  tree->state_ = FL_TOGGLE_SELECT;
+  tree->do_callback();
+}
+
+// Selects node alone, shows it, and calls the callback shortly.
+void Fl_Toggle_Tree::key_select(Fl_Toggle_Node_Base* node) {
+  if (!node) return;
+  select_range((Fl_Toggle_Node*) node, (Fl_Toggle_Node*) node, 0);
+  current_ = node;
+  damaged_ = 0;
+  damage(FL_DAMAGE_CHILD);
+  show_node(node);
+  Fl::remove_timeout(key_callback_, this);
+  Fl::add_timeout(0.15, key_callback_, this);
+}
+
+int Fl_Toggle_Tree::handle_key(int key) {
+  if (Fl::event_state() & (FL_CTRL | FL_ALT | FL_META)) return 0;
+  if (key != FL_Up && key != FL_Down && key != FL_Page_Up && key != FL_Page_Down &&
+      key != FL_Home && key != FL_End && key != FL_Left && key != FL_Right)
+    return 0;
+  if (edit_input_->visible()) return 0;
+
+  // The visible nodes, and where the selection is among them.
+  std::vector<Fl_Toggle_Node_Base*> rows;
+  int depth = 0, at = -1;
+  traverse_start(first_);
+  for (Fl_Toggle_Node_Base* n = first_; n; n = traverse_forward(1, depth)) {
+    if (n == current_) at = (int) rows.size();
+    rows.push_back(n);
+  }
+  if (rows.empty()) return 1;
+  int last = (int) rows.size() - 1;
+  int page = 1;
+  if (parent() && height(rows[0]) > 0) page = parent()->h() / height(rows[0]) - 1;
+  if (page < 1) page = 1;
+
+  if (at < 0) {   // nothing selected: start at the top (or the bottom)
+    key_select(rows[key == FL_End || key == FL_Up ? last : 0]);
+    return 1;
+  }
+  Fl_Toggle_Node* node = (Fl_Toggle_Node*) rows[at];
+  switch (key) {
+  case FL_Up:        if (at > 0) key_select(rows[at - 1]); break;
+  case FL_Down:      if (at < last) key_select(rows[at + 1]); break;
+  case FL_Page_Up:   key_select(rows[at > page ? at - page : 0]); break;
+  case FL_Page_Down: key_select(rows[at + page < last ? at + page : last]); break;
+  case FL_Home:      key_select(rows[0]); break;
+  case FL_End:       key_select(rows[last]); break;
+  case FL_Right:
+    if (node->sub_ && !node->opened_) {
+      open(node);
+      update_height();
+      if (parent()) parent()->redraw();
+    } else if (node->vsub_) key_select(node->vsub_);
+    break;
+  case FL_Left:
+    if (node->opened_ && node->sub_) {
+      close(node);
+      update_height();
+      if (parent()) parent()->redraw();
+      show_node(node);
+    } else if (node->up_) key_select(node->up_);
+    break;
+  }
+  return 1;
 }

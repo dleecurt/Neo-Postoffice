@@ -74,6 +74,16 @@ public:
   Fl_Toggle_Node* context_node(void) { return context_node_; }
 
   /**
+   * Neo-PostOffice: keyboard navigation. When enabled, a click gives the
+   * tree the keyboard focus; Up/Down, Page Up/Down and Home/End move the
+   * selection (scrolling it into view), Right opens and Left closes a
+   * branch (Left on a closed or leaf node goes to its parent). The
+   * callback (state() == FL_TOGGLE_SELECT) follows once the keys pause,
+   * so holding a key down does not open every node passed.
+   */
+  void keyboard_nav(int e) { keynav_ = e; }
+
+  /**
    * Returns the current node (as set with the traversal functions).
    */
   Fl_Toggle_Node* current(void) {
@@ -315,6 +325,13 @@ public:
   /**
    * Unselects all selected items.
    */
+  /** Neo-PostOffice: selects only n and makes it selected(). */
+  void select_only(Fl_Toggle_Node* n) {
+    select_range(n, n, 0);
+    current_ = n;
+    redraw();
+  }
+
   void unselect(void) {
     select_range(0, 0, 0);
   }
@@ -517,6 +534,13 @@ protected:
   int push_x_, push_y_;
   Fl_Toggle_Node* drag_node_;
   Fl_Toggle_Node* context_node_;
+
+  int keynav_;
+  int handle_key(int key);
+  void key_select(Fl_Toggle_Node_Base* node);
+  void show_node(Fl_Toggle_Node_Base* node);
+  int node_offset(Fl_Toggle_Node_Base* node);
+  static void key_callback_(void* tree);
 
   int selection_i_;
   int selection_count_;

@@ -371,6 +371,12 @@ See the git history for details. In summary:
 - Settings that do not apply to a mailbox type (collection method,
   expiry on the server) are greyed out. Fixed-size `sprintf` calls were
   replaced by `snprintf`.
+- Keyboard navigation in the message list (after clicking it): Up/Down,
+  Page Up/Down and Home/End move the selection and keep it in view; Right
+  opens a thread and Left closes it (on a reply, Left goes to the message
+  it answers). The
+  message is shown once the keys pause. The mailbox list keeps its
+  selection when it is rebuilt more than once.
 
 ## Known issues and ideas
 
@@ -379,7 +385,7 @@ Found while modernizing and left for later:
 - NNTP and the built-in SMTP client have no TLS support (send through
   the system MTA or msmtp instead).
 - HTML-only messages show only an attachment line; there is no HTML to
-  text view. The message list has no keyboard navigation.
+  text view.
 - SQL mailbox: messages cannot be moved between folders from the client.
 - The tools in `src/postoffice/update.cpp` and `checkmail.cpp` are not
   built; they contain the original author's database server and login.

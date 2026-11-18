@@ -398,7 +398,7 @@ void update_tree (Fl_Scroll *scr)
 			BoxData *B = (BoxData *) n->data();
 			if (B && B->mailbox && sel_box == B->mailbox->Name && sel_folder == B->foldername)
 			{
-				TREE->select_range (n, n, 0);
+				TREE->select_only (n);
 				break;
 			}
 		}
