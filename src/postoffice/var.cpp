@@ -25,8 +25,7 @@
 
 Value::Value (const char *theName)
 {
-	strncpy (Name, theName, MAXVARNAMELEN-2);
-	Name[MAXVARNAMELEN-1] = 0;
+	snprintf (Name, sizeof (Name), "%s", theName ? theName : "");
 	Checksum = checksum (Name);
 	cValue = NULL;
 	sValue = 0;
@@ -55,8 +54,7 @@ Value::~Value (void)
 
 void Value::Rename (const char *newName)
 {
-	strncpy (Name, newName, MAXVARNAMELEN-1);
-	Name[MAXVARNAMELEN-1] = 0;
+	snprintf (Name, sizeof (Name), "%s", newName ? newName : "");
 	Checksum = checksum (Name);
 }
 

@@ -149,7 +149,7 @@ void MBoxStorage::Synchronize (void)
 		else if ((State == ST_SEEKMSGID) && (strncasecmp (buf, "Message-ID: ", 12) == 0))
 		{
 			char *tmp = strchr (buf, ' ') +1;
-			strncpy (messageid, tmp, 255);
+			snprintf (messageid, sizeof (messageid), "%s", tmp);
 			choplf (messageid);
 			dprintf ("[mboxstorage] Message-ID: %s\n", messageid);
 			State = ST_SEEKFROM;

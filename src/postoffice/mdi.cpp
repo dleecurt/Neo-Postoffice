@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdint.h>
 #include "wordlist.h"
 #include "helpdesk.h"
@@ -181,7 +182,7 @@ void cb_mdi_close (Fl_Button */*b*/, void */*v*/)
 void mdi_title (const char *title)
 {
 	if (mdi_current > mdi_number) return;
-	strncpy (currentlabel[mdi_current],title,255);
+	snprintf (currentlabel[mdi_current], sizeof (currentlabel[mdi_current]), "%s", title);
 	mdi_buttons[mdi_current]->label (currentlabel[mdi_current]);
 	mdi_buttons[mdi_current]->redraw();
 }

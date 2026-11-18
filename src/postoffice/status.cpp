@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "status.h"
 #include <time.h>
 #include <sys/types.h>
@@ -6,7 +7,7 @@
 
 MailJob::MailJob (const char *name)
 {
-	strncpy (_Owner, name, 31);
+	snprintf (_Owner, sizeof (_Owner), "%s", name);
 	strcpy (_Status, "Job started");
 	_Progress = 0;
 	_XFer = 0;
@@ -80,7 +81,7 @@ void JobList::Stat (int jid, const char *stat)
 	Lock->LockR();
 	if (Queue[jid & 0x1f])
 	{
-		strncpy (Queue[jid & 0x1f]->_Status, stat, 63);
+		snprintf (Queue[jid & 0x1f]->_Status, sizeof (Queue[jid & 0x1f]->_Status), "%s", stat);
 		Queue[jid & 0x1f]->_Changed = true;
 		//Queue[jid & 0x1f] = NULL;
 	}
