@@ -2076,6 +2076,7 @@ Fl_Window* make_compose_window() {
           o->labelsize(12);
           o->textfont(1);
           o->textsize(11);
+          Fl_Group::current()->resizable(o);
         } // Fl_Output* o
         { compose_mbt_send = new Fl_Button(10, 20, 30, 20);
           compose_mbt_send->box(FL_THIN_UP_BOX);
@@ -2154,6 +2155,7 @@ Fl_Window* make_compose_window() {
           { Fl_Input* o = compose_in_to = new Fl_Input(125, 45, 375, 20, "To");
             compose_in_to->labelsize(12);
             compose_in_to->textsize(12);
+            Fl_Group::current()->resizable(compose_in_to);
             xloc(o, "to");
           } // Fl_Input* compose_in_to
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
@@ -2167,12 +2169,14 @@ Fl_Window* make_compose_window() {
             o->end();
           } // Fl_Group* o
           gr_compose_to->end();
+          Fl_Group::current()->resizable(gr_compose_to);
         } // Fl_Group* gr_compose_to
         { gr_compose_cc = new Fl_Group(125, 45, 405, 20);
           gr_compose_cc->hide();
           { Fl_Input* o = compose_in_cc = new Fl_Input(125, 45, 375, 20, "CC");
             compose_in_cc->labelsize(12);
             compose_in_cc->textsize(12);
+            Fl_Group::current()->resizable(compose_in_cc);
             xloc(o, "cc");
           } // Fl_Input* compose_in_cc
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
@@ -2192,6 +2196,7 @@ Fl_Window* make_compose_window() {
           { Fl_Input* o = compose_in_bcc = new Fl_Input(125, 45, 375, 20, "BCC");
             compose_in_bcc->labelsize(12);
             compose_in_bcc->textsize(12);
+            Fl_Group::current()->resizable(compose_in_bcc);
             xloc(o, "bcc");
           } // Fl_Input* compose_in_bcc
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
@@ -2211,6 +2216,7 @@ Fl_Window* make_compose_window() {
           { Fl_Input* o = compose_in_groups = new Fl_Input(125, 45, 265, 20, "Newsgroups");
             compose_in_groups->labelsize(12);
             compose_in_groups->textsize(12);
+            Fl_Group::current()->resizable(compose_in_groups);
             xloc(o, "newsgroups");
           } // Fl_Input* compose_in_groups
           { Fl_Group* o = new Fl_Group(395, 45, 30, 20);
@@ -2243,7 +2249,6 @@ Fl_Window* make_compose_window() {
           compose_bt_resizeheader->box(FL_THIN_UP_BOX);
           compose_bt_resizeheader->image( image_bar5() );
           compose_bt_resizeheader->align(Fl_Align(FL_ALIGN_TOP|FL_ALIGN_INSIDE));
-          Fl_Group::current()->resizable(compose_bt_resizeheader);
         } // Fl_Button* compose_bt_resizeheader
         gr_compose_headers->end();
       } // Fl_Group* gr_compose_headers

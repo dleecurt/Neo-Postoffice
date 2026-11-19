@@ -913,7 +913,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         xywh {0 20 570 20} hide
       } {
         Fl_Output {} {
-          xywh {210 20 360 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11
+          xywh {210 20 360 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11 resizable
         }
         Fl_Button compose_mbt_send {
           image {icons/mailappt.xpm} compress_image 1 xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
@@ -965,11 +965,11 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           } {}
         }
         Fl_Group gr_compose_to {open
-          xywh {125 45 405 20}
+          xywh {125 45 405 20} resizable
         } {
           Fl_Input compose_in_to {
             label To
-            xywh {125 45 375 20} labelsize 12 textsize 12
+            xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "to");}
           }
           Fl_Group {} {open
@@ -986,7 +986,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Input compose_in_cc {
             label CC
-            xywh {125 45 375 20} labelsize 12 textsize 12
+            xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "cc");}
           }
           Fl_Group {} {open
@@ -1003,7 +1003,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Input compose_in_bcc {
             label BCC
-            xywh {125 45 375 20} labelsize 12 textsize 12
+            xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "bcc");}
           }
           Fl_Group {} {open
@@ -1020,7 +1020,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         } {
           Fl_Input compose_in_groups {
             label Newsgroups
-            xywh {125 45 265 20} labelsize 12 textsize 12
+            xywh {125 45 265 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "newsgroups");}
           }
           Fl_Group {} {open
@@ -1045,7 +1045,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           code0 {xloc(o, "subject");}
         }
         Fl_Button compose_bt_resizeheader {
-          image {icons/bar5.xpm} compress_image 1 xywh {0 40 10 55} box THIN_UP_BOX align 17 resizable
+          image {icons/bar5.xpm} compress_image 1 xywh {0 40 10 55} box THIN_UP_BOX align 17
         }
       }
       Fl_Group gr_compose_bigbuttons {

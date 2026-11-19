@@ -666,67 +666,64 @@ void cb_compose_menu_expand (Fl_Button */*b*/, void *v)
 	PREFERENCES.Set_char_tree ("postoffice/state/composer/toolbar","big");
 }
 
+// Neo-PostOffice: lays the header rows out from fixed measurements (as in
+// helpdesk.fld: rows 25 pixels apart, the first 5 below the top of the
+// header area). The old code worked out each move from where the other
+// rows were, so after a window resize it stacked every row on the To row.
+// FLTK resizes a group's children from the sizes it recorded when they
+// were made, so that record is renewed after the rows are moved.
+static void composer_layout (Composer_Window *W, bool full)
+{
+	const int top = 5, inc = 25, rowh = 20;
+	Fl_Group *H = W->gr_headers;
+	int x = W->in_subject->x ();
+	int y = H->y () + top;
+
+	Fl_Widget *rows_full[] = { W->gr_personality, W->gr_to, W->gr_cc, W->gr_bcc, W->gr_groups, W->in_subject };
+	Fl_Widget *optional[] = { W->gr_personality, W->gr_cc, W->gr_bcc, W->gr_groups };
+	int n = full ? 6 : 2;
+
+	// The header area first, without FLTK moving its children (it would
+	// stretch the To row into the new height), then the rows.
+	int bottom = W->in_message->y () + W->in_message->h ();
+	H->Fl_Widget::resize (H->x (), H->y (), H->w (), top + n * inc);
+	int i = 0;
+	for (Fl_Widget *r : rows_full)
+	{
+		bool shown = full || r == W->gr_to || r == W->in_subject;
+		if (!shown) continue;
+		r->resize (x, y + i * inc, r->w (), rowh);
+		++i;
+	}
+	for (Fl_Widget *r : optional)
+	{
+		if (full) r->show ();
+		else { r->hide (); r->resize (x, y, r->w (), rowh); }
+	}
+	if (full) W->ch_personality->show ();
+
+	// Its drag handle, and the message below it.
+	W->bt_resizeheader->resize (W->bt_resizeheader->x (), H->y (), W->bt_resizeheader->w (), H->h ());
+	int my = H->y () + H->h ();
+	W->in_message->resize (W->in_message->x (), my, W->in_message->w (), bottom - my);
+
+	H->init_sizes ();
+	if (H->parent ()) H->parent ()->init_sizes ();
+	W->comp->init_sizes ();
+	W->bt_resizeheader->callback ((Fl_Callback *) (full ? cb_compose_header_shrink : cb_compose_header_expand), (void *) W);
+	W->comp->redraw ();
+}
+
 void cb_compose_header_expand (Fl_Widget */*x*/, Composer_Window *W)
 {
-	int base_x, base_y, base_inc, top_inc;
-	
 	PREFERENCES.Set_char_tree ("postoffice/state/composer/headers","full");
-
-	base_x = W->in_to->x();
-	base_y = W->in_to->y();
-	base_inc = W->in_subject->y() - base_y;
-	top_inc = W->in_to->y() - W->gr_headers->y();
-	
-	W->gr_personality->show();
-	W->ch_personality->show();
-	W->gr_cc->show();
-	W->gr_bcc->show();
-	W->gr_groups->show();
-	
-	W->gr_headers->size (W->gr_headers->w(), top_inc + 6 * base_inc);
-	W->gr_personality->resize (base_x, base_y, W->gr_personality->w(), 20);
-	W->gr_to->resize (base_x, base_y + 1 * base_inc, W->gr_to->w(), 20);
-	W->gr_cc->resize (base_x, base_y + 2 * base_inc, W->gr_cc->w(), 20);
-	W->gr_bcc->resize (base_x, base_y + 3 * base_inc, W->gr_cc->w(), 20);
-	W->gr_groups->resize (base_x, base_y + 4 * base_inc, W->gr_groups->w(), 20);
-	W->in_subject->resize (base_x, base_y + 5 * base_inc, W->in_subject->w(), 20);
-	W->in_message->hide();
-	W->in_message->resize (W->in_message->x(), W->in_message->y() + 4 * base_inc, W->in_message->w(), W->in_message->h() - 4 * base_inc);	
-	W->in_message->show();
-	
-	W->bt_resizeheader->callback ((Fl_Callback *) cb_compose_header_shrink, (void *) W);
-	W->gr_headers->redraw();
-	W->in_message->redraw();
+	composer_layout (W, true);
 }
 
 void cb_compose_header_shrink (Fl_Widget */*x*/, Composer_Window *W)
 {
-	int base_x, base_y, base_inc, top_inc;
-
 	PREFERENCES.Set_char_tree ("postoffice/state/composer/headers","compact");
-
-	base_x = W->gr_personality->x();
-	base_y = W->gr_personality->y();
-	base_inc = W->in_to->y() - base_y;
-	top_inc = W->gr_personality->y() - W->gr_headers->y();
-	
-	W->gr_personality->hide();
-	W->gr_cc->position (base_x, base_y);
-	W->gr_cc->hide();
-	W->gr_bcc->hide();
-	W->gr_groups->position (base_x, base_y);
-	W->gr_groups->hide();
-
-	W->gr_to->position (base_x, base_y);
-	W->in_subject->Fl_Widget::position (base_x, base_y + 1 * base_inc);
-
-	W->gr_headers->size (W->gr_headers->w(), top_inc + 2 * base_inc);
-	W->bt_resizeheader->callback ((Fl_Callback *) cb_compose_header_expand, (void *) W);
-	W->in_message->hide();
-	W->in_message->resize (W->in_message->x(), W->in_message->y() - 4 * base_inc, W->in_message->w(), W->in_message->h() + 4 * base_inc);	
-	W->in_message->show();
-	W->gr_headers->redraw();
-	W->in_message->redraw();
+	composer_layout (W, false);
 }
 
 void cb_address (Fl_Button */*b*/, void *d)
