@@ -371,8 +371,11 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		// Grey out database features this build does not have.
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
-#ifdef PO_HAVE_LIBETPAN
-		menu_ch_prefs_protocol[4].show();		// IMAP4
+		// IMAP4: offered, or shown greyed out with the reason.
+		menu_ch_prefs_protocol[4].show();
+#ifndef PO_HAVE_LIBETPAN
+		menu_ch_prefs_protocol[4].label ("IMAP4 Account (built without libetpan)");
+		menu_ch_prefs_protocol[4].deactivate();
 #endif
 	}
 	
@@ -505,7 +508,8 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		}
 		else
 		{
-			ch_prefs_protocol->value(0);
+			// No or unknown protocol: POP3, as PostOffice 0.7 did.
+			ch_prefs_protocol->value(1);
 		}
 		//ch_prefs_protocol->update();
 		func_view_protocol();
@@ -1149,7 +1153,10 @@ void cb_prefs_mailbox_add (Fl_Button */*b*/, void */*v*/)
 	in_prefs_mailboxname->value ("Untitled");
 	PREFS_CURRENTBOX = LPREFERENCES.Get_collection("postoffice")->Get_collection("mailboxes")->Get_collection("Untitled");
 	PREFS_CURRENTBOX->Set_char ("host","host.domain.com");
-	PREFS_CURRENTBOX->Set_char ("security","tls");	// for POP3 (and IMAP later)
+	PREFS_CURRENTBOX->Set_char ("security","tls");	// for POP3 and IMAP
+	// A new mailbox starts as POP3, as in PostOffice 0.7 (without this it
+	// showed as the first menu entry, the experimental SQL mailbox).
+	PREFS_CURRENTBOX->Set_char ("protocol","pop3");
 	cb_prefs_mailboxes(br_prefs_mailboxes, (void *) NULL);
 }
 
