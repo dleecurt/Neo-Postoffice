@@ -5583,6 +5583,8 @@ Fl_Box *bx_prefs_style_elementname=(Fl_Box *)0;
 
 Fl_Button *bt_prefs_style_update=(Fl_Button *)0;
 
+Fl_Int_Input *in_prefs_listlimit=(Fl_Int_Input *)0;
+
 Fl_Button *bt_prefs_save=(Fl_Button *)0;
 
 Fl_Button *bt_prefs_apply=(Fl_Button *)0;
@@ -7269,6 +7271,30 @@ Fl_Window* make_prefs_window() {
             o->labelsize(12);
             o->align(Fl_Align(FL_ALIGN_LEFT));
             xloc(o, "fontstyle");
+          } // Fl_Box* o
+          o->end();
+        } // Fl_Group* o
+        { Fl_Group* o = new Fl_Group(20, 395, 600, 45, "Message list");
+          o->box(FL_ENGRAVED_BOX);
+          o->color((Fl_Color)51);
+          o->labelsize(12);
+          o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+          { Fl_Group* o = new Fl_Group(120, 407, 70, 20);
+            o->box(FL_BORDER_FRAME);
+            o->color(FL_FOREGROUND_COLOR);
+            { in_prefs_listlimit = new Fl_Int_Input(122, 409, 68, 18, "Show at most");
+              in_prefs_listlimit->tooltip("The newest messages of a folder shown in the list. 0 shows them all; a large "
+"folder then takes longer to open.");
+              in_prefs_listlimit->type(2);
+              in_prefs_listlimit->labelsize(12);
+              in_prefs_listlimit->textsize(12);
+              in_prefs_listlimit->callback((Fl_Callback*)cb_prefs_listlimit);
+            } // Fl_Int_Input* in_prefs_listlimit
+            o->end();
+          } // Fl_Group* o
+          { Fl_Box* o = new Fl_Box(195, 407, 300, 20, "messages per folder (0: all of them)");
+            o->labelsize(12);
+            o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* o
           o->end();
         } // Fl_Group* o

@@ -359,6 +359,24 @@ void cb_prefs_trash_local (Fl_Button *b, void *d)
 	rd_prefs_trash_server->redraw();
 }
 */
+// The most messages of a folder shown in the list (0: all). Unset: 1024, as
+// in PostOffice 0.7.
+int list_limit (Var *prefs)
+{
+	Var *gui = prefs->Get_collection ("postoffice")->Get_collection ("gui");
+	if (!gui->Exists ("list_limit")) return 1024;
+	int n = gui->Get_int ("list_limit");
+	return n < 0 ? 0 : n;
+}
+
+void cb_prefs_listlimit (Fl_Int_Input *i, void *)
+{
+	long n = atol (i->value ());
+	if (n < 0) n = 0;
+	if (n > 100000000) n = 100000000;
+	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("gui")->Set_int ("list_limit", (int) n);
+}
+
 void cb_configure (Fl_Button */*b*/, void */*d*/)
 {
 	WordList		*W;
@@ -422,6 +440,11 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		br_prefs_identities->add (LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (W->Get(i))->Get_char ("shortname"), &pixmap_identity, NULL );
 	}
 	show_delivery ();
+	{
+		char n[16];
+		snprintf (n, sizeof (n), "%d", list_limit (&LPREFERENCES));
+		in_prefs_listlimit->value (n);
+	}
 	gr_identities_set->deactivate();
 	gr_mailboxes_set->deactivate();
 	gr_prefs_filters->deactivate();

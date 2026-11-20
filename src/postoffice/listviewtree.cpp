@@ -89,6 +89,7 @@ extern CCache			 CCACHE;
 
 void update_folder (void);
 void new_folderitem (MailMessage *);
+int list_limit (Var *prefs);
 
 FolderData::FolderData (MailMessage *M)
 {
@@ -294,7 +295,9 @@ void update_folder (void)
 
 	dprintf ("count = %i\n", V->Count());
 
-	for (i=(V->Count()<1024) ? 0 : V->Count() - 1024;i<V->Count();++i)
+	// The newest messages only, as set in Config -> Style (0: all).
+	int limit = list_limit (&PREFERENCES);
+	for (i=(limit == 0 || V->Count() <= limit) ? 0 : V->Count() - limit;i<V->Count();++i)
 	{
 		// don't flood X with updates
 	

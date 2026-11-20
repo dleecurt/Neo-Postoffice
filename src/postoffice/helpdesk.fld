@@ -2866,6 +2866,24 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             code1 {xloc(o, "fontstyle");}
           }
         }
+        Fl_Group {} {
+          label {Message list} open
+          xywh {20 395 600 45} box ENGRAVED_BOX color 51 labelsize 12 align 5
+        } {
+          Fl_Group {} {open
+            xywh {120 407 70 20} box BORDER_FRAME color 0
+          } {
+            Fl_Input in_prefs_listlimit {
+              label {Show at most}
+              callback cb_prefs_listlimit
+              tooltip {The newest messages of a folder shown in the list. 0 shows them all; a large folder then takes longer to open.} xywh {122 409 68 18} type Int labelsize 12 textsize 12
+            }
+          }
+          Fl_Box {} {
+            label {messages per folder (0: all of them)}
+            xywh {195 407 300 20} labelsize 12 align 20
+          }
+        }
       }
     }
     Fl_Group {} {

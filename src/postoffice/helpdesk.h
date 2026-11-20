@@ -343,6 +343,8 @@ extern Fl_Box *bx_prefs_style_curcol;
 extern Fl_Box *bx_prefs_style_elementname;
 extern void cb_prefs_style_update(Fl_Button*, void*);
 extern Fl_Button *bt_prefs_style_update;
+extern void cb_prefs_listlimit(Fl_Int_Input*, void*);
+extern Fl_Int_Input *in_prefs_listlimit;
 extern void cb_prefs_save(Fl_Button*, void*);
 extern Fl_Button *bt_prefs_save;
 extern void cb_prefs_apply(Fl_Button*, void*);

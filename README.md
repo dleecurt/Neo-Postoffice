@@ -165,8 +165,11 @@ in `imap.dat` in the mailbox's directory.
 
 Not yet (steps 3 to 6): reading a message, flagging it or deleting it
 here changes only the copy here, not the server; moving, copying to the
-server, IDLE and folder management come later. The message list shows
-at most the newest 1024 messages of a folder (as for every mailbox type).
+server, IDLE and folder management come later.
+
+The message list shows the newest 1024 messages of a folder, for every
+mailbox type; Config → Style → *Message list* changes that (0 shows them
+all, which makes a large folder slower to open).
 
 An IMAP4 mailbox from PostOffice 0.7, which has no encryption setting,
 uses STARTTLS on its old port rather than sending the password in the
@@ -459,6 +462,8 @@ See the git history for details. In summary:
 - The old IMAP4 client was removed (it could not work); a new one is
   being built on libetpan (step 1: connecting, logging in and folders;
   step 2: reading mail), and IMAP4 mailboxes keep their settings.
+- How many messages of a folder the list shows (1024 in PostOffice 0.7)
+  is a setting: Config → Style → *Message list*, 0 for all.
 - Folder filters made for a mailbox's folders now escape `*` and `?` in
   the folder name, so a folder called `Lists*` no longer takes the
   messages of `Lists2`.
@@ -513,8 +518,6 @@ See the git history for details. In summary:
 Found while modernizing and left for later:
 
 - NNTP has no TLS support.
-- The message list shows at most the newest 1024 messages of a folder
-  (a limit kept from PostOffice 0.7, to keep the window responsive).
 - The built-in SMTP client and IMAP do not support OAuth2 logins.
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.
