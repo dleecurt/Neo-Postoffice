@@ -172,9 +172,11 @@ rclError EditorEngine::SaveTo(char *buffer)
 	char softbuffer[10];
 	LastResult = NOERROR;
 
-	if(CharCount && buffer)		// if nothing in it, don't write anything...
+	// Neo-PostOffice: an empty editor gives an empty string, not an
+	// untouched buffer (the caller then read past its end).
+	if(buffer) buffer[0] = '\0';
+	if(CharCount && buffer)
 		{
-			buffer[0] = '\0';
 			sprintf(softbuffer,"%c",SOFT_RETURN);
                         wString softreturn(softbuffer);
                         wString s;

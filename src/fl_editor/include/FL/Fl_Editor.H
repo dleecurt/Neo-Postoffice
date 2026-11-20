@@ -186,6 +186,9 @@ public:
 	void LoadFrom(const char *buffer) { engine->LoadFrom(buffer); ShowCursor(CURSOR_UNHIDE); SyncDisplay(); }
 	void SaveTo(char *buffer) { engine->SaveTo(buffer); }
 	long CharacterCount() { return engine->GetCharacterCount(); }
+	// Neo-PostOffice: the most bytes SaveTo(char *) writes, with the
+	// closing NUL (a line without a line end gets one).
+	long SaveSize() { return engine->GetCharacterCount() + engine->GetLineCount() + 1; }
 	void Clear() { engine->Clear(); redraw(); }
 	bool changed() const { return engine->Changed(); }
 	bool readonly() const { return Readonly; }

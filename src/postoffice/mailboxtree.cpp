@@ -4,7 +4,7 @@
 #include "helpdesk.h"
 #include "encode.h"
 #include "wordlist.h"
-#include "smtp.h"
+#include "wordlist.h"
 #include "buffer.h"
 #include "formatter.h"
 #include "mailbox.h"

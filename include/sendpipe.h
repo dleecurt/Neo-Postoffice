@@ -12,6 +12,9 @@ bool send_message_pipe (const char *program, WordList *HdrNames, WordList *HdrVa
 						const char *mailfrom, WordList *Recipients, const char *body,
 						std::string &err);
 
+// The message as headers, an empty line and the body, with \n line ends.
+std::string build_message (WordList *HdrNames, WordList *HdrValues, const char *body);
+
 // Runs a mailbox's fetch command (getmail, fetchmail...) with /bin/sh -c,
 // stopping it after five minutes. Returns false with the reason and the
 // last lines of its output in err if it failed.

@@ -173,7 +173,7 @@ set(PO_BACKEND_SOURCES
   nntphandler.cpp sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   imap4handler.cpp outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
-  reg.cpp scheduler.cpp semaphore.cpp smtp.cpp status.cpp storagelist.cpp
+  reg.cpp scheduler.cpp semaphore.cpp smtpclient.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
   var2.cpp version.cpp wizard.cpp wordlist.cpp)
 

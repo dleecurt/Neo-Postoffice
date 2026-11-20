@@ -4,7 +4,7 @@
 #include "helpdesk.h"
 #include "encode.h"
 #include "wordlist.h"
-#include "smtp.h"
+#include "wordlist.h"
 #include "buffer.h"
 #include "formatter.h"
 #include "mailbox.h"
@@ -481,7 +481,8 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	if (!pers_from) pers_from = "Localhost";
 	if (!pers_email) pers_email = "root@localhost";
    
-	char *body = new char[W->in_message->CharacterCount()+512+strlen (sig)]; // Allocate adequate space for the edit buffer
+	// The edit buffer, the signature separator and the signature.
+	char *body = new char[W->in_message->SaveSize()+16+strlen (sig)];
 	W->in_message->SaveTo (body); // Store the edit buffer inside the body
 
 	strcat (body, "-- \n");

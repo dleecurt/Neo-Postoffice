@@ -38,6 +38,10 @@ void NetStream::Close (void)
 {
 	if (ssl)
 	{
+		// Tell the server the TLS session ends here (close_notify), without
+		// waiting for its answer. Not after a fatal TLS error.
+		if (fd >= 0 && SSL_is_init_finished (ssl) && !(SSL_get_shutdown (ssl) & SSL_SENT_SHUTDOWN))
+			SSL_shutdown (ssl);
 		SSL_free (ssl);
 		ssl = NULL;
 	}
@@ -226,6 +230,14 @@ bool NetStream::Fill (void)
 			}
 			if (e == SSL_ERROR_ZERO_RETURN || (e == SSL_ERROR_SYSCALL && ERR_peek_error () == 0))
 				return Fail ("the server closed the connection");
+#ifdef SSL_R_UNEXPECTED_EOF_WHILE_READING
+			// OpenSSL 3 reports a connection closed without TLS's goodbye so.
+			if (ERR_GET_REASON (ERR_peek_error ()) == SSL_R_UNEXPECTED_EOF_WHILE_READING)
+			{
+				ERR_clear_error ();
+				return Fail ("the server closed the connection");
+			}
+#endif
 			return Fail ("TLS error: " + ssl_errors ());
 		}
 		n = recv (fd, buf, sizeof (buf), 0);

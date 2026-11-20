@@ -41,7 +41,7 @@ static const int RUN_TIMEOUT = 300;	// seconds
 
 // The message as the program reads it: headers, an empty line, the body,
 // with plain \n line ends (sendmail and msmtp turn them into CRLF).
-static std::string build_message (WordList *HdrNames, WordList *HdrValues, const char *body)
+std::string build_message (WordList *HdrNames, WordList *HdrValues, const char *body)
 {
 	std::string out;
 	for (int i = 0; i < HdrNames->Count; ++i)

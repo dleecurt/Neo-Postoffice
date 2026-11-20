@@ -2288,8 +2288,58 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               }
             }
           }
+          Fl_Group gr_prefs_id_smtp {
+            label {Outgoing mail server (built-in SMTP client)} open
+            xywh {20 360 600 105} box ENGRAVED_BOX labelsize 12 align 5
+          } {
+            Fl_Button {} {
+              label Server
+              xywh {30 370 80 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Input in_prefs_id_smtphost {
+              callback cb_prefs_id_smtphost
+              tooltip {The mail server this identity sends through, for example smtp.example.org. Used when Config -> Network sends with the built-in SMTP client.} xywh {130 370 330 20} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label Port
+              xywh {470 370 40 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Input in_prefs_id_smtpport {
+              callback cb_prefs_id_smtpport
+              tooltip {Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.} xywh {515 370 90 20} type Int labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label Encryption
+              xywh {30 400 80 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Group {} {open
+              xywh {130 400 330 20} box BORDER_FRAME color 0
+            } {
+              Fl_Choice ch_prefs_id_smtpsec {
+                callback cb_prefs_id_smtpsec open
+                tooltip {TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrades the connection. Without encryption only for a server on your own network: the message and, later, the password would cross the network readable.} xywh {131 401 329 19} down_box BORDER_BOX labelsize 12 textsize 12
+              } {
+                MenuItem {} {
+                  label {TLS (port 465)}
+                  xywh {0 0 100 20} labelsize 12
+                }
+                MenuItem {} {
+                  label {STARTTLS (port 587)}
+                  xywh {0 0 100 20} labelsize 12
+                }
+                MenuItem {} {
+                  label {None (port 25, own network only)}
+                  xywh {0 0 100 20} labelsize 12
+                }
+              }
+            }
+            Fl_Box {} {
+              label {Certificates are checked against the system's CAs and Config -> Certificates.}
+              xywh {30 430 580 25} labelsize 11 align 20
+            }
+          }
           Fl_Input ed_prefs_edittexts {
-            xywh {20 245 600 155} type Multiline labelsize 12 align 5 textfont 4 textsize 12
+            xywh {20 245 600 90} type Multiline labelsize 12 align 5 textfont 4 textsize 12
             class Fl_Editor
           }
           Fl_Group {} {
@@ -2355,7 +2405,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         code0 {xloc(o, "network");}
       } {
         Fl_Group {} {open
-          xywh {20 45 600 210} box ENGRAVED_BOX color 51 align 5
+          xywh {20 45 600 180} box ENGRAVED_BOX color 51 align 5
         } {
           Fl_Group {} {open
             xywh {30 65 575 20}
@@ -2365,14 +2415,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               xywh {30 65 105 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Group {} {open
-              xywh {230 65 235 20} box BORDER_FRAME color 0
+              xywh {230 65 375 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_delivery {
                 callback cb_prefs_delivery open
-                tooltip {How outgoing mail is delivered. The system MTA and msmtp get the sender with -f and the recipients as arguments, and read the message from standard input.} xywh {231 66 234 19} down_box BORDER_BOX labelsize 12 textsize 12
+                tooltip {How outgoing mail is delivered. The built-in client sends to the mail server of the identity whose address is the sender (Config -> Identities). The system MTA and msmtp get the sender with -f and the recipients as arguments, and read the message from standard input.} xywh {231 66 374 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
                 MenuItem {} {
-                  label {Built-in SMTP client}
+                  label {Built-in SMTP client (server per identity)}
                   xywh {15 15 100 20} labelsize 12
                 }
                 MenuItem {} {
@@ -2389,52 +2439,39 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Group {} {open
             xywh {30 95 575 20}
           } {
-            Fl_Input in_prefs_smtpserver {
-              callback cb_prefs_smtpserver
-              tooltip {The mail server the built-in SMTP client sends to (port 25, no encryption or login): use localhost with a local MTA.} xywh {230 95 375 20} labelsize 12 when 1 textsize 12
-            }
-            Fl_Button {} {
-              label {SMTP Server}
-              xywh {30 95 105 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc(o, "smtp_server");}
-            }
-          }
-          Fl_Group {} {open
-            xywh {30 125 575 20}
-          } {
             Fl_Input in_prefs_sendprogram {
               callback cb_prefs_sendprogram
-              tooltip {The program that delivers the mail: /usr/sbin/sendmail for the system MTA, msmtp (found in PATH) for msmtp. msmtp uses the account whose from address is the sender's.} xywh {230 125 375 20} labelsize 12 when 1 textsize 12
+              tooltip {The program that delivers the mail: /usr/sbin/sendmail for the system MTA, msmtp (found in PATH) for msmtp. msmtp uses the account whose from address is the sender's.} xywh {230 95 375 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Program
-              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
+              xywh {30 95 105 20} box NO_BOX labelsize 12 align 20
             }
           }
           Fl_Group {} {open
-            xywh {30 185 575 20}
+            xywh {30 155 575 20}
           } {
             Fl_Input {} {
-              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
+              xywh {230 155 375 20} labelsize 12 textsize 12 deactivate
             }
             Fl_Button {} {
               label {MySQL Host}
-              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+              xywh {30 155 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
             }
           }
           Fl_Group {} {open
-            xywh {30 155 470 20}
+            xywh {30 125 470 20}
           } {
             Fl_Button {} {
               label {Directory Service}
-              xywh {30 155 105 20} box NO_BOX labelsize 12 align 20
+              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
               code0 {xloc(o, "directory_service");}
             }
             Fl_Group {} {open
-              xywh {230 155 235 20} box BORDER_FRAME color 0
+              xywh {230 125 235 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_directoryservice {open
-                xywh {231 156 234 19} down_box BORDER_BOX labelsize 12 textsize 12
+                xywh {231 126 234 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
                 MenuItem {} {
                   label {User Homedir}
@@ -2450,14 +2487,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
           Fl_Group {} {open
-            xywh {30 215 575 20}
+            xywh {30 185 575 20}
           } {
             Fl_Button {} {
               label {MySQL Database}
-              xywh {30 215 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
+              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
             }
             Fl_Input {} {
-              xywh {230 215 375 20} labelsize 12 textsize 12 deactivate
+              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
             }
           }
         }

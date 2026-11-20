@@ -421,7 +421,6 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	{
 		br_prefs_identities->add (LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (W->Get(i))->Get_char ("shortname"), &pixmap_identity, NULL );
 	}
-	in_prefs_smtpserver->value (LPREFERENCES.Get_char_tree ("postoffice/network/smtp"));
 	show_delivery ();
 	gr_identities_set->deactivate();
 	gr_mailboxes_set->deactivate();
@@ -1296,6 +1295,12 @@ void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 			in_prefs_id_email->value (PREFS_CURRENTIDENT->Get_char ("mailfrom"));
 			in_prefs_id_replyto->value (PREFS_CURRENTIDENT->Get_char ("replyto"));
 			in_prefs_id_org->value (PREFS_CURRENTIDENT->Get_char ("organization"));
+			in_prefs_id_smtphost->value (PREFS_CURRENTIDENT->Get_char ("smtp_host"));
+			in_prefs_id_smtpport->value (PREFS_CURRENTIDENT->Get_char ("smtp_port"));
+			{
+				const char *sec = PREFS_CURRENTIDENT->Get_char ("smtp_security");
+				ch_prefs_id_smtpsec->value (strcmp (sec, "starttls") == 0 ? 1 : strcmp (sec, "none") == 0 ? 2 : 0);
+			}
 			signature = PREFS_CURRENTIDENT->Get_char ("signature");
 			decsignature = decode_mysql (signature);
 			ed_prefs_edittexts->Clear();
@@ -1379,6 +1384,26 @@ void cb_prefs_identity_del (Fl_Button */*b*/, void */*v*/)
 	}
 }
 
+// The identity's outgoing mail server (Neo-PostOffice). An empty
+// encryption setting means TLS.
+static void identity_smtp_changed (void)
+{
+	static const char *security[] = { "tls", "starttls", "none" };
+	if (!PREFS_CURRENTIDENT) return;
+	std::string host = in_prefs_id_smtphost->value ();
+	// No spaces around a pasted name.
+	while (!host.empty () && isspace ((unsigned char) host.back ())) host.pop_back ();
+	while (!host.empty () && isspace ((unsigned char) host[0])) host.erase (0, 1);
+	PREFS_CURRENTIDENT->Set_char ("smtp_host", (char *) host.c_str ());
+	PREFS_CURRENTIDENT->Set_char ("smtp_port", (char *) in_prefs_id_smtpport->value ());
+	int v = ch_prefs_id_smtpsec->value ();
+	PREFS_CURRENTIDENT->Set_char ("smtp_security", (char *) security[v >= 0 && v <= 2 ? v : 0]);
+}
+
+void cb_prefs_id_smtphost (Fl_Input *, void *) { identity_smtp_changed (); }
+void cb_prefs_id_smtpport (Fl_Int_Input *, void *) { identity_smtp_changed (); }
+void cb_prefs_id_smtpsec (Fl_Choice *, void *) { identity_smtp_changed (); }
+
 void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 {
 	if (PREFS_CURRENTIDENT)
@@ -1387,7 +1412,7 @@ void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 		PREFS_CURRENTIDENT->Set_char ("mailfrom", (char *) in_prefs_id_email->value());
 		PREFS_CURRENTIDENT->Set_char ("replyto", (char *) in_prefs_id_replyto->value());
 		PREFS_CURRENTIDENT->Set_char ("organization", (char *) in_prefs_id_org->value());
-		char *decsignature = new char [ed_prefs_edittexts->CharacterCount()+2];
+		char *decsignature = new char [ed_prefs_edittexts->SaveSize()];
 		ed_prefs_edittexts->SaveTo (decsignature);
 		char *signature = encode_mysql (decsignature);
 		PREFS_CURRENTIDENT->Set_char ("signature", signature);
@@ -1416,13 +1441,11 @@ void show_delivery (void)
 		const char *path = LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Get_char (key);
 		in_prefs_sendprogram->value (*path ? path : (strcmp (key, "msmtp_path") == 0 ? "msmtp" : "/usr/sbin/sendmail"));
 		in_prefs_sendprogram->activate ();
-		in_prefs_smtpserver->deactivate ();
 	}
 	else
 	{
 		in_prefs_sendprogram->value ("");
 		in_prefs_sendprogram->deactivate ();
-		in_prefs_smtpserver->activate ();
 	}
 }
 
@@ -1439,12 +1462,6 @@ void cb_prefs_sendprogram (Fl_Input *i, void */*v*/)
 {
 	if (const char *key = delivery_path_key ())
 		LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ((char *) key, (char *) i->value ());
-}
-
-void cb_prefs_smtpserver (Fl_Input */*w*/, void */*v*/)
-{
-	//in_prefs_smtpserver->value (LPREFERENCES.Get_char_tree ("postoffice/network/smtp"));
-	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ("smtp", (char *) in_prefs_smtpserver->value());
 }
 
 void cb_prefs_save (Fl_Button *b, void *v)

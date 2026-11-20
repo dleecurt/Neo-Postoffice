@@ -19,7 +19,7 @@
 #include <errno.h>
 #include <string.h>
 #include "strdupp.h"
-#include "smtp.h"
+#include "smtpclient.h"
 #include "sendpipe.h"
 #include "style.h"
 #include "debug.h"
@@ -33,9 +33,31 @@ extern JobList JOBQ;
 extern void extract_recipients (WordList *, char *);
 extern MailBox *MailBoxList[];
 
+// The identity whose sender address is mailfrom (Config -> Identities,
+// "Email From"), or NULL.
+static Var *identity_for (const char *mailfrom, std::string &name)
+{
+	Var *ids = PREFERENCES.Get_collection ("postoffice")->Get_collection ("identities");
+	WordList *W = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("identities");
+	for (int i = 0; i < W->Count; ++i)
+	{
+		Var *I = ids->Get_collection (W->Get (i));
+		char *addr = eaddr2addr (I->Get_char ("mailfrom"));
+		bool match = addr && strcasecmp (addr, mailfrom) == 0;
+		delete[] addr;
+		if (match)
+		{
+			name = I->Get_char ("shortname");
+			if (name.empty ()) name = W->Get (i);
+			return I;
+		}
+	}
+	return NULL;
+}
+
 // Sends one message the way Config -> Network says: the built-in SMTP
-// client (also when nothing is set), the system MTA or msmtp. Returns true
-// when it was handed over.
+// client (also when nothing is set) to the sender identity's mail server,
+// the system MTA, or msmtp. Returns true when it was handed over.
 static bool deliver_message (MailBox *Parent, const char *msgid, WordList *HeaderNames, WordList *HeaderValues,
 							 char *mailfrom, WordList *RCPT, char *body)
 {
@@ -51,15 +73,49 @@ static bool deliver_message (MailBox *Parent, const char *msgid, WordList *Heade
 		program = PREFERENCES.Get_char_tree ("postoffice/network/msmtp_path");
 		if (!*program) program = "msmtp";
 	}
-	if (!program) return !send_message_smtp (HeaderNames, HeaderValues, mailfrom, RCPT, body);
+
+	std::string err;
+	bool ok = false;
+	if (program) ok = send_message_pipe (program, HeaderNames, HeaderValues, mailfrom, RCPT, body, err);
+	else
+	{
+		std::string idname;
+		Var *I = identity_for (mailfrom, idname);
+		if (!I)
+			err = std::string ("no identity has the sender address ") + mailfrom + ", so there is no mail server"
+				  " to send it to. Set one up in Config \xe2\x86\x92 Identities.";
+		else if (!*I->Get_char ("smtp_host"))
+			err = "the identity " + idname + " has no outgoing mail server. Set one in Config \xe2\x86\x92"
+				  " Identities \xe2\x86\x92 Outgoing mail server.";
+		else
+		{
+			SmtpServer srv;
+			srv.Host = I->Get_char ("smtp_host");
+			srv.Port = atoi (I->Get_char ("smtp_port"));
+			srv.Security = I->Get_char ("smtp_security");
+			std::vector<std::string> rcpts;
+			for (int i = 0; i < RCPT->Count; ++i) rcpts.push_back (RCPT->Get (i));
+			int jid = JOBQ.NewJob ("OutBox");
+			SmtpResult res = smtp_send (srv, mailfrom, rcpts, build_message (HeaderNames, HeaderValues, body),
+				[&](const std::string &s)
+				{
+					JOBQ.Stat (jid, (char *) s.c_str ());
+					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+				},
+				[Parent]() { return Parent->ToCollector->UrgentPending != 0; });
+			JOBQ.EndJob (jid);
+			ok = res.Sent;
+			err = res.Error;
+		}
+	}
 
 	// The message stays in the outbox when it fails; the reason is shown
 	// once per message and reason, not at every check.
 	static std::set<std::string> reported;
-	std::string err;
-	if (send_message_pipe (program, HeaderNames, HeaderValues, mailfrom, RCPT, body, err))
+	if (ok)
 	{
-		reported.erase (msgid);
+		for (auto it = reported.begin (); it != reported.end ();)
+			it = it->compare (0, strlen (msgid) + 1, std::string (msgid) + "\n") == 0 ? reported.erase (it) : std::next (it);
 		return true;
 	}
 	std::string key = std::string (msgid) + "\n" + err;

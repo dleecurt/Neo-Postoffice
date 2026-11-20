@@ -173,9 +173,12 @@ Config → Network → *Send mail with* chooses how they are delivered:
   `~/.msmtprc`. msmtp uses the account whose `from` is the message's
   sender, or its default account, so one account per identity just
   works.
-- **Built-in SMTP client**: the original client. It speaks plain SMTP on
-  port 25 without encryption or login, so it is only useful with a mail
-  server on your own machine or network (`localhost`).
+- **Built-in SMTP client (server per identity)**: Neo-PostOffice sends
+  the message itself to the mail server of the identity whose *Email
+  From* address is the sender (Config → Identities → *Outgoing mail
+  server*). See below. It is being built in steps: **logging in to the
+  server is not there yet** (step 3), so for now it works with servers
+  that take mail from you without a login, such as your own.
 
 For the first two, *Program* is the program to run (another path, or
 `~/bin/...`, can be given). It is run as
@@ -185,6 +188,31 @@ removed. If the program fails, the message stays in the outbox, its
 error (for example msmtp's) is shown once, and it is tried again at the
 next round. Settings made before this option existed keep using the
 built-in client until changed.
+
+### The built-in SMTP client
+
+Each identity has its own server: *Server*, *Port* (empty: 465 for TLS,
+587 for STARTTLS, 25 without encryption) and *Encryption*:
+
+- **TLS (port 465)**, the default: encrypted from the first byte
+  (RFC 8314).
+- **STARTTLS (port 587)**: the connection is upgraded before anything
+  else is sent; a server that does not offer STARTTLS is refused, and so
+  is one that sends data along with its STARTTLS answer.
+- **None (port 25)**: only for a server on your own network.
+
+Certificates are checked as for POP3 and IMAP: the system's CAs, the
+certificate store (Config → Certificates) and the host name, with no way
+to skip the check. The client uses `EHLO` with this machine's full
+domain name (or its address), honours the server's `SIZE` limit, sends
+8-bit messages with `BODY=8BITMIME` and non-ASCII addresses with
+`SMTPUTF8` (and refuses to send them to a server without those), and
+escapes lines starting with a dot. The message is sent only if the
+server accepts every recipient; otherwise nothing is sent and the
+refused addresses are listed with the server's answer.
+
+A message whose sender matches no identity, or whose identity has no
+server, stays in the outbox with an explanation.
 
 Clicking a link runs the command in the preference
 `postoffice/gui/action/http`, with `$` replaced by the URL. The default
@@ -407,6 +435,11 @@ See the git history for details. In summary:
 - Settings that do not apply to a mailbox type (collection method,
   expiry on the server) are greyed out. Fixed-size `sprintf` calls were
   replaced by `snprintf`.
+- A new built-in SMTP client (TLS, STARTTLS, SIZE, 8BITMIME, SMTPUTF8,
+  dot-escaping, every recipient checked) with a server per identity; the
+  old one could cut a message short at a line holding a single dot and
+  spoke only plain SMTP on port 25. Sending a message with an empty body
+  no longer reads past the end of a buffer.
 - A certificate store for local CAs (Config → Certificates), trusted by
   every TLS connection on top of the system's CAs. The file requester
   takes a full path typed as the file name.
@@ -420,8 +453,8 @@ See the git history for details. In summary:
 
 Found while modernizing and left for later:
 
-- NNTP and the built-in SMTP client have no TLS support (send through
-  the system MTA or msmtp instead).
+- NNTP has no TLS support.
+- The built-in SMTP client cannot log in yet (step 3 of 5).
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.
 - SQL mailbox: messages cannot be moved between folders from the client.

@@ -5376,6 +5376,21 @@ Fl_Menu_Item menu_ch_prefs_id_box2[] = {
  {0,0,0,0,0,0,0,0,0}
 };
 
+Fl_Group *gr_prefs_id_smtp=(Fl_Group *)0;
+
+Fl_Input *in_prefs_id_smtphost=(Fl_Input *)0;
+
+Fl_Int_Input *in_prefs_id_smtpport=(Fl_Int_Input *)0;
+
+Fl_Choice *ch_prefs_id_smtpsec=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_prefs_id_smtpsec[] = {
+ {"TLS (port 465)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"STARTTLS (port 587)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"None (port 25, own network only)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0}
+};
+
 Fl_Editor *ed_prefs_edittexts=(Fl_Editor *)0;
 
 Fl_Choice *ch_prefs_edittext=(Fl_Choice *)0;
@@ -5404,13 +5419,11 @@ Fl_Group *gr_prefs_network=(Fl_Group *)0;
 Fl_Choice *ch_prefs_delivery=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_delivery[] = {
- {"Built-in SMTP client", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Built-in SMTP client (server per identity)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"System MTA (sendmail)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"msmtp", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
-
-Fl_Input *in_prefs_smtpserver=(Fl_Input *)0;
 
 Fl_Input *in_prefs_sendprogram=(Fl_Input *)0;
 
@@ -6612,7 +6625,64 @@ Fl_Window* make_prefs_window() {
             } // Fl_Group* o
             o->end();
           } // Fl_Group* o
-          { ed_prefs_edittexts = new Fl_Editor(20, 245, 600, 155);
+          { gr_prefs_id_smtp = new Fl_Group(20, 360, 600, 105, "Outgoing mail server (built-in SMTP client)");
+            gr_prefs_id_smtp->box(FL_ENGRAVED_BOX);
+            gr_prefs_id_smtp->labelsize(12);
+            gr_prefs_id_smtp->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+            { Fl_Button* o = new Fl_Button(30, 370, 80, 20, "Server");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            { in_prefs_id_smtphost = new Fl_Input(130, 370, 330, 20);
+              in_prefs_id_smtphost->tooltip("The mail server this identity sends through, for example smtp.example.org. Us"
+"ed when Config -> Network sends with the built-in SMTP client.");
+              in_prefs_id_smtphost->labelsize(12);
+              in_prefs_id_smtphost->textsize(12);
+              in_prefs_id_smtphost->callback((Fl_Callback*)cb_prefs_id_smtphost);
+              in_prefs_id_smtphost->when(FL_WHEN_CHANGED);
+            } // Fl_Input* in_prefs_id_smtphost
+            { Fl_Button* o = new Fl_Button(470, 370, 40, 20, "Port");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            { in_prefs_id_smtpport = new Fl_Int_Input(515, 370, 90, 20);
+              in_prefs_id_smtpport->tooltip("Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.");
+              in_prefs_id_smtpport->type(2);
+              in_prefs_id_smtpport->labelsize(12);
+              in_prefs_id_smtpport->textsize(12);
+              in_prefs_id_smtpport->callback((Fl_Callback*)cb_prefs_id_smtpport);
+              in_prefs_id_smtpport->when(FL_WHEN_CHANGED);
+            } // Fl_Int_Input* in_prefs_id_smtpport
+            { Fl_Button* o = new Fl_Button(30, 400, 80, 20, "Encryption");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            { Fl_Group* o = new Fl_Group(130, 400, 330, 20);
+              o->box(FL_BORDER_FRAME);
+              o->color(FL_FOREGROUND_COLOR);
+              { ch_prefs_id_smtpsec = new Fl_Choice(131, 401, 329, 19);
+                ch_prefs_id_smtpsec->tooltip("TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrade"
+"s the connection. Without encryption only for a server on your own network: th"
+"e message and, later, the password would cross the network readable.");
+                ch_prefs_id_smtpsec->down_box(FL_BORDER_BOX);
+                ch_prefs_id_smtpsec->labelsize(12);
+                ch_prefs_id_smtpsec->textsize(12);
+                ch_prefs_id_smtpsec->callback((Fl_Callback*)cb_prefs_id_smtpsec);
+                ch_prefs_id_smtpsec->menu(menu_ch_prefs_id_smtpsec);
+              } // Fl_Choice* ch_prefs_id_smtpsec
+              o->end();
+            } // Fl_Group* o
+            { Fl_Box* o = new Fl_Box(30, 430, 580, 25, "Certificates are checked against the system\'s CAs and Config -> Certificates"
+".");
+              o->labelsize(11);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Box* o
+            gr_prefs_id_smtp->end();
+          } // Fl_Group* gr_prefs_id_smtp
+          { ed_prefs_edittexts = new Fl_Editor(20, 245, 600, 90);
             ed_prefs_edittexts->type(4);
             ed_prefs_edittexts->box(FL_DOWN_BOX);
             ed_prefs_edittexts->color(FL_BACKGROUND2_COLOR);
@@ -6681,7 +6751,7 @@ Fl_Window* make_prefs_window() {
         gr_prefs_network->labelfont(1);
         gr_prefs_network->labelsize(12);
         gr_prefs_network->hide();
-        { Fl_Group* o = new Fl_Group(20, 45, 600, 210);
+        { Fl_Group* o = new Fl_Group(20, 45, 600, 180);
           o->box(FL_ENGRAVED_BOX);
           o->color((Fl_Color)51);
           o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
@@ -6691,12 +6761,14 @@ Fl_Window* make_prefs_window() {
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(230, 65, 235, 20);
+            { Fl_Group* o = new Fl_Group(230, 65, 375, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_delivery = new Fl_Choice(231, 66, 234, 19);
-                ch_prefs_delivery->tooltip("How outgoing mail is delivered. The system MTA and msmtp get the sender with "
-"-f and the recipients as arguments, and read the message from standard input.");
+              { ch_prefs_delivery = new Fl_Choice(231, 66, 374, 19);
+                ch_prefs_delivery->tooltip("How outgoing mail is delivered. The built-in client sends to the mail server "
+"of the identity whose address is the sender (Config -> Identities). The system"
+" MTA and msmtp get the sender with -f and the recipients as arguments, and rea"
+"d the message from standard input.");
                 ch_prefs_delivery->down_box(FL_BORDER_BOX);
                 ch_prefs_delivery->labelsize(12);
                 ch_prefs_delivery->textsize(12);
@@ -6708,24 +6780,7 @@ Fl_Window* make_prefs_window() {
             o->end();
           } // Fl_Group* o
           { Fl_Group* o = new Fl_Group(30, 95, 575, 20);
-            { in_prefs_smtpserver = new Fl_Input(230, 95, 375, 20);
-              in_prefs_smtpserver->tooltip("The mail server the built-in SMTP client sends to (port 25, no encryption or "
-"login): use localhost with a local MTA.");
-              in_prefs_smtpserver->labelsize(12);
-              in_prefs_smtpserver->textsize(12);
-              in_prefs_smtpserver->callback((Fl_Callback*)cb_prefs_smtpserver);
-              in_prefs_smtpserver->when(FL_WHEN_CHANGED);
-            } // Fl_Input* in_prefs_smtpserver
-            { Fl_Button* o = new Fl_Button(30, 95, 105, 20, "SMTP Server");
-              o->box(FL_NO_BOX);
-              o->labelsize(12);
-              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-              xloc(o, "smtp_server");
-            } // Fl_Button* o
-            o->end();
-          } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 125, 575, 20);
-            { in_prefs_sendprogram = new Fl_Input(230, 125, 375, 20);
+            { in_prefs_sendprogram = new Fl_Input(230, 95, 375, 20);
               in_prefs_sendprogram->tooltip("The program that delivers the mail: /usr/sbin/sendmail for the system MTA, ms"
 "mtp (found in PATH) for msmtp. msmtp uses the account whose from address is th"
 "e sender\'s.");
@@ -6734,20 +6789,20 @@ Fl_Window* make_prefs_window() {
               in_prefs_sendprogram->callback((Fl_Callback*)cb_prefs_sendprogram);
               in_prefs_sendprogram->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_sendprogram
-            { Fl_Button* o = new Fl_Button(30, 125, 105, 20, "Program");
+            { Fl_Button* o = new Fl_Button(30, 95, 105, 20, "Program");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 185, 575, 20);
-            { Fl_Input* o = new Fl_Input(230, 185, 375, 20);
+          { Fl_Group* o = new Fl_Group(30, 155, 575, 20);
+            { Fl_Input* o = new Fl_Input(230, 155, 375, 20);
               o->labelsize(12);
               o->textsize(12);
               o->deactivate();
             } // Fl_Input* o
-            { Fl_Button* o = new Fl_Button(30, 185, 120, 20, "MySQL Host");
+            { Fl_Button* o = new Fl_Button(30, 155, 120, 20, "MySQL Host");
               o->box(FL_NO_BOX);
               o->color((Fl_Color)48);
               o->labelsize(12);
@@ -6756,17 +6811,17 @@ Fl_Window* make_prefs_window() {
             } // Fl_Button* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 155, 470, 20);
-            { Fl_Button* o = new Fl_Button(30, 155, 105, 20, "Directory Service");
+          { Fl_Group* o = new Fl_Group(30, 125, 470, 20);
+            { Fl_Button* o = new Fl_Button(30, 125, 105, 20, "Directory Service");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               xloc(o, "directory_service");
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(230, 155, 235, 20);
+            { Fl_Group* o = new Fl_Group(230, 125, 235, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_directoryservice = new Fl_Choice(231, 156, 234, 19);
+              { ch_prefs_directoryservice = new Fl_Choice(231, 126, 234, 19);
                 ch_prefs_directoryservice->down_box(FL_BORDER_BOX);
                 ch_prefs_directoryservice->labelsize(12);
                 ch_prefs_directoryservice->textsize(12);
@@ -6782,15 +6837,15 @@ Fl_Window* make_prefs_window() {
             } // Fl_Group* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(30, 215, 575, 20);
-            { Fl_Button* o = new Fl_Button(30, 215, 120, 20, "MySQL Database");
+          { Fl_Group* o = new Fl_Group(30, 185, 575, 20);
+            { Fl_Button* o = new Fl_Button(30, 185, 120, 20, "MySQL Database");
               o->box(FL_NO_BOX);
               o->color((Fl_Color)48);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
               o->deactivate();
             } // Fl_Button* o
-            { Fl_Input* o = new Fl_Input(230, 215, 375, 20);
+            { Fl_Input* o = new Fl_Input(230, 185, 375, 20);
               o->labelsize(12);
               o->textsize(12);
               o->deactivate();
