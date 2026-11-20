@@ -74,7 +74,6 @@ char				 currentfrom[8][256];
 char				 currentlabel[8][256];
 char				 currentsubject[8][256];
 char				 currentreplyto[8][256];
-char				 currentfollowup[8][256];
 char				 currentmsgid[8][256];
 char				 currentreferences[8][2048];
 WordList			 currentmessage[8];
@@ -667,6 +666,50 @@ void ti_widthcheck (void */*x*/)
 	}
 }
 
+// Usenet (NNTP) support is gone: news mailboxes from PostOffice 0.7 are
+// removed from the settings (saved at once, so this is said only once),
+// and the user is told when the window is up. Their files are left.
+static std::string usenet_note;
+
+static void show_usenet_note (void *)
+{
+	fl_message ("%s", usenet_note.c_str ());
+}
+
+static void drop_usenet_mailboxes (void)
+{
+	Var *VBoxes = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes");
+	WordList *names = VBoxes->GatherNames ();
+	std::vector<std::string> gone, where;
+	for (int i = 0; i < names->Count; ++i)
+	{
+		Var *B = VBoxes->Get_collection (names->Get (i));
+		if (strcasecmp (B->Get_char ("protocol"), "nntp") != 0) continue;
+		gone.push_back (names->Get (i));
+		std::string dir = B->Get_char ("prefix");
+		if (dir.empty ()) dir = std::string (getenv ("HOME") ? getenv ("HOME") : "~") + "/.postoffice/" + names->Get (i) + ".box";
+		where.push_back (dir);
+	}
+	delete names;
+	if (gone.empty ()) return;
+	for (const std::string &n : gone) VBoxes->Delete ((char *) n.c_str ());
+	char path[512];
+	snprintf (path, sizeof (path), "%s/.postoffice/resource.rc", getenv ("HOME"));
+	PREFERENCES.Save (path);
+
+	usenet_note = "Usenet (NNTP) news is no longer supported, so ";
+	if (gone.size () == 1)
+		usenet_note += "the news mailbox \"" + gone[0] + "\" was removed from your settings.\n\n"
+					   "The articles it had saved are still in " + where[0] + ".";
+	else
+	{
+		usenet_note += "these news mailboxes were removed from your settings:\n";
+		for (size_t i = 0; i < gone.size (); ++i) usenet_note += "  " + gone[i] + "  (articles still in " + where[i] + ")\n";
+	}
+	Fl::add_timeout (1.0, show_usenet_note);
+}
+
+
 ITCPipe *PIPE;
 
 int __ARGC;
@@ -742,6 +785,8 @@ int main (int argc, char *argv[])
 
    	//br_message->column_widths (hdrwidths);
 	
+	drop_usenet_mailboxes ();
+
 	Var *VBoxes = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes");
 	WordList *MBoxes = VBoxes->GatherNames();
 
@@ -1042,13 +1087,6 @@ void cb_check_mail (Fl_Button */*m*/, void */*blah*/)
 {
 	if (currentmailbox) 
 	{
-		// A news mailbox checks one group: the selected folder.
-		if (!*currentfolder && strcasecmp (PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->
-										   Get_collection (currentmailbox->Name)->Get_char ("protocol"), "nntp") == 0)
-		{
-			fl_alert ("Select the newsgroup to check.");
-			return;
-		}
 		currentmailbox->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, currentfolder);
 		tree_clear_newmessages (currentmailbox);
 	}
@@ -1219,7 +1257,6 @@ void displaymessage (MailMessage *M)
 	currentmsgid[mdi_current][0] = 0;
 	currentmessage[mdi_current].Clear();
 	currentreferences[mdi_current][0] = 0;
-	currentfollowup[mdi_current][0] = 0;
 
 	// set message-id for current mdi window
 
@@ -1289,11 +1326,6 @@ void displaymessage (MailMessage *M)
 		else if (strcasecmp (nval, "Newsgroups") == 0)
 		{
 			addheader (locs("Newsgroups","Newsgroups"), xval);
-			if (strlen (currentfollowup[mdi_current]) == 0)
-			{
-				strncpy (currentfollowup[mdi_current], xval, 255);
-				currentfollowup[mdi_current][255] = 0;
-			}
 		}
 		else if (strcasecmp (nval, "Organization") == 0)
 		{
@@ -1308,8 +1340,6 @@ void displaymessage (MailMessage *M)
 		else if (strcasecmp (nval, "Followup-To") == 0)
 		{
 			addheader (locs("Followup-To","Followup-To"), xval);
-			strncpy (currentfollowup[mdi_current], xval, 255);
-			currentfollowup[mdi_current][255] = 0;
 		}
 		else if (strcasecmp (nval, "BCC") == 0)
 		{
@@ -1331,7 +1361,7 @@ void displaymessage (MailMessage *M)
 
 	// set the default reply options
 
-	if ((strlen (currentreplyto[mdi_current]) == 0) && (strlen (currentfollowup[mdi_current]) == 0))
+	if (strlen (currentreplyto[mdi_current]) == 0)
 		strcpy (currentreplyto[mdi_current], currentfrom[mdi_current]);
 
 	// find the relevant style info

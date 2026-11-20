@@ -13,7 +13,6 @@ int					 mdi_current = 0;
 extern char			 currentfrom[8][256];
 extern char			 currentsubject[8][256];
 extern char			 currentreplyto[8][256];
-extern char			 currentfollowup[8][256];
 extern char			 currentmsgid[8][256];
 extern char			 currentlabel[8][256];
 extern char			 currentreferences[8][2048];
@@ -29,7 +28,6 @@ void mdi_init (void)
 		currentfrom[i][0] = 0;
 		currentsubject[i][0] = 0;
 		currentreplyto[i][0] = 0;
-		currentfollowup[i][0] = 0;
 		currentmsgid[i][0] = 0;
 		currentreferences[i][0] = 0;
 		currentbodystart[i] = 0;
@@ -97,7 +95,6 @@ void mdi_move (int oldid, int newid)
 		memmove (currentfrom[newid], currentfrom[oldid], strlen (currentfrom[oldid]) + 1);
 		memmove (currentsubject[newid], currentsubject[oldid], strlen (currentsubject[oldid]) + 1);
 		memmove (currentreplyto[newid], currentreplyto[oldid], strlen (currentreplyto[oldid]) + 1);
-		memmove (currentfollowup[newid], currentfollowup[oldid], strlen (currentfollowup[oldid]) + 1);
 		memmove (currentmsgid[newid], currentmsgid[oldid], strlen (currentmsgid[oldid]) + 1);
 		memmove (currentreferences[newid], currentreferences[oldid], strlen (currentreferences[oldid]) + 1);
 	}

@@ -152,10 +152,6 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     {
         Handler = new SQLHandler (this, PREFROOT);
     }
-    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "nntp") == 0)
-    {
-        Handler = new NNTPHandler (this, PREFROOT);
-    }
     else if (strcasecmp (PREFROOT->Get_char ("protocol"), "maildir") == 0)
     {
         Handler = new MaildirHandler (this, PREFROOT);

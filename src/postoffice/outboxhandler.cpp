@@ -320,7 +320,7 @@ void OutBoxHandler::GetBody (char */*msgid*/)
 
 void OutBoxHandler::CheckGroup (const char */*groupname*/)
 {
-	int			 i,j;
+	int			 i;
 	MailMessage *M;
 	MailPart	*P;
 	char		*mailfrom;
@@ -465,61 +465,18 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 			}
 			else if (P)
 			{
-				int didit=0;
-				RCPT->Clear();
-				pos = HeaderNames->Find ("Newsgroups");
-				if (pos>=0)
-				{
-					WordList *TW = new WordList;
-					TW->MakeGeneric (HeaderValues->Get (pos), ',');
-					for (j=0;j<TW->Count;++j)
-					{
-						char *tmp = TW->Get(j);
-						chopwhitespace (tmp);
-						while (*tmp == ' ') ++tmp;
-						if (strlen (tmp)>0) RCPT->Add (tmp);
-					}
-					delete (TW);
-					dprintf ("newsfroups: %s\n", HeaderValues->Get (pos));
-					extract_recipients (RCPT, HeaderValues->Get (pos));
-					dprintf ("considering post, rcptcount=%i\n", RCPT->Count);
-					if (RCPT->Count)
-					{
-						char *xbox;
-						dprintf ("post-to: %i\n", HeaderNames->Find ("X-Post-To"));
-						pos = HeaderNames->Find ("X-Post-To");
-						if (pos>=0)
-						{
-							xbox = HeaderValues->Get (pos);
-							dprintf ("post-to: %s\n", xbox);
-							for (j=0;(MailBoxList[j] && (!didit));++j)
-							{
-								if (strcmp (MailBoxList[j]->Name, xbox) == 0)
-								{
-									dprintf ("foundbox, posting\n");
-									MailBoxList[j]->Handler->Lock.LockOnce();
-									if (MailBoxList[j]->Handler->PostMessage (RCPT, M))
-									{
-										dprintf ("posted\n");
-										Q->DoneWithMessage();
-										didit = 1;
-										sent = true;
-										Parent->UnTie (M);
-										Parent->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, Q->Name, M->MsgID);
-										--i;
-										if (Q->Next)
-										{
-											Q->Next->Associate (M);
-											Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, Q->Next->Name, M->MsgID);
-										}
-									}
-									MailBoxList[j]->Handler->Lock.UnlockOnce();
-								}
-							}
-						}
-					}
-				}
-				if (!didit) Q->DoneWithMessage();
+				// No recipient to send to (a Usenet article from PostOffice
+				// 0.7, whose news support is gone): to the Drafts.
+				std::string subject = M->Header ("Subject") ? M->Header ("Subject") : "";
+				Q->DoneWithMessage();
+				retries.erase (M->MsgID);
+				forget_reports (M->MsgID);
+				moved = true;
+				move_message (Parent, Q, drafts, M);
+				--i;
+				Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+					("The message \"" + subject + "\" has no recipients (To, CC or BCC) and was moved to"
+					 " OutBox \xe2\x86\x92 Drafts.").c_str ());
 			}
 			delete (RCPT);
 			delete (HeaderNames);
@@ -559,7 +516,3 @@ void OutBoxHandler::Expire (void)
 {
 }
 
-int OutBoxHandler::PostMessage (WordList */*rcpt*/, MailMessage */*m*/)
-{
-	return 0;
-}

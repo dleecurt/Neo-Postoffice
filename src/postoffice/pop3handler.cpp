@@ -624,7 +624,3 @@ void POP3Handler::Expire (void)
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
-int POP3Handler::PostMessage (WordList * /*r*/, MailMessage * /*m*/)
-{
-	return 0;	// POP3 only collects; mail is sent from the outbox
-}

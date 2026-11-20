@@ -746,6 +746,15 @@ static void run_url_action (const char *tmpl, const char *url)
 		waitpid (pid, NULL, 0); // returns quickly: the command runs in the background
 }
 
+// Opens a web address with the command set for links (Config; default
+// xdg-open), in the background.
+void open_url (const char *url)
+{
+	const char *cmd = PREFERENCES.Get_char_tree ("postoffice/gui/action/http");
+	if (!cmd || strlen (cmd) < 1) cmd = "xdg-open $";
+	run_url_action (cmd, url);
+}
+
 void HTWord::HandlePush (void)
 {
 	const char 	*action_config;

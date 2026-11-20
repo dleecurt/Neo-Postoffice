@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
   VERSION 0.8.0
-  DESCRIPTION "X11 mail and Usenet client, modernized from PostOffice 0.7.3"
+  DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 
 include(GNUInstallDirs)
@@ -170,7 +170,7 @@ set(PO_BACKEND_SOURCES
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
   localmailhandler.cpp mailhandler.cpp maildirhandler.cpp netstream.cpp certstore.cpp sendpipe.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
-  nntphandler.cpp sqlhandler.cpp
+  sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   imap4handler.cpp outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtpclient.cpp status.cpp storagelist.cpp

@@ -1988,46 +1988,6 @@ Fl_Input *compose_in_bcc=(Fl_Input *)0;
 
 Fl_Button *compose_bt_address4=(Fl_Button *)0;
 
-Fl_Group *gr_compose_groups=(Fl_Group *)0;
-
-Fl_Input *compose_in_groups=(Fl_Input *)0;
-
-Fl_Button *compose_bt_address3=(Fl_Button *)0;
-
-static const char *idata_leftjust[] = {
-"22 22 2 1",
-"# c #000000",
-". c None",
-"......................",
-"......................",
-"......................",
-"......................",
-"....##############....",
-"......................",
-"....############......",
-"......................",
-"....##########........",
-"......................",
-"....##############....",
-"......................",
-"....############......",
-"......................",
-"....##############....",
-"......................",
-"....#######...........",
-"......................",
-"......................",
-"......................",
-"......................",
-"......................"
-};
-static Fl_Image *image_leftjust() {
-  static Fl_Image *image = NULL;
-  if (!image)
-    image = new Fl_Pixmap(idata_leftjust);
-  return image;
-}
-
 Fl_Input *compose_in_subject=(Fl_Input *)0;
 
 Fl_Button *compose_bt_resizeheader=(Fl_Button *)0;
@@ -2213,35 +2173,6 @@ Fl_Window* make_compose_window() {
           } // Fl_Group* o
           gr_compose_bcc->end();
         } // Fl_Group* gr_compose_bcc
-        { gr_compose_groups = new Fl_Group(125, 45, 405, 20);
-          gr_compose_groups->hide();
-          { Fl_Input* o = compose_in_groups = new Fl_Input(125, 45, 265, 20, "Newsgroups");
-            compose_in_groups->labelsize(12);
-            compose_in_groups->textsize(12);
-            Fl_Group::current()->resizable(compose_in_groups);
-            xloc(o, "newsgroups");
-          } // Fl_Input* compose_in_groups
-          { Fl_Group* o = new Fl_Group(395, 45, 30, 20);
-            o->box(FL_BORDER_BOX);
-            o->color(FL_FOREGROUND_COLOR);
-            { compose_bt_address3 = new Fl_Button(396, 46, 29, 19);
-              compose_bt_address3->image( image_leftjust() );
-              compose_bt_address3->callback((Fl_Callback*)cb_address);
-              compose_bt_address3->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
-            } // Fl_Button* compose_bt_address3
-            o->end();
-          } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(430, 45, 100, 20);
-            o->box(FL_BORDER_BOX);
-            o->color(FL_FOREGROUND_COLOR);
-            { Fl_Choice* o = new Fl_Choice(431, 46, 99, 19);
-              o->down_box(FL_BORDER_BOX);
-              o->textsize(12);
-            } // Fl_Choice* o
-            o->end();
-          } // Fl_Group* o
-          gr_compose_groups->end();
-        } // Fl_Group* gr_compose_groups
         { Fl_Input* o = compose_in_subject = new Fl_Input(125, 70, 405, 20, "Subject");
           compose_in_subject->labelsize(12);
           compose_in_subject->textsize(12);
@@ -5110,7 +5041,6 @@ Fl_Choice *ch_prefs_protocol=(Fl_Choice *)0;
 Fl_Menu_Item menu_ch_prefs_protocol[] = {
  {"SQL mailbox (PostgreSQL)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"POP3 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"NNTP/Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"IMAP4 Account", 0,  0, 0, 16, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Maildir", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -5156,14 +5086,6 @@ Fl_Input *in_prefs_protocol_pop3_passcmd=(Fl_Input *)0;
 Fl_Input *in_prefs_protocol_pop3_cafile=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_imap4=(Fl_Group *)0;
-
-Fl_Group *gr_prefs_protocol_nntp=(Fl_Group *)0;
-
-Fl_Input *in_prefs_protocol_nntp_host=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_nntp_user=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_nntp_pass=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_mbox=(Fl_Group *)0;
 
@@ -5365,7 +5287,6 @@ Fl_Choice *ch_prefs_id_box=(Fl_Choice *)0;
 Fl_Menu_Item menu_ch_prefs_id_box[] = {
  {"Common", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Personal", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"(none)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"(default)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
@@ -5376,7 +5297,6 @@ Fl_Choice *ch_prefs_id_box2=(Fl_Choice *)0;
 Fl_Menu_Item menu_ch_prefs_id_box2[] = {
  {"Common", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Personal", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Usenet", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"(none)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"(default)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
@@ -5856,12 +5776,9 @@ Fl_Window* make_prefs_window() {
                 xloc(o, "proto_pop3");
               }
               { Fl_Menu_Item* o = &menu_ch_prefs_protocol[2];
-                xloc(o, "proto_nntp");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[3];
                 xloc(o, "proto_mbox");
               }
-              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[4];
+              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[3];
                 xloc(o, "proto_imap4");
               }
               ch_prefs_protocol->menu(menu_ch_prefs_protocol);
@@ -6079,60 +5996,6 @@ Fl_Window* make_prefs_window() {
             } // Fl_Box* o
             gr_prefs_protocol_imap4->end();
           } // Fl_Group* gr_prefs_protocol_imap4
-          { gr_prefs_protocol_nntp = new Fl_Group(230, 75, 390, 160);
-            gr_prefs_protocol_nntp->box(FL_ENGRAVED_BOX);
-            gr_prefs_protocol_nntp->color((Fl_Color)51);
-            gr_prefs_protocol_nntp->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-            gr_prefs_protocol_nntp->hide();
-            { Fl_Group* o = new Fl_Group(235, 85, 370, 20);
-              { in_prefs_protocol_nntp_host = new Fl_Input(375, 85, 230, 20);
-                in_prefs_protocol_nntp_host->labelsize(12);
-                in_prefs_protocol_nntp_host->textsize(12);
-                in_prefs_protocol_nntp_host->callback((Fl_Callback*)cb_prefs_protocol_nntp);
-                in_prefs_protocol_nntp_host->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_nntp_host
-              { Fl_Button* o = new Fl_Button(240, 85, 80, 20, "NNTP Host");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "nntp_host");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 115, 365, 20);
-              { in_prefs_protocol_nntp_user = new Fl_Input(375, 115, 230, 20);
-                in_prefs_protocol_nntp_user->labelsize(12);
-                in_prefs_protocol_nntp_user->textsize(12);
-                in_prefs_protocol_nntp_user->callback((Fl_Callback*)cb_prefs_protocol_nntp);
-                in_prefs_protocol_nntp_user->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_nntp_user
-              { Fl_Button* o = new Fl_Button(240, 115, 75, 20, "Username");
-                o->box(FL_NO_BOX);
-                o->color((Fl_Color)48);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "username");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(240, 145, 365, 20);
-              { in_prefs_protocol_nntp_pass = new Fl_Input(375, 145, 230, 20);
-                in_prefs_protocol_nntp_pass->type(5);
-                in_prefs_protocol_nntp_pass->labelsize(12);
-                in_prefs_protocol_nntp_pass->textsize(12);
-                in_prefs_protocol_nntp_pass->callback((Fl_Callback*)cb_prefs_protocol_nntp);
-                in_prefs_protocol_nntp_pass->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_nntp_pass
-              { Fl_Button* o = new Fl_Button(240, 145, 75, 20, "Password");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "password");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            gr_prefs_protocol_nntp->end();
-          } // Fl_Group* gr_prefs_protocol_nntp
           { gr_prefs_protocol_mbox = new Fl_Group(210, 75, 410, 160);
             gr_prefs_protocol_mbox->box(FL_ENGRAVED_BOX);
             gr_prefs_protocol_mbox->color((Fl_Color)51);
@@ -8493,8 +8356,6 @@ Fl_Group *gr_wiz04=(Fl_Group *)0;
 
 Fl_Group *gr_wiz05=(Fl_Group *)0;
 
-Fl_Group *gr_wiz06=(Fl_Group *)0;
-
 Fl_Button *bt_wiz_next=(Fl_Button *)0;
 
 Fl_Button *bt_wiz_prev=(Fl_Button *)0;
@@ -8656,50 +8517,6 @@ Fl_Window* make_wizard() {
           gr_wiz05->box(FL_THIN_DOWN_BOX);
           gr_wiz05->color(FL_LIGHT1);
           gr_wiz05->hide();
-          { Fl_Input* o = new Fl_Input(413, 30, 230, 20, "NNTP Server");
-            o->labelfont(1);
-            o->labelsize(12);
-            o->textsize(12);
-            o->callback((Fl_Callback*)cb_wiz_data, (void*)("postoffice/mailboxes/Usenet/host"));
-            o->when(FL_WHEN_CHANGED);
-          } // Fl_Input* o
-          { Fl_Input* o = new Fl_Input(413, 55, 100, 20, "Username");
-            o->labelfont(1);
-            o->labelsize(12);
-            o->textsize(12);
-            o->callback((Fl_Callback*)cb_wiz_data, (void*)("postoffice/mailboxes/Usenet/user"));
-            o->when(FL_WHEN_CHANGED);
-          } // Fl_Input* o
-          { Fl_Input* o = new Fl_Input(413, 80, 100, 20, "Password");
-            o->type(5);
-            o->labelfont(1);
-            o->labelsize(12);
-            o->textsize(12);
-            o->callback((Fl_Callback*)cb_wiz_data, (void*)("postoffice/mailboxes/Usenet/pass"));
-            o->when(FL_WHEN_CHANGED);
-          } // Fl_Input* o
-          { Fl_Box* o = new Fl_Box(283, 115, 360, 80, "This will set up your connection to the Usenet newsgroup facility. If you don"
-"\'t intend to read newsgroups, you can keep this all empty. If no username is "
-"filled in, no authentication will be used. If the password is left blank, you "
-"will be prompted for it upon connect.");
-            o->labelsize(12);
-            o->align(Fl_Align(133|FL_ALIGN_INSIDE));
-          } // Fl_Box* o
-          { Fl_Group* o = new Fl_Group(282, 291, 363, 27);
-            { Fl_Box* o = new Fl_Box(282, 291, 363, 15, "Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet");
-              o->labelsize(10);
-            } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(282, 303, 363, 15, "This program is available under the GNU General Public License");
-              o->labelsize(10);
-            } // Fl_Box* o
-            o->end();
-          } // Fl_Group* o
-          gr_wiz05->end();
-        } // Fl_Group* gr_wiz05
-        { gr_wiz06 = new Fl_Group(273, 20, 380, 307);
-          gr_wiz06->box(FL_THIN_DOWN_BOX);
-          gr_wiz06->color(FL_LIGHT1);
-          gr_wiz06->hide();
           { Fl_Box* o = new Fl_Box(283, 100, 360, 95, "These checkboxes will create a few convenient settings for the incoming mailb"
 "ox. Extra mailfolders and filters can be created to seperate incoming messages"
 " if they are related to mailinglists, or if they are bounces. Don\'t turn on a"
@@ -8756,8 +8573,8 @@ Fl_Window* make_wizard() {
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          gr_wiz06->end();
-        } // Fl_Group* gr_wiz06
+          gr_wiz05->end();
+        } // Fl_Group* gr_wiz05
         o->end();
       } // Fl_Group* o
       o->end();
@@ -10154,7 +9971,7 @@ Fl_Window* make_aboot() {
 Fl_Window *win_buildinfo=(Fl_Window *)0;
 
 Fl_Window* make_buildinfo() {
-  { win_buildinfo = new Fl_Window(498, 207, "Build Congiruration");
+  { win_buildinfo = new Fl_Window(498, 207, "Build Configuration");
     { Fl_Box* o = new Fl_Box(155, 10, 330, 20, "linux2.2-x86-glibc2.1-gnuegcs2.91");
       o->box(FL_THIN_DOWN_BOX);
       o->color((Fl_Color)51);
@@ -10221,56 +10038,4 @@ Fl_Window* make_buildinfo() {
     win_buildinfo->end();
   } // Fl_Window* win_buildinfo
   return win_buildinfo;
-}
-
-Fl_Window *win_grouplist=(Fl_Window *)0;
-
-Fl_Menu_Item menu_View[] = {
- {"All", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Unsubscribed", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Subscribed", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Window* make_activelist_window() {
-  { win_grouplist = new Fl_Window(494, 209, "Group Listing");
-    { Fl_Browser* o = new Fl_Browser(0, 55, 495, 155);
-      o->type(1);
-      o->labelsize(12);
-      o->textsize(12);
-    } // Fl_Browser* o
-    { Fl_Group* o = new Fl_Group(10, 5, 45, 45);
-      o->box(FL_BORDER_BOX);
-      o->color(FL_FOREGROUND_COLOR);
-      { Fl_Button* o = new Fl_Button(11, 6, 44, 44);
-        o->image( image_filer() );
-      } // Fl_Button* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Input* o = new Fl_Input(115, 5, 260, 20, "Filter");
-      o->labelsize(12);
-      o->textsize(12);
-    } // Fl_Input* o
-    { Fl_Group* o = new Fl_Group(380, 5, 100, 20);
-      o->box(FL_BORDER_BOX);
-      o->color(FL_FOREGROUND_COLOR);
-      { Fl_Button* o = new Fl_Button(381, 6, 99, 19, "Get from Server");
-        o->labelsize(12);
-      } // Fl_Button* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(115, 30, 120, 20);
-      o->box(FL_BORDER_BOX);
-      o->color(FL_FOREGROUND_COLOR);
-      { Fl_Choice* o = new Fl_Choice(116, 31, 119, 19, "View");
-        o->down_box(FL_BORDER_BOX);
-        o->labelsize(12);
-        o->textsize(12);
-        o->menu(menu_View);
-      } // Fl_Choice* o
-      o->end();
-    } // Fl_Group* o
-    win_grouplist->end();
-  } // Fl_Window* win_grouplist
-  return win_grouplist;
 }

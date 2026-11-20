@@ -1,7 +1,7 @@
 # Neo-PostOffice
 
-Neo-PostOffice is a modernized PostOffice, the X11 mail and Usenet client
-written in C++ by **Pim van Riezen** (Mad Science Labs, Rotterdam) in
+Neo-PostOffice is a modernized PostOffice, the X11 mail client (it also
+read Usenet news; that support has been removed) written in C++ by **Pim van Riezen** (Mad Science Labs, Rotterdam) in
 1999–2000. It is based on the PostOffice 0.7.3 source release, which is
 preserved unchanged in
 [dleecurt/postoffice](https://github.com/dleecurt/postoffice).
@@ -16,7 +16,7 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 ## Features
 
 - POP3 over TLS or STARTTLS, IMAP4 (with libetpan: push with IDLE,
-  flags, moves and folders on the server; see below), NNTP (Usenet), or a fetch command (getmail, fetchmail, mbsync)
+  flags, moves and folders on the server; see below), or a fetch command (getmail, fetchmail, mbsync)
   run before each check of a local mailbox; outgoing mail is queued in the
   outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
   client
@@ -78,7 +78,7 @@ at exit.
 ## Using it
 
 On first start a wizard asks for your name and e-mail address and,
-optionally, a POP3 and an NNTP server. Settings live in
+optionally, a POP3 server. Settings live in
 `~/.postoffice/resource.rc`. Remove or rename `~/.postoffice` to start
 over.
 
@@ -572,11 +572,29 @@ See the git history for details. In summary:
   it answers). The message is shown once the keys pause. The mailbox
   list keeps its selection when it is rebuilt more than once.
 
+## Reporting bugs
+
+Info → Build Configuration → **Bug Report** opens a new issue on
+[GitHub](https://github.com/dleecurt/Neo-Postoffice/issues) in your web
+browser, with the version details filled in (it uses the browser command
+set for links; a GitHub account is needed to send it). The old address,
+bugs@tarball.net, no longer exists.
+
+## Usenet (NNTP) removed
+
+Reading and posting Usenet news is gone: the NNTP mailbox type, its Config
+page, the wizard's news server page, the composer's Newsgroups field and
+the group list window. A news mailbox in settings from PostOffice 0.7 is
+removed at the next start, with a note saying where its saved articles
+remain (they are not deleted). A message in the outbox with no mail
+recipient goes to OutBox → Drafts with a note, and the composer no longer
+sends a message without To, CC or BCC. A *Newsgroups* header on received
+mail is still shown, and filters can still match it.
+
 ## Known issues and ideas
 
 Found while modernizing and left for later:
 
-- NNTP has no TLS support.
 - Settings (including folders added or removed by a check) are saved
   when you quit through File → Quit; if the program is killed instead,
   they are as at the last save, and the next check puts the folders
@@ -585,8 +603,6 @@ Found while modernizing and left for later:
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.
 - SQL mailbox: messages cannot be moved between folders from the client.
-- The tools in `src/postoffice/update.cpp` and `checkmail.cpp` are not
-  built; they contain the original author's database server and login.
 - Copies rebuilt from the local copy (when the source no longer has the
   original) flatten nested multiparts into one `multipart/mixed`.
 - `~MailMessage()` contains a store-on-destroy that never ran in the

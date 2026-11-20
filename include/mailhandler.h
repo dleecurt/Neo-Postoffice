@@ -34,8 +34,6 @@ public:
 	virtual bool			 KeepsConnection (void) { return false; }
 	bool					 UserCheck = false;	// this check was asked for (not scheduled)
 	virtual void			 Expire (void);
-	virtual int				 PostMessage (WordList *, MailMessage *);
-//	virtual WordList		*ServerGrouplist (void);
 	// The user opened a message whose body was already here (Neo-PostOffice).
 	virtual void			 MarkRead (char *) {}
 	// Mailboxes that keep flags and real folders (Maildir).
@@ -65,7 +63,6 @@ public:
 	// "subscriptions" takes "+name" / "-name" lines of server names.
 	virtual bool			 CanSubscribe (void) { return false; }
 
-	WordList				*GroupList (void);
 		
 	char					 ConnectionOpen;
 	Var						*Parameters;
@@ -88,7 +85,6 @@ public:
 	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
 	
 private:
 	NetStream				*Net;
@@ -303,8 +299,6 @@ public:
 	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
-//	WordList				*ServerGrouplist (void);
 	
 private:
 	
@@ -328,7 +322,6 @@ public:
 	void					 GetBody (char *);
 	void					 CheckGroup (const char *);
 	void					 Expire (void) {}
-	int						 PostMessage (WordList *, MailMessage *) { return 0; }
 	void					 MarkRead (char *);
 	bool					 KeepsFlags (void) { return true; }
 	bool					 CanMove (void) { return true; }
@@ -448,30 +441,6 @@ public:
 	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
-//	WordList				*ServerGrouplist (void);
-};
-
-class NNTPHandler : public MailHandler
-{
-public:
-							 NNTPHandler (MailBox *, Var *);
-							~NNTPHandler (void);
-	
-	void					 OpenConnection (void);
-	void					 CloseConnection (void);
-	void					 GetBody (char *);
-	void					 CheckGroup (const char *);
-	void					 DeleteMessage (char *);
-	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
-//	WordList				*ServerGrouplist (void);
-	
-private:
-	
-	Connection				*Con;
-	int						 CheckReply (int, char *, int, int alternative=1);
-	int						 CheckReply (int, int alternative=1);
 };
 
 class MBoxHandler : public MailHandler
@@ -486,7 +455,6 @@ public:
 	void					 CheckGroup (const char *);
 	void					 DeleteMessage (char *);
 	void					 Expire (void);
-	int						 PostMessage (WordList *, MailMessage *);
 	
 private:
 	

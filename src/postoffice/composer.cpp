@@ -50,7 +50,6 @@ extern int			 mdi_current;
 extern char			 currentfrom[8][256];
 extern char			 currentsubject[8][256];
 extern char			 currentreplyto[8][256];
-extern char			 currentfollowup[8][256];
 extern char			 currentmsgid[8][256];
 extern char			 currentreferences[8][2048];
 extern WordList		 currentmessage[8];
@@ -85,7 +84,6 @@ struct Composer_Window
 		Fl_Input			*in_to;
 		Fl_Input			*in_cc;
 		Fl_Input			*in_bcc;
-		Fl_Input			*in_groups;
 		Fl_Input			*in_subject;
 		
 		Fl_Choice			*ch_personality;
@@ -98,11 +96,9 @@ struct Composer_Window
 		Fl_Group			*gr_to;
 		Fl_Group			*gr_cc;
 		Fl_Group			*gr_bcc;
-		Fl_Group			*gr_groups;
 
 		char				 msgid[256];
 		char				*references;
-		char				 outbox[256];
 
 		// Neo-PostOffice: the message replied to or forwarded, so its
 		// mailbox can flag it (Maildir R / P) when this one is sent.
@@ -170,7 +166,6 @@ Composer_Window *create_composer_window (void)
 	W->in_to	  		= compose_in_to;
 	W->in_cc			= compose_in_cc;
 	W->in_bcc			= compose_in_bcc;
-	W->in_groups		= compose_in_groups;
 	W->in_subject		= compose_in_subject;
 	W->ch_personality	= compose_ch_personality;
 	W->gr_personality	= compose_gr_personality;
@@ -182,7 +177,6 @@ Composer_Window *create_composer_window (void)
 	W->gr_to			= gr_compose_to;
 	W->gr_cc			= gr_compose_cc;
 	W->gr_bcc			= gr_compose_bcc;
-	W->gr_groups		= gr_compose_groups;
 	
 	W->in_message->WantTabs (false);
 	
@@ -201,8 +195,6 @@ Composer_Window *create_composer_window (void)
 		cb_compose_menu_shrink (bt_compose_menu_shrink, W);
 	if (strcasecmp (PREFERENCES.Get_char_tree ("postoffice/state/composer/headers"), "full") == 0)
 		cb_compose_header_expand (compose_bt_resizeheader, W);
-	if (currentmailbox) strcpy (W->outbox, currentmailbox->Name);
-	else W->outbox[0] = 0;
 	
 	return W;
 }
@@ -215,37 +207,44 @@ void cb_compose (Fl_Menu_ */*m*/, void */*d*/)
 	W->references		= strdupp ("");
 }
 
+void open_url (const char *url);
+
+// Bug reports go to the project's GitHub issues: the browser opens a new
+// issue with the version details filled in.
 void cb_bugreport (Fl_Button */*b*/, void */*v*/)
 {
 	WordList WT;
-	AsyncBuffer *Msg = new AsyncBuffer (4096);
-
+	WT.MakeGeneric ((char *) _UNAME, '#');
 	win_buildinfo->hide();
 
-	Composer_Window *W = create_composer_window();
+	std::string body;
+	body += "### What happened\n\n\n\n";
+	body += "### How to make it happen again\n\n\n\n";
+	body += "### What you expected\n\n\n\n";
+	body += "### Version\n\n```\n";
+	body += std::string ("Version:      ") + _RELEASE + " build " + _BUILD + "\n";
+	body += std::string ("Architecture: ") + _ARCH + "\n";
+	body += std::string ("Kernel:       ") + (WT.Count ? WT.Get (0) : "") + "\n";
+	body += std::string ("Build info:   ") + _BUILDINFO + "\n";
+	body += "```\n";
 
-	Msg->AddF ("Product:        Post Office\n");
-	Msg->AddF ("Version:        %s\n", _RELEASE);
-	Msg->AddF ("Build:          %s\n", _BUILD);
-	Msg->AddF ("Architecture:   %s\n", _ARCH);
-	WT.MakeGeneric ((char *) _UNAME, '#');
-	Msg->AddF ("Kernel:         %s\n", WT.Get(0));
-	Msg->AddF ("Build Info:     %s\n", _BUILDINFO);
-	Msg->AddF ("\n");
-	Msg->AddF ("Please Fill in this information\n\n");
-	Msg->AddF ("### A short description of the problem...\n");
-	Msg->AddF ("\n <your info here>\n\n");
-	Msg->AddF ("### A way, if any, to reliably reproduce the problem\n");
-	Msg->AddF ("\n <...>\n\n");
-	Msg->AddF ("### What do you think is the cause?\n");
-	Msg->AddF ("\n <Solar flares,...>\n\n");
-	Msg->AddF ("### Got a patch?\n");
-	Msg->AddF ("\n <No I'm lazy>\n\n");
-	Msg->Add  ((unsigned char) 0);
-	W->in_to->value ("Pest Control <bugs@tarball.net>");
-	W->in_subject->value ("[Post Office] Bug Report");
-	W->in_message->LoadFrom ((char *) Msg->Data);
-	delete (Msg);
+	auto encode = [](const std::string &in)
+	{
+		static const char hex[] = "0123456789ABCDEF";
+		std::string out;
+		for (unsigned char c : in)
+		{
+			if (isalnum (c) || strchr ("-_.~", c)) out += (char) c;
+			else { out += '%'; out += hex[c >> 4]; out += hex[c & 15]; }
+		}
+		return out;
+	};
+	std::string url = "https://github.com/dleecurt/Neo-Postoffice/issues/new?title=" +
+					  encode ("Bug: ") + "&body=" + encode (body);
+	open_url (url.c_str ());
+	fl_message ("Your web browser opens a new bug report on GitHub, with the version\n"
+				"details filled in. A GitHub account is needed to send it.\n\n"
+				"If no browser opens: https://github.com/dleecurt/Neo-Postoffice/issues");
 }
 
 void cb_reply_m (Fl_Menu_ *w, void *d)
@@ -305,7 +304,6 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 	
 	W->in_subject->value (buf);
 	W->in_to->value (currentreplyto[mdi_current]);
-	W->in_groups->value (currentfollowup[mdi_current]);
 	
 	W->in_message->LoadFrom ((char *) quoted_body->Data);
 	delete (quoted_body);
@@ -379,7 +377,6 @@ void doforward (bool fullhdr)
 	
 	W->in_subject->value (buf);
 	W->in_to->value (currentreplyto[mdi_current]);
-	W->in_groups->value (currentfollowup[mdi_current]);
 	
 	W->in_message->LoadFrom ((char *) quoted_body->Data);
 	delete (quoted_body);
@@ -462,6 +459,14 @@ static std::string rfc5322_date (time_t t)
 
 void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 {
+	// Nothing to send to: say so, and keep the window open.
+	auto blank = [](const char *v) { for (; v && *v; ++v) if (!isspace ((unsigned char) *v)) return false; return true; };
+	if (blank (W->in_to->value()) && blank (W->in_cc->value()) && blank (W->in_bcc->value()))
+	{
+		fl_alert ("Enter at least one recipient (To, CC or BCC).");
+		return;
+	}
+
 	int i;
 	WordList *HdrNames;
 	WordList *HdrValues;
@@ -602,16 +607,6 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 		HdrValues->Add ((char *) W->in_to->value());
 	}
 
-	// If there are newsgroups filled in, figure out where to post it to
-	
-	if (strlen (W->in_groups->value()) > 0)
-	{
-		HdrNames->Add ((char *) "Newsgroups");
-		HdrValues->Add ((char *) W->in_groups->value());
-		HdrNames->Add ((char *) "X-Post-To");
-		HdrValues->Add ((char *) W->outbox);
-	}
-
 	
 	if (strlen (W->in_cc->value()) > 0)
 	{
@@ -739,9 +734,9 @@ static void composer_layout (Composer_Window *W, bool full)
 	int x = W->in_subject->x ();
 	int y = H->y () + top;
 
-	Fl_Widget *rows_full[] = { W->gr_personality, W->gr_to, W->gr_cc, W->gr_bcc, W->gr_groups, W->in_subject };
-	Fl_Widget *optional[] = { W->gr_personality, W->gr_cc, W->gr_bcc, W->gr_groups };
-	int n = full ? 6 : 2;
+	Fl_Widget *rows_full[] = { W->gr_personality, W->gr_to, W->gr_cc, W->gr_bcc, W->in_subject };
+	Fl_Widget *optional[] = { W->gr_personality, W->gr_cc, W->gr_bcc };
+	int n = full ? 5 : 2;
 
 	// The header area first, without FLTK moving its children (it would
 	// stretch the To row into the new height), then the rows.
@@ -904,9 +899,7 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 	W->in_to->value (M->Header ("To"));
 	W->in_cc->value (M->Header ("CC"));
 	W->in_bcc->value (M->Header ("BCC"));
-	W->in_groups->value (M->Header ("Newsgroups"));
 	W->in_subject->value (M->Header ("Subject"));
-	snprintf (W->outbox, sizeof (W->outbox), "%s", M->Header ("X-Post-To"));
 
 	// The identity whose address sent it.
 	char *from = eaddr2addr (M->Header ("From"));
@@ -947,6 +940,6 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 	else if (body.compare (0, 4, "-- \n") == 0) body.clear ();
 	W->in_message->LoadFrom ((char *) body.c_str ());
 
-	if (*M->Header ("CC") || *M->Header ("BCC") || *M->Header ("Newsgroups"))
+	if (*M->Header ("CC") || *M->Header ("BCC"))
 		cb_compose_header_expand (NULL, W);
 }

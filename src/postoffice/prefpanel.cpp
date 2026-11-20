@@ -123,6 +123,9 @@ PrefJournal JOURNAL;
 //extern Fl_Pixmap pixmap_radio_on;
 //extern Fl_Pixmap pixmap_radio_off;
 
+// The items of the protocol list (Config -> Mailboxes), in menu order.
+enum { PROTO_SQL = 0, PROTO_POP3, PROTO_MBOX, PROTO_IMAP4, PROTO_MAILDIR, PROTO_MH };
+
 //===============================================================================
 // FUNCTION		func_view_protocol
 // SYNOPSIS		Updates the display area for protocol-specific entries in the
@@ -189,7 +192,6 @@ void func_view_protocol (void)
 	
 	gr_prefs_protocol_sql->hide();
 	gr_prefs_protocol_pop3->hide();
-	gr_prefs_protocol_nntp->hide();
 	gr_prefs_protocol_mbox->hide();
 	gr_prefs_protocol_imap4->hide();
 	gr_prefs_protocol_maildir->hide();
@@ -197,12 +199,11 @@ void func_view_protocol (void)
 
 	switch (val)
 	{
-		case 0:
+		case PROTO_SQL:
 			gr_prefs_protocol_sql->show();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
-			gr_prefs_protocol_nntp->hide();
-			gr_prefs_protocol_imap4->hide();
+					gr_prefs_protocol_imap4->hide();
 			if (PREFS_CURRENTBOX)
 			{
 				PREFS_CURRENTBOX->Set_char ("protocol","sql");
@@ -215,12 +216,11 @@ void func_view_protocol (void)
 			}
 			break;
 
-		case 1:
+		case PROTO_POP3:
 			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->show();
 			gr_prefs_protocol_mbox->hide();
-			gr_prefs_protocol_nntp->hide();
-			gr_prefs_protocol_imap4->hide();
+					gr_prefs_protocol_imap4->hide();
 			if (PREFS_CURRENTBOX)
 			{
 				PREFS_CURRENTBOX->Set_char ("protocol","pop3");
@@ -229,26 +229,10 @@ void func_view_protocol (void)
 			server_fields_for (false);
 			break;
 
-		case 2:
+		case PROTO_MBOX:
 			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
-			gr_prefs_protocol_mbox->hide();
-			gr_prefs_protocol_nntp->show();
-			gr_prefs_protocol_imap4->hide();
-			if (PREFS_CURRENTBOX)
-			{
-				PREFS_CURRENTBOX->Set_char ("protocol","nntp");
-				in_prefs_protocol_nntp_host->value (PREFS_CURRENTBOX->Get_char ("host"));
-				in_prefs_protocol_nntp_user->value (PREFS_CURRENTBOX->Get_char ("user"));
-				in_prefs_protocol_nntp_pass->value (PREFS_CURRENTBOX->Get_char ("pass"));
-			}
-			break;
-
-		case 3:
-			gr_prefs_protocol_sql->hide();
-			gr_prefs_protocol_pop3->hide();
-			gr_prefs_protocol_nntp->hide();
-			gr_prefs_protocol_mbox->show();
+					gr_prefs_protocol_mbox->show();
 			gr_prefs_protocol_imap4->hide();
 			if (PREFS_CURRENTBOX)
 			{
@@ -265,12 +249,11 @@ void func_view_protocol (void)
 			}
 			break;
 			
-		case 4:
+		case PROTO_IMAP4:
 			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
-			gr_prefs_protocol_nntp->hide();
-#ifdef PO_HAVE_LIBETPAN
+		#ifdef PO_HAVE_LIBETPAN
 			gr_prefs_protocol_pop3->show();
 			if (PREFS_CURRENTBOX)
 			{
@@ -285,7 +268,7 @@ void func_view_protocol (void)
 #endif
 			break;
 
-		case 5:
+		case PROTO_MAILDIR:
 			gr_prefs_protocol_maildir->show();
 			if (PREFS_CURRENTBOX)
 			{
@@ -295,7 +278,7 @@ void func_view_protocol (void)
 			}
 			break;
 
-		case 6:
+		case PROTO_MH:
 			gr_prefs_protocol_mh->show();
 			if (PREFS_CURRENTBOX)
 			{
@@ -314,14 +297,14 @@ void func_view_protocol (void)
 		// Mailboxes kept in local files can have a command that fetches
 		// their mail; the collection method only applies to servers.
 		gr_prefs_idle_row->hide ();
-		if (val == 3 || val == 5 || val == 6)
+		if (val == PROTO_MBOX || val == PROTO_MAILDIR || val == PROTO_MH)
 		{
 			in_prefs_fetchcmd->value (PREFS_CURRENTBOX->Get_char ("fetchcmd"));
 			gr_prefs_collection_row->hide ();
 			gr_prefs_fetchcmd->show ();
 		}
 #ifdef PO_HAVE_LIBETPAN
-		else if (val == 4)
+		else if (val == PROTO_IMAP4)
 		{
 			// IMAP: bodies always come when opened; instead, push (IDLE),
 			// on unless set to "N".
@@ -337,10 +320,10 @@ void func_view_protocol (void)
 			gr_prefs_collection_row->show ();
 		}
 		// Settings that only apply to some protocols are greyed out for
-		// the others: the collection method to POP3 and NNTP, deleting
-		// from the server after some days to POP3.
-		if (val == 1 || val == 2) ch_prefs_collection->activate (); else ch_prefs_collection->deactivate ();
-		if (val == 1)
+		// the others: the collection method and deleting from the server
+		// after some days to POP3.
+		if (val == PROTO_POP3) ch_prefs_collection->activate (); else ch_prefs_collection->deactivate ();
+		if (val == PROTO_POP3)
 		{
 			in_prefs_expire_onserver_received->activate ();
 			in_prefs_expire_onserver_notreceived->activate ();
@@ -412,13 +395,13 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	{
 		make_prefs_window();
 		// Grey out database features this build does not have.
-		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[0].deactivate();
+		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[PROTO_SQL].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
 		// IMAP4: offered, or shown greyed out with the reason.
-		menu_ch_prefs_protocol[4].show();
+		menu_ch_prefs_protocol[PROTO_IMAP4].show();
 #ifndef PO_HAVE_LIBETPAN
-		menu_ch_prefs_protocol[4].label ("IMAP4 Account (built without libetpan)");
-		menu_ch_prefs_protocol[4].deactivate();
+		menu_ch_prefs_protocol[PROTO_IMAP4].label ("IMAP4 Account (built without libetpan)");
+		menu_ch_prefs_protocol[PROTO_IMAP4].deactivate();
 #endif
 	}
 	certs_refresh ();
@@ -528,36 +511,32 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		proto = PREFS_CURRENTBOX->Get_char ("protocol");
 		if (strcasecmp (proto, "sql") == 0 || strcasecmp (proto, "mysql") == 0)
 		{
-			ch_prefs_protocol->value (0);
+			ch_prefs_protocol->value (PROTO_SQL);
 		}
 		else if (strcasecmp (proto, "pop3") == 0)
 		{
-			ch_prefs_protocol->value (1);
-		}
-		else if (strcasecmp (proto, "nntp") == 0)
-		{
-			ch_prefs_protocol->value (2);
+			ch_prefs_protocol->value (PROTO_POP3);
 		}
 		else if (strcasecmp (proto, "mbox") == 0)
 		{
-			ch_prefs_protocol->value (3);
+			ch_prefs_protocol->value (PROTO_MBOX);
 		}
 		else if (strcasecmp (proto, "imap4") == 0)
 		{
-			ch_prefs_protocol->value (4);
+			ch_prefs_protocol->value (PROTO_IMAP4);
 		}
 		else if (strcasecmp (proto, "maildir") == 0)
 		{
-			ch_prefs_protocol->value (5);
+			ch_prefs_protocol->value (PROTO_MAILDIR);
 		}
 		else if (strcasecmp (proto, "mh") == 0)
 		{
-			ch_prefs_protocol->value (6);
+			ch_prefs_protocol->value (PROTO_MH);
 		}
 		else
 		{
 			// No or unknown protocol: POP3, as PostOffice 0.7 did.
-			ch_prefs_protocol->value(1);
+			ch_prefs_protocol->value (PROTO_POP3);
 		}
 		//ch_prefs_protocol->update();
 		func_view_protocol();
@@ -1110,18 +1089,6 @@ void cb_prefs_protocol_pop3_security (Fl_Choice *c, void */*v*/)
 	{
 		PREFS_MBOX_CHANGE=1;
 		PREFS_CURRENTBOX->Set_char ("security", (char *) values[c->value()]);
-		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
-	}
-}
-
-void cb_prefs_protocol_nntp (Fl_Input */*i*/, void */*v*/)
-{
-	if (PREFS_CURRENTBOX)
-	{
-		PREFS_MBOX_CHANGE=1;
-		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_nntp_host->value());
-		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_nntp_user->value());
-		PREFS_CURRENTBOX->Set_char ("pass", (char *) in_prefs_protocol_nntp_pass->value());
 		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
 	}
 }

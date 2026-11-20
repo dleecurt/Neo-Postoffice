@@ -9,6 +9,9 @@ extern Var PREFERENCES;
 int WIZARDRUNNING;
 int CURRENTGROUP;
 
+// Welcome, identity, autoconfig, POP3 mailbox, mailbox options.
+#define LASTPAGE 5
+
 void show_field (Fl_Group *);
 
 void start_wizard (void)
@@ -40,16 +43,6 @@ void start_wizard (void)
 		PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->
 					Delete ("Personal");
 	}
-	if (strlen (PREFERENCES.Get_char_tree ("postoffice/mailboxes/Usenet/host")))
-	{
-		PREFERENCES.Set_char_tree ("postoffice/mailboxes/Usenet/protocol","nntp");
-		PREFERENCES.Set_char_tree ("postoffice/mailboxes/Usenet/folders/alt.religion.kibology/filters","7,subs,accept,0,alt.religion.kibology");
-	}
-	else
-	{
-		PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->
-					Delete ("Usenet");
-	}
 	PREFERENCES.Set_char_tree ("postoffice/network/smtp","smtp");
 	// New setups send through the system's MTA (/usr/sbin/sendmail).
 	PREFERENCES.Set_char_tree ("postoffice/network/delivery","sendmail");
@@ -77,13 +70,12 @@ void show_field (Fl_Group *gr)
 	gr_wiz03->hide();
 	gr_wiz04->hide();
 	gr_wiz05->hide();
-	gr_wiz06->hide();
 	gr->show();
 }
 
 void cb_wiz_next (Fl_Button */*b*/, void */*d*/)
 {
-	if (CURRENTGROUP < 6)
+	if (CURRENTGROUP < LASTPAGE)
 	{
 		++CURRENTGROUP;
 		switch (CURRENTGROUP)
@@ -93,10 +85,9 @@ void cb_wiz_next (Fl_Button */*b*/, void */*d*/)
 			case 3: show_field (gr_wiz03); break;
 			case 4: show_field (gr_wiz04); break;
 			case 5: show_field (gr_wiz05); break;
-			case 6: show_field (gr_wiz06); break;
 		}
 		if (CURRENTGROUP==2) bt_wiz_prev->activate();
-		if (CURRENTGROUP==6)
+		if (CURRENTGROUP==LASTPAGE)
 		{
 			bt_wiz_next->deactivate();
 			bt_wiz_finish->activate();
@@ -117,9 +108,8 @@ void cb_wiz_prev (Fl_Button */*b*/, void */*d*/)
 			case 3: show_field (gr_wiz03); break;
 			case 4: show_field (gr_wiz04); break;
 			case 5: show_field (gr_wiz05); break;
-			case 6: show_field (gr_wiz06); break;
 		}
-		if (CURRENTGROUP==5)
+		if (CURRENTGROUP==LASTPAGE-1)
 		{
 			bt_wiz_next->activate();
 			bt_wiz_finish->deactivate();

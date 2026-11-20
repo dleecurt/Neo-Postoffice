@@ -351,7 +351,3 @@ void SQLHandler::Expire (void)
 {
 }
 
-int SQLHandler::PostMessage (WordList */*groups*/, MailMessage */*M*/)
-{
-	return 0;
-}

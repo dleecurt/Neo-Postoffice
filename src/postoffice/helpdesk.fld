@@ -1025,30 +1025,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
         }
-        Fl_Group gr_compose_groups {open
-          xywh {125 45 405 20} hide
-        } {
-          Fl_Input compose_in_groups {
-            label Newsgroups
-            xywh {125 45 265 20} labelsize 12 textsize 12 resizable
-            code0 {xloc(o, "newsgroups");}
-          }
-          Fl_Group {} {open
-            xywh {395 45 30 20} box BORDER_BOX color 0
-          } {
-            Fl_Button compose_bt_address3 {
-              callback cb_address
-              image {icons/leftjust.xpm} compress_image 1 xywh {396 46 29 19} align 16
-            }
-          }
-          Fl_Group {} {open
-            xywh {430 45 100 20} box BORDER_BOX color 0
-          } {
-            Fl_Choice {} {open
-              xywh {431 46 99 19} down_box BORDER_BOX textsize 12
-            } {}
-          }
-        }
         Fl_Input compose_in_subject {
           label Subject
           xywh {125 70 405 20} labelsize 12 textsize 12
@@ -1585,11 +1561,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 code0 {xloc(o, "proto_pop3");}
               }
               MenuItem {} {
-                label {NNTP/Usenet}
-                xywh {20 20 100 20} labelsize 12
-                code0 {xloc(o, "proto_nntp");}
-              }
-              MenuItem {} {
                 label {MBox File collection}
                 xywh {30 30 100 20} labelsize 12
                 code0 {xloc(o, "proto_mbox");}
@@ -1783,49 +1754,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             Fl_Box {} {
               label {This Neo-PostOffice was built without IMAP support: libetpan was not found when it was built. Install libetpan-dev (or the mail/libetpan port) and build again. This mailbox's settings are kept.}
               xywh {245 85 360 140} labelsize 12 align 149
-            }
-          }
-          Fl_Group gr_prefs_protocol_nntp {
-            xywh {230 75 390 160} box ENGRAVED_BOX color 51 align 5 hide
-          } {
-            Fl_Group {} {open
-              xywh {235 85 370 20}
-            } {
-              Fl_Input in_prefs_protocol_nntp_host {
-                callback cb_prefs_protocol_nntp
-                xywh {375 85 230 20} labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label {NNTP Host}
-                xywh {240 85 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "nntp_host");}
-              }
-            }
-            Fl_Group {} {open
-              xywh {240 115 365 20}
-            } {
-              Fl_Input in_prefs_protocol_nntp_user {
-                callback cb_prefs_protocol_nntp
-                xywh {375 115 230 20} labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label Username
-                xywh {240 115 75 20} box NO_BOX color 48 labelsize 12 align 20
-                code0 {xloc(o, "username");}
-              }
-            }
-            Fl_Group {} {open
-              xywh {240 145 365 20}
-            } {
-              Fl_Input in_prefs_protocol_nntp_pass {
-                callback cb_prefs_protocol_nntp
-                xywh {375 145 230 20} type Secret labelsize 12 when 1 textsize 12
-              }
-              Fl_Button {} {
-                label Password
-                xywh {240 145 75 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "password");}
-              }
             }
           }
           Fl_Group gr_prefs_protocol_mbox {open
@@ -2268,10 +2196,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                     xywh {10 10 100 20} labelsize 12
                   }
                   MenuItem {} {
-                    label Usenet
-                    xywh {10 10 100 20} labelsize 12
-                  }
-                  MenuItem {} {
                     label {(none)}
                     xywh {20 20 100 20} labelsize 12
                   }
@@ -2293,10 +2217,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   }
                   MenuItem {} {
                     label Personal
-                    xywh {20 20 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label Usenet
                     xywh {20 20 100 20} labelsize 12
                   }
                   MenuItem {} {
@@ -3240,44 +3160,6 @@ Function {make_wizard()} {} {
         Fl_Group gr_wiz05 {open
           xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
         } {
-          Fl_Input {} {
-            label {NNTP Server}
-            user_data {"postoffice/mailboxes/Usenet/host"}
-            callback cb_wiz_data
-            xywh {413 30 230 20} labelfont 1 labelsize 12 when 1 textsize 12
-          }
-          Fl_Input {} {
-            label Username
-            user_data {"postoffice/mailboxes/Usenet/user"}
-            callback cb_wiz_data
-            xywh {413 55 100 20} labelfont 1 labelsize 12 when 1 textsize 12
-          }
-          Fl_Input {} {
-            label Password
-            user_data {"postoffice/mailboxes/Usenet/pass"}
-            callback cb_wiz_data
-            xywh {413 80 100 20} type Secret labelfont 1 labelsize 12 when 1 textsize 12
-          }
-          Fl_Box {} {
-            label {This will set up your connection to the Usenet newsgroup facility. If you don't intend to read newsgroups, you can keep this all empty. If no username is filled in, no authentication will be used. If the password is left blank, you will be prompted for it upon connect.}
-            xywh {283 115 360 80} labelsize 12 align 149
-          }
-          Fl_Group {} {open
-            xywh {282 291 363 27}
-          } {
-            Fl_Box {} {
-              label {Copyright (C) 1999 Mad Science Labs / Vuurwerk Internet}
-              xywh {282 291 363 15} labelsize 10
-            }
-            Fl_Box {} {
-              label {This program is available under the GNU General Public License}
-              xywh {282 303 363 15} labelsize 10
-            }
-          }
-        }
-        Fl_Group gr_wiz06 {open
-          xywh {273 20 380 307} box THIN_DOWN_BOX color 50 hide
-        } {
           Fl_Box {} {
             label {These checkboxes will create a few convenient settings for the incoming mailbox. Extra mailfolders and filters can be created to seperate incoming messages if they are related to mailinglists, or if they are bounces. Don't turn on automatic mailchecking if you want to be able to run Post Office in offline mode.}
             xywh {283 100 360 95} labelsize 12 align 149
@@ -3416,7 +3298,7 @@ Function {make_aboot()} {} {
 
 Function {make_buildinfo()} {} {
   Fl_Window win_buildinfo {
-    label {Build Congiruration} open
+    label {Build Configuration} open
     xywh {469 281 498 207} type Single hide
   } {
     Fl_Box {} {
@@ -3476,58 +3358,6 @@ Function {make_buildinfo()} {} {
         label {Bug Report}
         callback cb_bugreport
         xywh {392 177 93 18} labelsize 12
-      }
-    }
-  }
-}
-
-Function {make_activelist_window()} {open
-} {
-  Fl_Window win_grouplist {
-    label {Group Listing} open selected
-    xywh {48 530 494 209} type Single hide
-  } {
-    Fl_Browser {} {
-      xywh {0 55 495 155} type Select labelsize 12 textsize 12
-    }
-    Fl_Group {} {open
-      xywh {10 5 45 45} box BORDER_BOX color 0
-    } {
-      Fl_Button {} {
-        image {icons/filer.xpm} compress_image 1 xywh {11 6 44 44}
-      }
-    }
-    Fl_Input {} {
-      label Filter
-      xywh {115 5 260 20} labelsize 12 textsize 12
-    }
-    Fl_Group {} {open
-      xywh {380 5 100 20} box BORDER_BOX color 0
-    } {
-      Fl_Button {} {
-        label {Get from Server}
-        xywh {381 6 99 19} labelsize 12
-      }
-    }
-    Fl_Group {} {open
-      xywh {115 30 120 20} box BORDER_BOX color 0
-    } {
-      Fl_Choice {} {
-        label View open
-        xywh {116 31 119 19} down_box BORDER_BOX labelsize 12 textsize 12
-      } {
-        MenuItem {} {
-          label All
-          xywh {0 0 100 20} labelsize 12
-        }
-        MenuItem {} {
-          label Unsubscribed
-          xywh {0 0 100 20} labelsize 12
-        }
-        MenuItem {} {
-          label Subscribed
-          xywh {0 0 100 20} labelsize 12
-        }
       }
     }
   }

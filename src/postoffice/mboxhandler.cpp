@@ -133,11 +133,6 @@ void MBoxHandler::Expire (void)
 {
 }
 
-int MBoxHandler::PostMessage (WordList */*groups*/, MailMessage */*M*/)
-{
-	return 0;
-}
-
 void MBoxHandler::Announce (MailMessage *M)
 {
 	for (int j=0; j<M->Subscribers->Count();++j)

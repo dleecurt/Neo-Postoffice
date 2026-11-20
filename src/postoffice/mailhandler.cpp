@@ -37,11 +37,6 @@ void MailHandler::Expire (void)
 {
 }
 
-int MailHandler::PostMessage (WordList * /*groups*/, MailMessage * /*m*/)
-{
-	return 0;
-}
-
 UnavailableHandler::UnavailableHandler (MailBox *_Parent, Var *_Parameters, const char *what)
 	: What (what), Told (false)
 {
