@@ -361,6 +361,8 @@ void cb_prefs_trash_local (Fl_Button *b, void *d)
 */
 // The most messages of a folder shown in the list (0: all). Unset: 1024, as
 // in PostOffice 0.7.
+static void fill_sentbox (void);
+
 int list_limit (Var *prefs)
 {
 	Var *gui = prefs->Get_collection ("postoffice")->Get_collection ("gui");
@@ -1327,6 +1329,7 @@ void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 				const char *sec = PREFS_CURRENTIDENT->Get_char ("smtp_security");
 				ch_prefs_id_smtpsec->value (strcmp (sec, "starttls") == 0 ? 1 : strcmp (sec, "none") == 0 ? 2 : 0);
 			}
+			fill_sentbox ();
 			signature = PREFS_CURRENTIDENT->Get_char ("signature");
 			decsignature = decode_mysql (signature);
 			ed_prefs_edittexts->Clear();
@@ -1408,6 +1411,39 @@ void cb_prefs_identity_del (Fl_Button */*b*/, void */*v*/)
 		}
 		br_prefs_identities->remove (vl);
 	}
+}
+
+// "Save sent mail to": nowhere, or one of the IMAP mailboxes (sent_imap).
+// Labels are set with replace(), so a "/" in a name is no submenu.
+static std::vector<std::string> sentbox_names;
+
+static void fill_sentbox (void)
+{
+	sentbox_names.assign (1, "");
+	ch_prefs_id_sentbox->clear ();
+	ch_prefs_id_sentbox->add ("x");
+	ch_prefs_id_sentbox->replace (0, "Nowhere (only here)");
+	WordList *W = LPREFERENCES.Get_collection ("postoffice")->Get_wordlist ("mailboxes");
+	for (int i = 0; W && i < W->Count; ++i)
+	{
+		Var *box = LPREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (W->Get (i));
+		if (strcasecmp (box->Get_char ("protocol"), "imap4") != 0) continue;
+		sentbox_names.push_back (W->Get (i));
+		ch_prefs_id_sentbox->add ("x");
+		ch_prefs_id_sentbox->replace ((int) sentbox_names.size () - 1, sentbox_names.back ().c_str ());
+	}
+	const char *cur = PREFS_CURRENTIDENT ? PREFS_CURRENTIDENT->Get_char ("sent_imap") : "";
+	int v = 0;
+	for (size_t i = 1; i < sentbox_names.size (); ++i) if (sentbox_names[i] == cur) v = (int) i;
+	// A mailbox that is gone or no longer IMAP shows as nowhere.
+	ch_prefs_id_sentbox->value (v);
+}
+
+void cb_prefs_id_sentbox (Fl_Choice *c, void *)
+{
+	if (!PREFS_CURRENTIDENT) return;
+	int v = c->value ();
+	PREFS_CURRENTIDENT->Set_char ("sent_imap", (char *) (v > 0 && v < (int) sentbox_names.size () ? sentbox_names[v].c_str () : ""));
 }
 
 // The identity's outgoing mail server (Neo-PostOffice). An empty

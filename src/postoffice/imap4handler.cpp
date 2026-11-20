@@ -27,6 +27,16 @@
 // check (and an unchanged folder costs one EXAMINE), without it all flags
 // of the folder.
 //
+// Changes on the server (step 4): Delete moves a message to the server's
+// Trash (found by its special-use flag or a usual name, made if missing);
+// in the Trash it removes it for good. A move to another folder of the
+// account is a UID MOVE (or UID COPY, \Deleted and an expunge on servers
+// without MOVE). Both are queued in imap.dat like flag changes. Messages
+// stored here from elsewhere (copies from other mailboxes, sent mail) come
+// from other threads: they are written to a spool directory first and sent
+// with APPEND by this mailbox's thread, so a move never loses a message and
+// the server may be away meanwhile.
+//
 // GNU LGPL like PostOffice itself.
 //===============================================================================
 
@@ -49,7 +59,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <dirent.h>
+#include <sys/stat.h>
+
 #include <algorithm>
+#include <atomic>
 #include <map>
 #include <set>
 #include <string>
@@ -304,6 +318,7 @@ void IMAP4Handler::EndSession (bool logout)
 	ConnectionOpen = 0;
 	Selected.clear ();
 	Broken = false;
+	SpecialCache.clear ();
 }
 
 void IMAP4Handler::OpenConnection (void)
@@ -526,6 +541,7 @@ bool IMAP4Handler::ListFolders (int jid)
 		// A name with a line break cannot be kept in imap.dat (nor typed).
 		if (strpbrk (mb->mb_name, "\r\n")) continue;
 		bool selectable = true;
+		std::string special;
 		if (mb->mb_flag)
 		{
 			if (mb->mb_flag->mbf_type == MAILIMAP_MBX_LIST_FLAGS_SFLAG &&
@@ -537,10 +553,15 @@ bool IMAP4Handler::ListFolders (int jid)
 				if (of && of->of_type == MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT && of->of_flag_ext &&
 					(strcasecmp (of->of_flag_ext, "NonExistent") == 0 || strcasecmp (of->of_flag_ext, "Noselect") == 0))
 					selectable = false;
+				for (const char *use : { "Trash", "Sent", "Drafts", "Junk", "Archive", "All" })
+					if (of && of->of_type == MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT && of->of_flag_ext &&
+						strcasecmp (of->of_flag_ext, use) == 0)
+						special = use;
 			}
 		}
 		if (!selectable) continue;
 		Folder f;
+		f.Special = special;
 		f.Server = mb->mb_name;
 		f.Delim = mb->mb_delimiter;
 		f.Client = ClientName (f.Server, f.Delim, Prefix);
@@ -691,6 +712,7 @@ void IMAP4Handler::LoadState (void)
 	StateLoaded = true;
 	State.clear ();
 	Pending.clear ();
+	Ops.clear ();
 	FILE *F = fopen (StateFile ().c_str (), "r");
 	if (!F) return;
 	std::string line, current;
@@ -734,6 +756,18 @@ void IMAP4Handler::LoadState (void)
 				if ((ch[k] == '+' || ch[k] == '-') && strchr ("SFRP", ch[k + 1]))
 					Pending[id][ch[k + 1]] = ch[k] == '+';
 		}
+		else if (line.compare (0, 2, "O ") == 0 && line.size () > 4 && strchr ("TXM", line[2]) && line[3] == ' ')
+		{
+			// "O kind <msgid> [target]": deletes and moves not yet sent.
+			size_t sp = line.find (' ', 4);
+			Op op;
+			op.Kind = line[2];
+			op.MsgID = line.substr (4, sp == std::string::npos ? std::string::npos : sp - 4);
+			if (sp != std::string::npos) op.Target = line.substr (sp + 1);
+			std::string hash;
+			uint32_t v, u;
+			if (SplitMsgID (op.MsgID.c_str (), hash, v, u) && (op.Kind != 'M' || !op.Target.empty ())) Ops.push_back (op);
+		}
 		else if (line.compare (0, 2, "U ") == 0 && havecurrent)
 		{
 			FolderState &st = State[current];
@@ -776,6 +810,8 @@ void IMAP4Handler::SaveState (void)
 		for (auto &f : p.second) { ch += f.second ? '+' : '-'; ch += f.first; }
 		if (!ch.empty ()) fprintf (F, "P %s %s\n", p.first.c_str (), ch.c_str ());
 	}
+	for (const Op &op : Ops)
+		fprintf (F, "O %c %s%s%s\n", op.Kind, op.MsgID.c_str (), op.Target.empty () ? "" : " ", op.Target.c_str ());
 	bool ok = fflush (F) == 0 && fsync (fileno (F)) == 0;
 	ok = (fclose (F) == 0) && ok;
 	if (!ok || rename (tmp.c_str (), path.c_str ()) != 0)
@@ -1387,17 +1423,23 @@ bool IMAP4Handler::PushPending (int jid)
 }
 
 // Sends queued changes now if the server can be reached; if not, they wait
-// for the next check (no error dialog: the check reports problems).
+// for the next check (no error dialog for that; refusals are shown).
 void IMAP4Handler::PushQuietly (void)
 {
 	SaveState ();
 	bool quiet = Quiet;
-	Quiet = true;
 	int jid = JOBQ.NewJob (Parent->Name);
-	if (Session (jid)) PushPending (jid);
+	// Quiet about not reaching the server only: what it refuses is shown.
+	Quiet = true;
+	bool up = Session (jid);
+	Quiet = quiet;
+	if (up)
+	{
+		if (Folders.empty ()) ListFolders (jid);
+		if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
+	}
 	if (Broken) EndSession (false);
 	JOBQ.EndJob (jid);
-	Quiet = quiet;
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
@@ -1429,6 +1471,438 @@ void IMAP4Handler::MarkRead (char *msgid)
 {
 	if (!Parent->Find (msgid)) return;
 	SetFlag (msgid, 'S', true);
+}
+
+//-------------------------------------------------------------------------------
+// Changes on the server (step 4)
+//-------------------------------------------------------------------------------
+
+// The folder with a special use ("Trash", "Sent"): the one the server
+// marks so (RFC 6154), else one with a usual name, else (create) a new one,
+// subscribed so that it shows. "" if there is none.
+std::string IMAP4Handler::SpecialFolder (const std::string &use, bool create)
+{
+	auto cached = SpecialCache.find (use);
+	if (cached != SpecialCache.end ()) return cached->second;
+	for (const Folder &f : Folders)
+		if (f.Special == use) return SpecialCache[use] = f.Server;
+
+	static const char *trash[] = { "Trash", "Deleted Items", "Deleted Messages", "Deleted", "[Gmail]/Trash",
+								   "[Google Mail]/Trash", NULL };
+	static const char *sent[] = { "Sent", "Sent Items", "Sent Messages", "Sent Mail", "[Gmail]/Sent Mail",
+								  "[Google Mail]/Sent Mail", NULL };
+	const char **names = use == "Trash" ? trash : use == "Sent" ? sent : NULL;
+
+	// All folders, subscribed or not: the flags, then the names.
+	struct Found { std::string Name, Special; };
+	std::vector<Found> all;
+	clist *list = NULL;
+	if (mailimap_list (Imap, "", "*", &list) == MAILIMAP_NO_ERROR)
+	{
+		for (clistiter *it = list ? clist_begin (list) : NULL; it; it = clist_next (it))
+		{
+			struct mailimap_mailbox_list *mb = (struct mailimap_mailbox_list *) clist_content (it);
+			if (!mb || !mb->mb_name || strpbrk (mb->mb_name, "\r\n")) continue;
+			Found f;
+			f.Name = mb->mb_name;
+			for (clistiter *o = mb->mb_flag && mb->mb_flag->mbf_oflags ? clist_begin (mb->mb_flag->mbf_oflags) : NULL; o;
+				 o = clist_next (o))
+			{
+				struct mailimap_mbx_list_oflag *of = (struct mailimap_mbx_list_oflag *) clist_content (o);
+				if (of && of->of_type == MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT && of->of_flag_ext) f.Special = of->of_flag_ext;
+			}
+			all.push_back (f);
+		}
+	}
+	if (list) mailimap_list_result_free (list);
+	if (Broken || !Net->IsOpen ()) { Broken = true; return ""; }
+
+	std::string found;
+	for (const Found &f : all)
+		if (strcasecmp (f.Special.c_str (), use.c_str ()) == 0) { found = f.Name; break; }
+	for (int k = 0; found.empty () && names && names[k]; ++k)
+		for (const Found &f : all)
+			if (strcasecmp (f.Name.c_str (), names[k]) == 0 || strcasecmp (f.Name.c_str (), (Prefix + names[k]).c_str ()) == 0)
+			{
+				found = f.Name;
+				break;
+			}
+	if (found.empty ())
+	{
+		if (!create) return "";
+		std::string name = Prefix + use;
+		int r = mailimap_create (Imap, name.c_str ());
+		if (r != MAILIMAP_NO_ERROR)
+		{
+			Failed (r, "Cannot create the " + use + " folder on " + Host);
+			return "";
+		}
+		found = name;
+	}
+	// Shown here like the subscribed folders.
+	bool listed = false;
+	for (const Folder &f : Folders) if (f.Server == found) listed = true;
+	if (!listed)
+	{
+		mailimap_subscribe (Imap, found.c_str ());
+		Folder f;
+		f.Server = found;
+		f.Delim = Folders.empty () ? '/' : Folders[0].Delim;
+		f.Client = ClientName (found, f.Delim, Prefix);
+		f.Special = use;
+		Folders.push_back (f);
+		if (Parent->EnsureFolder (f.Client))
+			Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	}
+	return SpecialCache[use] = found;
+}
+
+void IMAP4Handler::QueueOp (char kind, const char *msgid, const std::string &target)
+{
+	std::string hash;
+	uint32_t v, u;
+	if (!SplitMsgID (msgid, hash, v, u)) return;
+	Op op;
+	op.Kind = kind;
+	op.MsgID = msgid;
+	op.Target = target;
+	Ops.push_back (op);
+	Pending.erase (msgid);		// its flags go with it (a move keeps them on the server)
+}
+
+// Delete: to the Trash, or for good in the Trash. The window has removed
+// the message here already; others deleted at the same time go along.
+void IMAP4Handler::DeleteMessage (char *msgid)
+{
+	if (!StateLoaded) LoadState ();
+	QueueOp ('T', msgid, "");
+	ITCMessage *M;
+	while ((M = Parent->ToCollector->GetNextMessage (CLASS_DELETE)))
+	{
+		QueueOp ('T', M->Message->Get (0), "");
+		delete M;
+	}
+	PushQuietly ();
+}
+
+// Moved to another mailbox, which has it now: removed for good, not put in
+// the Trash.
+void IMAP4Handler::RemoveAfterTransfer (char *msgid)
+{
+	if (!StateLoaded) LoadState ();
+	QueueOp ('X', msgid, "");
+	PushQuietly ();
+}
+
+// A move to another folder of this account. The message leaves its folder
+// here when the server has moved it, and shows up in the other at the
+// check the window sends after the moves.
+void IMAP4Handler::MoveMessage (char *msgid, const char *folder)
+{
+	if (!StateLoaded) LoadState ();
+	auto target = [this](const char *client) -> std::string
+	{
+		for (const Folder &f : Folders) if (f.Client == client) return f.Server;
+		return "";
+	};
+	if (Folders.empty ())
+	{
+		// No check yet since the start: the folders are needed.
+		int jid = JOBQ.NewJob (Parent->Name);
+		if (Session (jid)) ListFolders (jid);
+		JOBQ.EndJob (jid);
+	}
+	std::string t = target (folder);
+	if (t.empty ()) Report (std::string ("There is no folder \"") + folder + "\" on " + Host + ".");
+	else QueueOp ('M', msgid, t);
+	ITCMessage *M;
+	while ((M = Parent->ToCollector->GetNextMessage (CLASS_MOVE)))
+	{
+		if (M->Message->Count >= 2)
+		{
+			std::string t2 = target (M->Message->Get (1));
+			if (!t2.empty ()) QueueOp ('M', M->Message->Get (0), t2);
+		}
+		delete M;
+	}
+	PushQuietly ();
+}
+
+// Marks messages of the selected folder \Deleted and removes them: with
+// UIDPLUS only those (UID EXPUNGE), else everything marked so (EXPUNGE).
+bool IMAP4Handler::RemoveUids (const std::string &server, const std::vector<uint32_t> &uids)
+{
+	struct mailimap_set *set = mailimap_set_new_empty ();
+	for (uint32_t u : uids) mailimap_set_add_single (set, u);
+	struct mailimap_flag_list *fl = mailimap_flag_list_new_empty ();
+	mailimap_flag_list_add (fl, mailimap_flag_new_deleted ());
+	struct mailimap_store_att_flags *att = mailimap_store_att_flags_new_add_flags_silent (fl);
+	int r = mailimap_uid_store (Imap, set, att);
+	mailimap_store_att_flags_free (att);
+	if (r == MAILIMAP_NO_ERROR)
+		r = Capability ("UIDPLUS") ? mailimap_uid_expunge (Imap, set) : mailimap_expunge (Imap);
+	mailimap_set_free (set);
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		std::string name = server;
+		for (const Folder &f : Folders) if (f.Server == server) name = f.Client;
+		return Failed (r, "Cannot remove messages from " + name + " on " + Host);
+	}
+	return true;
+}
+
+// Sends the queued deletes and moves, per folder and kind. A change the
+// server refuses is reported and given up; its messages come back here at
+// the next check.
+bool IMAP4Handler::PushOps (int jid)
+{
+	if (Ops.empty ()) return true;
+	std::vector<bool> done (Ops.size (), false);
+	// folder -> (kind, target) -> indexes into Ops
+	std::map<std::string, std::map<std::pair<char, std::string>, std::vector<size_t>>> work;
+	for (size_t i = 0; i < Ops.size (); ++i)
+	{
+		std::string hash, server;
+		uint32_t v, u;
+		if (SplitMsgID (Ops[i].MsgID.c_str (), hash, v, u)) server = ServerOf (hash);
+		// Gone or renumbered on the server meanwhile: nothing to do there.
+		if (server.empty () || State[server].Validity != v || !State[server].Uids.count (u)) { done[i] = true; continue; }
+		work[server][{ Ops[i].Kind, Ops[i].Target }].push_back (i);
+	}
+
+	bool ok = true;
+	for (auto &w : work)
+	{
+		const std::string &server = w.first;
+		FolderState &st = State[server];
+		std::string name = server;
+		for (const Folder &f : Folders) if (f.Server == server) name = f.Client;
+		if (jid) ShowStatus (jid, "Changing messages in " + name);
+		if (!Select (server))
+		{
+			if (Broken) { ok = false; break; }
+			if (Selected == server)
+				Report ("The folder " + name + " on " + Host + " cannot be changed (read-only), so its messages"
+						" cannot be deleted or moved there.");
+			// Read-only, or gone: given up; a folder still there shows its
+			// messages again.
+			for (auto &k : w.second)
+				for (size_t i : k.second)
+				{
+					std::string hash;
+					uint32_t v, u;
+					SplitMsgID (Ops[i].MsgID.c_str (), hash, v, u);
+					st.Uids.erase (u);
+					st.UidNext = 0;
+					done[i] = true;
+				}
+			continue;
+		}
+		if (SelValidity != st.Validity) continue;		// the next check sorts it out
+
+		for (auto &k : w.second)
+		{
+			char kind = k.first.first;
+			std::string target = k.first.second;
+			if (kind == 'T')
+			{
+				target = SpecialFolder ("Trash", true);
+				if (Broken) { ok = false; break; }
+				if (target.empty ()) continue;			// reported; tried again later
+				if (target == server) kind = 'X';		// deleted in the Trash: for good
+				if (!Select (server)) { ok = !Broken; break; }
+			}
+			std::vector<uint32_t> uids;
+			for (size_t i : k.second)
+			{
+				std::string hash;
+				uint32_t v, u;
+				SplitMsgID (Ops[i].MsgID.c_str (), hash, v, u);
+				uids.push_back (u);
+			}
+
+			bool good;
+			if (kind == 'X') good = RemoveUids (server, uids);
+			else
+			{
+				struct mailimap_set *set = mailimap_set_new_empty ();
+				for (uint32_t u : uids) mailimap_set_add_single (set, u);
+				int r;
+				if (Capability ("MOVE")) r = mailimap_uid_move (Imap, set, target.c_str ());
+				else r = mailimap_uid_copy (Imap, set, target.c_str ());
+				mailimap_set_free (set);
+				std::string tname = target;
+				for (const Folder &f : Folders) if (f.Server == target) tname = f.Client;
+				if (r != MAILIMAP_NO_ERROR) good = Failed (r, "Cannot move messages from " + name + " to " + tname);
+				// Without MOVE: copied, now removed from here.
+				else good = Capability ("MOVE") || RemoveUids (server, uids);
+			}
+			if (Broken) { ok = false; break; }
+			for (size_t i : k.second)
+			{
+				done[i] = true;
+				std::string hash;
+				uint32_t v, u;
+				SplitMsgID (Ops[i].MsgID.c_str (), hash, v, u);
+				if (good)
+				{
+					// Gone from this folder: from the list here too (a move).
+					st.Uids.erase (u);
+					if (Parent->Have (&Ops[i].MsgID[0]))
+						Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, Ops[i].MsgID.c_str ());
+				}
+				else
+				{
+					// Refused: the message is shown again at the next check.
+					st.Uids.erase (u);
+					st.UidNext = 0;
+				}
+			}
+		}
+		if (!ok) break;
+	}
+	std::vector<Op> left;
+	for (size_t i = 0; i < Ops.size (); ++i) if (!done[i]) left.push_back (Ops[i]);
+	Ops.swap (left);
+	SaveState ();
+	return ok;
+}
+
+//-------------------------------------------------------------------------------
+// Messages stored here from elsewhere: the spool
+//-------------------------------------------------------------------------------
+
+std::string IMAP4Handler::SpoolDir (void)
+{
+	return std::string (Parent->DirectoryPrefix) + "/spool";
+}
+
+// Called from other mailboxes' threads (a copy or move to this mailbox, a
+// copy of sent mail): the message is written to the spool, safely on disk,
+// and sent at this mailbox's next check. folder is a folder here, or
+// "\Sent" for the server's Sent folder; flags are letters S F R P.
+bool IMAP4Handler::DeliverRaw (const std::string &raw, const char *folder, const std::string &flags, std::string &err)
+{
+	static std::atomic<unsigned> counter (0);
+	if (!folder || !*folder || strpbrk (folder, "\t\r\n"))
+	{
+		err = "no folder to store it in";
+		return false;
+	}
+	std::string dir = SpoolDir ();
+	if (mkdir (dir.c_str (), 0700) != 0 && errno != EEXIST)
+	{
+		err = "cannot create " + dir + ": " + strerror (errno);
+		return false;
+	}
+	char name[96];
+	snprintf (name, sizeof (name), "/%010ld.%d.%u", (long) time (NULL), (int) getpid (), counter++);
+	std::string path = dir + name, tmp = path + ".tmp";
+	std::string keep;
+	for (char c : flags) if (strchr ("SFRP", c)) keep += c;
+	int fd = open (tmp.c_str (), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+	FILE *F = fd >= 0 ? fdopen (fd, "w") : NULL;
+	if (!F)
+	{
+		if (fd >= 0) close (fd);
+		err = "cannot write " + tmp + ": " + strerror (errno);
+		return false;
+	}
+	fprintf (F, "Neo-PostOffice-Spool: %s\t%s\n", folder, keep.c_str ());
+	bool ok = fwrite (raw.data (), 1, raw.size (), F) == raw.size ();
+	ok = fflush (F) == 0 && ok;
+	ok = fsync (fileno (F)) == 0 && ok;
+	ok = (fclose (F) == 0) && ok;
+	if (!ok || rename (tmp.c_str (), (path + ".msg").c_str ()) != 0)
+	{
+		err = "cannot write " + tmp + ": " + strerror (errno);
+		unlink (tmp.c_str ());
+		return false;
+	}
+	return true;
+}
+
+// Sends the spooled messages with APPEND, oldest first. One the server
+// refuses (over quota, too large, no such folder) is kept as
+// "*.failed" and reported.
+bool IMAP4Handler::FlushSpool (int jid)
+{
+	std::string dir = SpoolDir ();
+	DIR *D = opendir (dir.c_str ());
+	if (!D) return true;
+	std::vector<std::string> files;
+	while (struct dirent *e = readdir (D))
+	{
+		std::string n = e->d_name;
+		if (n.size () > 4 && n.compare (n.size () - 4, 4, ".msg") == 0) files.push_back (n);
+	}
+	closedir (D);
+	std::sort (files.begin (), files.end ());
+
+	size_t k = 0;
+	for (const std::string &n : files)
+	{
+		if (Parent->ToCollector->UrgentPending || Broken) return false;
+		std::string path = dir + "/" + n;
+		auto give_up = [&](const std::string &why)
+		{
+			std::string kept = path.substr (0, path.size () - 4) + ".failed";
+			rename (path.c_str (), kept.c_str ());
+			Report (why + " The message is kept in " + kept + ".");
+		};
+		FILE *F = fopen (path.c_str (), "r");
+		if (!F) continue;
+		std::string text;
+		char buf[65536];
+		size_t got;
+		while ((got = fread (buf, 1, sizeof (buf), F)) > 0) text.append (buf, got);
+		fclose (F);
+		size_t nl = text.find ('\n'), tab = text.find ('\t');
+		if (text.compare (0, 22, "Neo-PostOffice-Spool: ") != 0 || nl == std::string::npos || tab == std::string::npos || tab > nl)
+		{
+			give_up ("A message waiting to be stored on " + Host + " is damaged.");
+			continue;
+		}
+		std::string folder = text.substr (22, tab - 22), flags = text.substr (tab + 1, nl - tab - 1);
+		std::string server;
+		if (folder == "\\Sent") server = SpecialFolder ("Sent", true);
+		else for (const Folder &f : Folders) if (f.Client == folder) server = f.Server;
+		if (Broken) return false;
+		if (server.empty ())
+		{
+			give_up ("The folder \"" + (folder == "\\Sent" ? std::string ("Sent") : folder) + "\" does not exist on " + Host + ".");
+			continue;
+		}
+
+		ShowStatus (jid, "Storing messages on the server: " + std::to_string (++k) + " of " + std::to_string (files.size ()));
+		// As sent on the wire: CRLF line ends, and no mbox "From " line in
+		// front (left by some Maildir and mbox tools; it is no header).
+		size_t start = nl + 1;
+		if (text.compare (start, 5, "From ") == 0)
+		{
+			size_t e = text.find ('\n', start);
+			start = e == std::string::npos ? text.size () : e + 1;
+		}
+		std::string body;
+		body.reserve (text.size () - start + text.size () / 30);
+		for (size_t i = start; i < text.size (); ++i)
+		{
+			if (text[i] == '\n' && (i == start || text[i - 1] != '\r')) body += '\r';
+			body += text[i];
+		}
+		struct mailimap_flag_list *fl = mailimap_flag_list_new_empty ();
+		for (char c : flags) mailimap_flag_list_add (fl, imap_flag (c));
+		int r = mailimap_append (Imap, server.c_str (), fl, NULL, body.data (), body.size ());
+		mailimap_flag_list_free (fl);
+		if (r == MAILIMAP_NO_ERROR) { unlink (path.c_str ()); continue; }
+		if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ())
+		{
+			Failed (r, "The connection to " + Host + " was lost");
+			return false;
+		}
+		give_up ("The IMAP server " + Host + " did not store a message in " + folder + ": " + Why (r) + ".");
+	}
+	return true;
 }
 
 // Fetches the bodies the user is waiting for, during a check.
@@ -1588,9 +2062,8 @@ void IMAP4Handler::CheckGroup (const char * /*group*/)
 	if (Session (jid) && ListFolders (jid))
 	{
 		SyncFolders ();
-		// Changes made here go first, so the server's flags read below
-		// include them.
-		PushPending (jid);
+		// Changes made here go first, so what is read below includes them.
+		if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
 		int added = 0;
 		bool complete = true;
 		Checked.clear ();

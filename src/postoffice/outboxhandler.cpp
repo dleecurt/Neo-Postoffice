@@ -60,6 +60,45 @@ static Var *identity_for (const char *mailfrom, std::string &name)
 	return NULL;
 }
 
+// A copy of a sent message for the Sent folder of the IMAP mailbox the
+// identity names ("Save sent mail to"). The mailbox keeps it in its spool
+// and stores it on the server at its next check, which is started now.
+// Bcc stays in the copy, as a record of who got it.
+static void save_sent_copy (MailBox *Parent, MailMessage *M, const char *mailfrom, MailPart *P)
+{
+	std::string idname;
+	Var *I = identity_for (mailfrom, idname);
+	if (!I || !P) return;
+	const char *target = I->Get_char ("sent_imap");
+	if (!target || !*target) return;
+	MailBox *T = NULL;
+	for (int k = 0; k < 16 && MailBoxList[k]; ++k)
+		if (strcmp (MailBoxList[k]->Name, target) == 0) T = MailBoxList[k];
+	if (!T || !T->Handler)
+	{
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+			("A copy of the message sent could not be saved: the mailbox \"" + std::string (target) +
+			 "\" (Config -> Identities -> Save sent mail to) does not exist.").c_str ());
+		return;
+	}
+	std::string raw;
+	bool have_id = false;
+	for (int i = 0; i < M->HeaderNames->Count; ++i)
+	{
+		if (strcasecmp (M->HeaderNames->Get (i), "Message-ID") == 0) have_id = true;
+		raw += std::string (M->HeaderNames->Get (i)) + ": " + M->HeaderValues->Get (i) + "\n";
+	}
+	if (!have_id) raw += std::string ("Message-ID: ") + M->MsgID + "\n";
+	raw += "\n";
+	raw.append (P->Contents, strlen (P->Contents));
+	std::string err;
+	if (!T->Handler->DeliverRaw (raw, "\\Sent", "S", err))
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+			("A copy of the message sent could not be saved for " + std::string (target) + ": " + err).c_str ());
+	else
+		T->ToCollector->PostMessage (CLASS_CHECKGROUP, SUB_CHECK_NOFETCH, "*");
+}
+
 // How a try to send one message went.
 enum SendOutcome { SEND_OK, SEND_LATER, SEND_SETUP, SEND_MESSAGE, SEND_STOPPED };
 
@@ -360,6 +399,7 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 					switch (how)
 					{
 						case SEND_OK:
+							save_sent_copy (Parent, M, mailfrom, P);
 							sent = true;
 							retries.erase (M->MsgID);
 							forget_reports (M->MsgID);

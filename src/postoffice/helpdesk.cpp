@@ -5398,6 +5398,8 @@ Fl_Input *in_prefs_id_smtppass=(Fl_Input *)0;
 
 Fl_Input *in_prefs_id_smtppasscmd=(Fl_Input *)0;
 
+Fl_Choice *ch_prefs_id_sentbox=(Fl_Choice *)0;
+
 Fl_Editor *ed_prefs_edittexts=(Fl_Editor *)0;
 
 Fl_Choice *ch_prefs_edittext=(Fl_Choice *)0;
@@ -6634,16 +6636,16 @@ Fl_Window* make_prefs_window() {
             } // Fl_Group* o
             o->end();
           } // Fl_Group* o
-          { gr_prefs_id_smtp = new Fl_Group(20, 335, 600, 135, "Outgoing mail server (built-in SMTP client)");
+          { gr_prefs_id_smtp = new Fl_Group(20, 310, 600, 135, "Outgoing mail server (built-in SMTP client)");
             gr_prefs_id_smtp->box(FL_ENGRAVED_BOX);
             gr_prefs_id_smtp->labelsize(12);
             gr_prefs_id_smtp->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-            { Fl_Button* o = new Fl_Button(30, 343, 80, 20, "Server");
+            { Fl_Button* o = new Fl_Button(30, 318, 80, 20, "Server");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtphost = new Fl_Input(130, 343, 330, 20);
+            { in_prefs_id_smtphost = new Fl_Input(130, 318, 330, 20);
               in_prefs_id_smtphost->tooltip("The mail server this identity sends through, for example smtp.example.org. Us"
 "ed when Config -> Network sends with the built-in SMTP client.");
               in_prefs_id_smtphost->labelsize(12);
@@ -6651,12 +6653,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtphost->callback((Fl_Callback*)cb_prefs_id_smtphost);
               in_prefs_id_smtphost->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtphost
-            { Fl_Button* o = new Fl_Button(470, 343, 40, 20, "Port");
+            { Fl_Button* o = new Fl_Button(470, 318, 40, 20, "Port");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtpport = new Fl_Int_Input(515, 343, 90, 20);
+            { in_prefs_id_smtpport = new Fl_Int_Input(515, 318, 90, 20);
               in_prefs_id_smtpport->tooltip("Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.");
               in_prefs_id_smtpport->type(2);
               in_prefs_id_smtpport->labelsize(12);
@@ -6664,15 +6666,15 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtpport->callback((Fl_Callback*)cb_prefs_id_smtpport);
               in_prefs_id_smtpport->when(FL_WHEN_CHANGED);
             } // Fl_Int_Input* in_prefs_id_smtpport
-            { Fl_Button* o = new Fl_Button(30, 368, 80, 20, "Encryption");
+            { Fl_Button* o = new Fl_Button(30, 343, 80, 20, "Encryption");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(130, 368, 330, 20);
+            { Fl_Group* o = new Fl_Group(130, 343, 330, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_id_smtpsec = new Fl_Choice(131, 369, 329, 19);
+              { ch_prefs_id_smtpsec = new Fl_Choice(131, 344, 329, 19);
                 ch_prefs_id_smtpsec->tooltip("TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrade"
 "s the connection. Without encryption only for a server on your own network, an"
 "d never with a login.");
@@ -6684,12 +6686,12 @@ Fl_Window* make_prefs_window() {
               } // Fl_Choice* ch_prefs_id_smtpsec
               o->end();
             } // Fl_Group* o
-            { Fl_Button* o = new Fl_Button(30, 393, 80, 20, "Username");
+            { Fl_Button* o = new Fl_Button(30, 368, 80, 20, "Username");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtpuser = new Fl_Input(130, 393, 210, 20);
+            { in_prefs_id_smtpuser = new Fl_Input(130, 368, 210, 20);
               in_prefs_id_smtpuser->tooltip("The login for the mail server. Empty: no login (for a server that takes your "
 "mail without one).");
               in_prefs_id_smtpuser->labelsize(12);
@@ -6697,12 +6699,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtpuser->callback((Fl_Callback*)cb_prefs_id_smtpuser);
               in_prefs_id_smtpuser->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtpuser
-            { Fl_Button* o = new Fl_Button(350, 393, 60, 20, "Password");
+            { Fl_Button* o = new Fl_Button(350, 368, 60, 20, "Password");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtppass = new Fl_Input(415, 393, 190, 20);
+            { in_prefs_id_smtppass = new Fl_Input(415, 368, 190, 20);
               in_prefs_id_smtppass->tooltip("Kept in ~/.postoffice/resource.rc (readable only by you). A password command "
 "keeps it out of that file.");
               in_prefs_id_smtppass->type(5);
@@ -6711,12 +6713,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtppass->callback((Fl_Callback*)cb_prefs_id_smtppass);
               in_prefs_id_smtppass->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtppass
-            { Fl_Button* o = new Fl_Button(30, 418, 90, 20, "Password cmd");
+            { Fl_Button* o = new Fl_Button(30, 393, 90, 20, "Password cmd");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtppasscmd = new Fl_Input(130, 418, 475, 20);
+            { in_prefs_id_smtppasscmd = new Fl_Input(130, 393, 475, 20);
               in_prefs_id_smtppasscmd->tooltip("A command whose first line of output is the password, for example: pass show "
 "mail/smtp. Used instead of the password when set.");
               in_prefs_id_smtppasscmd->labelsize(12);
@@ -6724,7 +6726,7 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtppasscmd->callback((Fl_Callback*)cb_prefs_id_smtppasscmd);
               in_prefs_id_smtppasscmd->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtppasscmd
-            { Fl_Box* o = new Fl_Box(30, 441, 580, 26, "Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encrypti"
+            { Fl_Box* o = new Fl_Box(30, 416, 580, 26, "Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encrypti"
 "on. Certificates are checked against the system\'s CAs and Config -> Certifica"
 "tes.");
               o->labelsize(11);
@@ -6732,7 +6734,33 @@ Fl_Window* make_prefs_window() {
             } // Fl_Box* o
             gr_prefs_id_smtp->end();
           } // Fl_Group* gr_prefs_id_smtp
-          { ed_prefs_edittexts = new Fl_Editor(20, 245, 600, 70);
+          { Fl_Group* o = new Fl_Group(20, 450, 600, 20);
+            { Fl_Button* o = new Fl_Button(30, 450, 115, 20, "Save sent mail to");
+              o->box(FL_NO_BOX);
+              o->labelsize(12);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Button* o
+            { Fl_Group* o = new Fl_Group(150, 450, 200, 20);
+              o->box(FL_BORDER_FRAME);
+              o->color(FL_FOREGROUND_COLOR);
+              { ch_prefs_id_sentbox = new Fl_Choice(151, 451, 199, 19);
+                ch_prefs_id_sentbox->tooltip("A copy of every message sent with this identity goes to the Sent folder of th"
+"is IMAP mailbox (found by the server, or made). Off for servers that keep sent"
+" mail themselves, such as Gmail.");
+                ch_prefs_id_sentbox->down_box(FL_BORDER_BOX);
+                ch_prefs_id_sentbox->labelsize(12);
+                ch_prefs_id_sentbox->textsize(12);
+                ch_prefs_id_sentbox->callback((Fl_Callback*)cb_prefs_id_sentbox);
+              } // Fl_Choice* ch_prefs_id_sentbox
+              o->end();
+            } // Fl_Group* o
+            { Fl_Box* o = new Fl_Box(355, 450, 260, 20, "(its Sent folder; also kept in OutBox)");
+              o->labelsize(11);
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Box* o
+            o->end();
+          } // Fl_Group* o
+          { ed_prefs_edittexts = new Fl_Editor(20, 245, 600, 45);
             ed_prefs_edittexts->type(4);
             ed_prefs_edittexts->box(FL_DOWN_BOX);
             ed_prefs_edittexts->color(FL_BACKGROUND2_COLOR);

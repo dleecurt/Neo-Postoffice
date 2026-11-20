@@ -250,8 +250,9 @@ static std::vector<std::string> selected_msgids (void)
 	return ids;
 }
 
-// Moves or copies messages of the current mailbox into a folder of a Maildir
-// mailbox. Within one Maildir a move is a rename; everything else goes
+// Moves or copies messages of the current mailbox into a folder of a mailbox
+// that can store them. Within one mailbox a move is the handler's own (a
+// rename, an IMAP MOVE); everything else goes
 // through the source mailbox's thread, which copies the original message
 // into the target and, for a move, then deletes it like Delete does.
 static void transfer_messages (const std::vector<std::string> &ids, MailBox *box, const char *folder, bool copy)
@@ -259,7 +260,7 @@ static void transfer_messages (const std::vector<std::string> &ids, MailBox *box
 	if (ids.empty() || !currentmailbox || !box) return;
 	if (!box->Handler || !box->Handler->CanMove())
 	{
-		fl_alert ("Messages can only be moved or copied into Maildir mailboxes.");
+		fl_alert ("Messages can only be moved or copied into Maildir, MH and IMAP mailboxes.");
 		return;
 	}
 	if (box == currentmailbox && strcmp (folder, currentfolder) == 0) return;
@@ -301,7 +302,8 @@ static void drop_messages (void)
 	transfer_messages (ids, box, folder, Fl::event_state (FL_CTRL) != 0);
 }
 
-// A popup of the folders of all Maildir mailboxes, one submenu each.
+// A popup of the folders of all mailboxes that can store messages (Maildir,
+// MH, IMAP), one submenu each.
 // Returns false if nothing was chosen.
 static bool choose_target_folder (const char *title, MailBox *&box, std::string &folder)
 {
@@ -336,7 +338,7 @@ static bool choose_target_folder (const char *title, MailBox *&box, std::string 
 	}
 	if (boxes.empty())
 	{
-		fl_alert ("There is no Maildir mailbox to move or copy messages to.");
+		fl_alert ("There is no Maildir, MH or IMAP mailbox to move or copy messages to.");
 		return false;
 	}
 	for (auto &b : boxes)

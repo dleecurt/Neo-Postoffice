@@ -304,6 +304,8 @@ extern void cb_prefs_id_smtppass(Fl_Input*, void*);
 extern Fl_Input *in_prefs_id_smtppass;
 extern void cb_prefs_id_smtppasscmd(Fl_Input*, void*);
 extern Fl_Input *in_prefs_id_smtppasscmd;
+extern void cb_prefs_id_sentbox(Fl_Choice*, void*);
+extern Fl_Choice *ch_prefs_id_sentbox;
 extern Fl_Editor *ed_prefs_edittexts;
 extern Fl_Choice *ch_prefs_edittext;
 extern Fl_Choice *ch_prefs_inserttext;

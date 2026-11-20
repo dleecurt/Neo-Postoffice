@@ -55,9 +55,8 @@ as `.`). Folders marked `\Noselect` or `\NonExistent` are not shown.
 2. **Done: reading mail.** See *Reading* below.
 3. **Done: flags both ways.** See *Flags* below. (`\Deleted` belongs to
    step 4.)
-4. **Changes on the server:** delete (`\Deleted` + `UID EXPUNGE`, or a
-   move to Trash), `UID MOVE` (RFC 6851) or `UID COPY` + delete, `APPEND`
-   (copies from other mailboxes, sent mail to a Sent folder).
+4. **Done: changes on the server.** See *Deleting, moving and storing*
+   below.
 5. **New mail and speed:** a connection kept open with `IDLE`, falling
    back to the interval; `CONDSTORE`/`QRESYNC` for quick resyncs of large
    folders; reconnecting after a dropped connection.
@@ -149,6 +148,52 @@ The flagged, replied and forwarded flags are saved in the mailbox index
 (bits 8 to 10 of its flags field), so they survive a restart without
 being read from the server again.
 
+## Deleting, moving and storing
+
+Decided with the project's owner: Delete moves to the server's Trash
+(Delete in the Trash is final); sent mail goes to an IMAP Sent folder
+when the identity says so (*Save sent mail to*, off by default); drafts
+stay local (OutBox → Drafts).
+
+**The Trash and Sent folders** are found once per session: a subscribed
+folder with the special-use flag (RFC 6154, as in the LSUB reply); else
+`LIST "" "*"` and its flags; else a usual name (Trash, Deleted Items,
+Deleted Messages, Deleted, `[Gmail]/Trash`; Sent, Sent Items, Sent
+Messages, Sent Mail, `[Gmail]/Sent Mail`), with or without the personal
+namespace prefix; else the folder is made (`CREATE prefix+name`). One
+that is not subscribed is subscribed, so it shows here.
+
+**Deletes and moves** are queued in `imap.dat` (`O T|X|M <message-id>
+[target]`) and sent at once, or first thing at the next check:
+
+- T (Delete): to the Trash; in the Trash, X instead.
+- M (Move within the account): to the target folder.
+- X (the original of a message moved to another mailbox, once that
+  mailbox has it; the window calls `RemoveAfterTransfer`, which other
+  mailbox types take as a delete): removed for good.
+
+A move is `UID MOVE` (RFC 6851); without MOVE, `UID COPY`, then
+`UID STORE +FLAGS.SILENT (\Deleted)` and an expunge. Removing for good is
+`\Deleted` and the expunge. The expunge is `UID EXPUNGE` of just those
+messages when the server has UIDPLUS; without it, `EXPUNGE`, which also
+removes messages marked deleted by another program. The messages leave
+their folder here once the server has done it; a moved one shows up in
+its new folder at the next check (the window starts one after a move),
+fetched like any new message. A change the server refuses is reported,
+and its messages come back here at the next check.
+
+**Storing** (a copy or move from another mailbox, a copy of sent mail)
+comes from another mailbox's thread, which cannot use this mailbox's
+connection. `DeliverRaw` writes the message to `spool/` in the mailbox
+directory (a private file, synced and renamed into place, with a first
+line naming the folder and flags), so the other mailbox can delete its
+original at once; this mailbox's thread sends the spool with `APPEND`
+(flags `\Seen`, `\Flagged`, `\Answered`, `$Forwarded`; CRLF line ends; an
+mbox `From ` line in front is left out) at each check and after each
+change made here. The window starts a check of the target after a copy;
+the outbox does after a sent copy. A message the server refuses is
+renamed `*.failed` and reported.
+
 ## Not planned yet
 
 - `AUTHENTICATE` (SASL) and OAuth2 (`XOAUTH2`/`OAUTHBEARER`). libetpan
@@ -195,6 +240,22 @@ from its capabilities:
 | Server stopped, two changes made, server started, Check | Changes shown here at once, queued, sent at the start of the check |
 | Server without CONDSTORE | Plain `EXAMINE` and a full flag read per folder; changes arrive |
 | Restart without a check | Flags kept (from the index) |
+
+Step 4, against mox (MOVE, UIDPLUS, special-use flags), and through a
+relay that hid MOVE and CONDSTORE; with libetpan 1.10.1, and Delete again
+with 1.9.4:
+
+| Case | Result |
+|---|---|
+| Delete in Inbox | `UID MOVE` to Trash (found by its `\Trash` flag); shown in Trash after the check |
+| Delete in Trash | `\Deleted` + `UID EXPUNGE` of that UID; gone from the server |
+| Drag to another folder of the account | `UID MOVE`; shown in the new folder after the check |
+| Delete with the server stopped, server started, Check | Queued, no error dialog; moved to Trash at the start of the check |
+| Copy from a Maildir to the IMAP Archive folder | `APPEND` with its flags; spool emptied; the copy shows in Archive |
+| Move from IMAP to a Maildir | Stored in the Maildir with its flags; the IMAP original removed for good, not put in Trash |
+| Server without MOVE: move, and Delete | `UID COPY` + `\Deleted` + `UID EXPUNGE` |
+| Message sent with *Save sent mail to* set | `APPEND Sent (\Seen)`, Bcc kept |
+| Message sent with the IMAP server down | Copy kept in the spool; stored at the next check |
 
 Not tested yet: Dovecot, Cyrus, Gmail and other providers. Reports are
 welcome.

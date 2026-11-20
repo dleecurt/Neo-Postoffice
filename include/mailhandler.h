@@ -25,6 +25,8 @@ public:
 	virtual void			 GetBody (char *);
 	virtual void			 CheckGroup (const char *);
 	virtual void			 DeleteMessage (char *);
+	// The original of a message moved to another mailbox, now stored there.
+	virtual void			 RemoveAfterTransfer (char *msgid) { DeleteMessage (msgid); }
 	bool					 UserCheck = false;	// this check was asked for (not scheduled)
 	virtual void			 Expire (void);
 	virtual int				 PostMessage (WordList *, MailMessage *);
@@ -117,6 +119,12 @@ public:
 	bool					 KeepsFlags (void) { return true; }
 	void					 MarkRead (char *);
 	void					 SetFlag (char *, char, bool);
+	// Changes on the server (step 4).
+	void					 DeleteMessage (char *);
+	void					 RemoveAfterTransfer (char *);
+	bool					 CanMove (void) { return true; }
+	void					 MoveMessage (char *, const char *);
+	bool					 DeliverRaw (const std::string &, const char *, const std::string &, std::string &);
 
 	// A server folder (one LSUB/LIST line) and its name in the client.
 	struct Folder
@@ -124,6 +132,7 @@ public:
 		std::string			 Server;	// as the server names it (modified UTF-7)
 		std::string			 Client;	// "Inbox", "Lists/2025" (UTF-8)
 		char				 Delim;		// hierarchy delimiter, 0 if none
+		std::string			 Special;	// special use (RFC 6154): "Trash", "Sent", ... or ""
 	};
 
 	// Exposed for the tests (imap4test): modified UTF-7 (RFC 3501 5.1.3)
@@ -167,6 +176,16 @@ private:
 	// Flag changes made here, not yet on the server: Message-ID -> letter
 	// (S seen, F flagged, R answered, P forwarded) -> set or cleared.
 	std::map<std::string, std::map<char, bool>> Pending;
+	// Deletes and moves made here, not yet on the server, in order. Kind:
+	// T to the Trash, X removed for good, M moved to Target (server name).
+	struct Op
+	{
+		char				 Kind;
+		std::string			 MsgID;
+		std::string			 Target;
+	};
+	std::vector<Op>			 Ops;
+	std::map<std::string, std::string> SpecialCache;	// "Trash" -> server name, this session
 	bool					 Broken = false;	// the session failed: stop using it
 	std::set<std::string>	 Checked;		// folders fully checked by this check
 	int						 ProgressJob = -1;	// job shown while a body comes in
@@ -187,6 +206,12 @@ private:
 	bool					 QueueFlag (const char *msgid, char letter, bool on);
 	bool					 PushPending (int jid);
 	void					 PushQuietly (void);
+	bool					 PushOps (int jid);
+	bool					 FlushSpool (int jid);
+	std::string				 SpecialFolder (const std::string &use, bool create);
+	bool					 RemoveUids (const std::string &server, const std::vector<uint32_t> &uids);
+	void					 QueueOp (char kind, const char *msgid, const std::string &target);
+	std::string				 SpoolDir (void);
 	bool					 FetchBody (const char *msgid, int jid);
 	void					 ServiceBodies (int jid);
 	void					 Gone (const FolderState &, const std::set<uint32_t> &uids);

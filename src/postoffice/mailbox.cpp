@@ -370,10 +370,14 @@ void MailBox::LoadMailBox (void)
     read_index_file (DirectoryPrefix, entries);
 
     bool from_store = dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<LocalMailHandler *> (Handler);
+#ifdef PO_HAVE_LIBETPAN
+    // IMAP folders come from the server the same way.
+    if (dynamic_cast<IMAP4Handler *> (Handler)) from_store = true;
+#endif
 
     for (const IndexEntry &e : entries)
     {
-        // An entry in no folder cannot be shown. For SQL, Maildir and MH it is
+        // An entry in no folder cannot be shown. For SQL, Maildir, MH and IMAP it is
         // left out: the first check finds the message in the store again and
         // files it in its folder.
         if (from_store && e.Folders.empty()) continue;
@@ -404,7 +408,7 @@ void MailBox::LoadMailBox (void)
         for (size_t i=0;i<e.Folders.size();++i)
         {
             V = GetView (e.Folders[i].c_str()); // Find the named view
-            // SQL, Maildir and MH folders are made from what the store has, so
+            // SQL, Maildir, MH and IMAP folders are made from what the store has, so
             // one missing from the settings (not saved after a crash, say) is
             // made again here instead of the message being lost from view.
             if (!V && from_store)
@@ -1047,7 +1051,7 @@ void MailBox::TransferMessage (const char *msgid, const char *target, const char
     else if (move)
     {
         // Only now that the copy is safe: remove the original, as Delete does.
-        Handler->DeleteMessage ((char *) msgid);
+        Handler->RemoveAfterTransfer ((char *) msgid);
         ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Name, msgid);
     }
     // Show the new arrivals; this is no reason to fetch mail.

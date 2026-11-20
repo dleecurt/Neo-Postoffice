@@ -139,8 +139,9 @@ named after its SHA-256 fingerprint). Use it for a local or company CA:
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
 the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
-It is not finished: **steps 1 to 3 of 6** are done: mail is read, and the
-read state and flags go both ways; deleting and moving come next.
+It is not finished: **steps 1 to 4 of 6** are done: mail is read; read
+state, flags, deletes and moves go to the server; IDLE and folder
+management come next.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
@@ -170,13 +171,31 @@ made elsewhere (webmail, a phone) show up at the next check: on servers
 with CONDSTORE (Dovecot, Cyrus, Gmail, Fastmail and others) only what
 changed is read, otherwise the flags of every message in the folder.
 
-Not yet (steps 4 to 6): deleting a message here removes only the copy
-here; moving, copying to the server, IDLE and folder management come
-later.
+Deleting and moving: **Delete** moves a message to the server's Trash
+folder (the one the server marks as Trash, else one called Trash,
+Deleted Items and the like, else a new "Trash"); Delete in the Trash
+removes it for good. **Move to folder** (or dragging onto a folder)
+within the account moves it on the server; to or from another mailbox
+it is copied and the original removed for good (not put in the Trash).
+**Copy to folder** stores a copy on the server. Like flag changes, these
+are sent at once and wait for the next check when the server cannot be
+reached. Messages put into an IMAP mailbox from elsewhere wait in its
+`spool` directory, safely on disk, until the server has them; one the
+server refuses is kept there as `*.failed`.
+
+Not yet (steps 5 and 6): IDLE (new mail without waiting for the
+interval) and creating, renaming or deleting folders.
 
 The message list shows the newest 1024 messages of a folder, for every
 mailbox type; Config → Style → *Message list* changes that (0 shows them
 all, which makes a large folder slower to open).
+
+A copy of the mail you send can go to an IMAP account's Sent folder:
+Config → Identities → *Save sent mail to* (off by default, as Gmail and
+some other providers keep sent mail themselves). The copy keeps Bcc as a
+record of who got the message, and is stored at that mailbox's next
+check (which sending starts); if the server cannot be reached, it waits
+in the spool.
 
 An IMAP4 mailbox from PostOffice 0.7, which has no encryption setting,
 uses STARTTLS on its old port rather than sending the password in the
@@ -468,8 +487,11 @@ See the git history for details. In summary:
   session, and messages expired as headers leave the list.
 - The old IMAP4 client was removed (it could not work); a new one is
   being built on libetpan (step 1: connecting, logging in and folders;
-  step 2: reading mail; step 3: read state and flags both ways), and
-  IMAP4 mailboxes keep their settings.
+  step 2: reading mail; step 3: read state and flags both ways; step 4:
+  delete to the Trash, moves and copies, sent mail to the Sent folder),
+  and IMAP4 mailboxes keep their settings.
+- Move to folder, Copy to folder and dragging messages work for IMAP
+  folders too (they were for Maildir and MH).
 - The flagged, replied and forwarded flags of messages are kept in the
   mailbox index, so they survive a restart for every mailbox type.
 - How many messages of a folder the list shows (1024 in PostOffice 0.7)
