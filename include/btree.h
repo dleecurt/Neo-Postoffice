@@ -14,6 +14,9 @@ class BTreeNode
 		
         void             LinkTo (BTreeNode *);
 		BTreeNode		*Find (const char *);
+		// Neo-PostOffice: moves the node to the start of its root's list
+		// (the order messages are saved in).
+		void			 ChainToFront (void);
 
 		char		    *BKey;
 		unsigned int     BChecksum;

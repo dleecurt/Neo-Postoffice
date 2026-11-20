@@ -76,6 +76,9 @@ class MailMessage : public BTreeNode
 		// Neo-PostOffice: when set, ProcessMessage copies the raw message
 		// here (used to move a message into a Maildir).
 		std::string		*CaptureRaw;
+		// Neo-PostOffice: file at the start of its folder, not the end (an
+		// older message fetched after newer ones). Not stored.
+		bool			 AtFront;
 		
 		void			 StoreFile (void);
 		void			 Flush (void);

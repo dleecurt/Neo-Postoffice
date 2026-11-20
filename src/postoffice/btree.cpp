@@ -71,6 +71,17 @@ BTreeNode::BTreeNode (const char *key, BTreeNode *root)
 	}
 }
 
+void BTreeNode::ChainToFront (void)
+{
+	if (!BRoot || BRoot->BNext == this) return;
+	BNext->BPrev = BPrev;
+	BPrev->BNext = BNext;
+	BPrev = BRoot;
+	BNext = BRoot->BNext;
+	BRoot->BNext->BPrev = this;
+	BRoot->BNext = this;
+}
+
 //===============================================================================
 // DESTRUCTOR	BTreeNode
 // SYNOPSIS		If the node was a rootnode, deleting it will delete all the

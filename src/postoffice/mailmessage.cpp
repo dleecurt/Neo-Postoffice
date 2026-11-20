@@ -95,6 +95,7 @@ MailMessage::MailMessage (MailBox *M, const char *msgid) : BTreeNode (msgid, M->
 	Count = 0;
 	Envelope = new MailEnvelope;
 	CaptureRaw = NULL;
+	AtFront = false;
 	First = Last = NULL;
 	ReceiveDate = time (NULL);
     Parent->Count++;

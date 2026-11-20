@@ -7,10 +7,18 @@
 // against the system's CAs plus an optional CA file, and against the host
 // name, with no way to turn that off.
 //
-// This is step 1 of the IMAP client: it connects, logs in (with the "pass"
-// setting or the first line printed by "passcmd") and keeps the mailbox's
-// folders in step with the folders subscribed to on the server. INBOX is
-// always shown, as "Inbox". Messages come in step 2.
+// It connects, logs in (with the "pass" setting or the first line printed
+// by "passcmd") and keeps the mailbox's folders in step with the folders
+// subscribed to on the server; INBOX is always shown, as "Inbox".
+//
+// Reading (step 2): each folder is opened read-only (EXAMINE). A folder whose
+// UIDVALIDITY, UIDNEXT and message count are what they were at the last
+// complete check is skipped. Otherwise the UIDs on the server are listed:
+// those that are gone are removed here, and the headers of new ones are
+// fetched, newest first, in batches. A body is fetched (BODY.PEEK, so the
+// message stays unread on the server) when the message is opened, and kept
+// in the local store. What is known of each folder is kept in imap.dat.
+// Flags and changes on the server come in later steps.
 //
 // GNU LGPL like PostOffice itself.
 //===============================================================================
@@ -18,6 +26,7 @@
 #ifdef PO_HAVE_LIBETPAN
 
 #include "mailbox.h"
+#include "mailheaders.h"
 #include "netstream.h"
 #include "sendpipe.h"
 #include "var.h"
@@ -25,11 +34,16 @@
 
 #include <libetpan/libetpan.h>
 
+#include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <algorithm>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -208,6 +222,7 @@ IMAP4Handler::IMAP4Handler (MailBox *_Parent, Var *_Parameters)
 	Imap = NULL;
 	Net = new NetStream;
 	Net->Cancelled = [this]() { return Parent->ToCollector->UrgentPending; };
+	Parent->ToCollector->AddPriorityClass (CLASS_GETBODY);
 }
 
 IMAP4Handler::~IMAP4Handler (void)
@@ -280,6 +295,8 @@ void IMAP4Handler::EndSession (bool logout)
 	}
 	Net->Close ();
 	ConnectionOpen = 0;
+	Selected.clear ();
+	Broken = false;
 }
 
 void IMAP4Handler::OpenConnection (void)
@@ -294,7 +311,7 @@ void IMAP4Handler::CloseConnection (void)
 // Connects and logs in, unless a session is open and still answers.
 bool IMAP4Handler::Session (int jid)
 {
-	if (Imap && Net->IsOpen ())
+	if (Imap && Net->IsOpen () && !Broken)
 	{
 		if (mailimap_noop (Imap) == MAILIMAP_NO_ERROR) return true;
 		EndSession (false);
@@ -339,6 +356,7 @@ bool IMAP4Handler::Session (int jid)
 		return false;
 	}
 
+	mailimap_set_progress_callback (Imap, &IMAP4Handler::BodyProgress, NULL, this);
 	int r = mailimap_connect (Imap, stream);		// Imap owns the stream from here
 	bool preauth = r == MAILIMAP_NO_ERROR_AUTHENTICATED;
 	if (r != MAILIMAP_NO_ERROR_NON_AUTHENTICATED && !preauth)
@@ -498,6 +516,8 @@ bool IMAP4Handler::ListFolders (int jid)
 	{
 		struct mailimap_mailbox_list *mb = (struct mailimap_mailbox_list *) clist_content (it);
 		if (!mb || !mb->mb_name) continue;
+		// A name with a line break cannot be kept in imap.dat (nor typed).
+		if (strpbrk (mb->mb_name, "\r\n")) continue;
 		bool selectable = true;
 		if (mb->mb_flag)
 		{
@@ -542,12 +562,23 @@ bool IMAP4Handler::ListFolders (int jid)
 }
 
 // Folders for every server folder; folders this mailbox made whose server
-// folder is gone (or no longer subscribed) are removed by the window.
+// folder is gone (or no longer subscribed) are removed by the window, after
+// the messages in them.
 void IMAP4Handler::SyncFolders (void)
 {
 	bool changed = false;
 	for (const Folder &f : Folders)
 		if (Parent->EnsureFolder (f.Client)) changed = true;
+
+	// What is known of folders that are gone: their messages go too.
+	for (auto it = State.begin (); it != State.end (); )
+	{
+		bool kept = false;
+		for (const Folder &f : Folders) if (f.Server == it->first) { kept = true; break; }
+		if (kept) { ++it; continue; }
+		Gone (it->second, it->second.Uids);
+		it = State.erase (it);
+	}
 
 	std::vector<std::string> gone;
 	Parent->VLock->LockR ();
@@ -565,18 +596,695 @@ void IMAP4Handler::SyncFolders (void)
 		Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
 }
 
+//-------------------------------------------------------------------------------
+// What is known of the folders (imap.dat)
+//-------------------------------------------------------------------------------
+
+// "1:5,9,12:13" for {1,2,3,4,5,9,12,13}.
+std::string IMAP4Handler::UidRanges (const std::set<uint32_t> &uids)
+{
+	std::string out;
+	for (auto it = uids.begin (); it != uids.end (); )
+	{
+		uint32_t a = *it, b = a;
+		auto n = std::next (it);
+		while (n != uids.end () && b != 0xffffffffu && *n == b + 1) { b = *n; ++n; }
+		if (!out.empty ()) out += ',';
+		out += std::to_string (a);
+		if (b != a) out += ":" + std::to_string (b);
+		it = n;
+	}
+	return out;
+}
+
+bool IMAP4Handler::ParseRanges (const std::string &in, std::set<uint32_t> &out)
+{
+	out.clear ();
+	size_t i = 0;
+	while (i < in.size ())
+	{
+		size_t comma = in.find (',', i);
+		std::string part = in.substr (i, comma == std::string::npos ? std::string::npos : comma - i);
+		i = comma == std::string::npos ? in.size () : comma + 1;
+		if (part.empty () || part.find_first_not_of ("0123456789:") != std::string::npos) return false;
+		size_t colon = part.find (':');
+		if (colon != part.rfind (':') || colon == 0 || colon + 1 == part.size ()) return false;
+		if (part.size () > 21) return false;
+		unsigned long long a = strtoull (part.c_str (), NULL, 10);
+		unsigned long long b = colon == std::string::npos ? a : strtoull (part.c_str () + colon + 1, NULL, 10);
+		if (a == 0 || b < a || b > 0xffffffffULL || b - a > 50000000ULL) return false;
+		auto hint = out.end ();
+		for (unsigned long long u = a; u <= b; ++u) hint = out.insert (hint, (uint32_t) u);
+	}
+	return true;
+}
+
+// 64-bit FNV-1a of the server's folder name, in hex.
+std::string IMAP4Handler::FolderHash (const std::string &server)
+{
+	unsigned long long h = 14695981039346656037ULL;
+	for (unsigned char c : server) { h ^= c; h *= 1099511628211ULL; }
+	char buf[17];
+	snprintf (buf, sizeof (buf), "%016llx", h);
+	return buf;
+}
+
+std::string IMAP4Handler::MakeMsgID (const std::string &hash, uint32_t validity, uint32_t uid)
+{
+	return "<imap." + hash + "." + std::to_string (validity) + "." + std::to_string (uid) + "@imap>";
+}
+
+bool IMAP4Handler::SplitMsgID (const char *msgid, std::string &hash, uint32_t &validity, uint32_t &uid)
+{
+	char h[17];
+	unsigned long v = 0, u = 0;
+	int end = 0;
+	if (!msgid || sscanf (msgid, "<imap.%16[0-9a-f].%lu.%lu@imap>%n", h, &v, &u, &end) != 3) return false;
+	if (msgid[end] != 0 || strlen (h) != 16 || v == 0 || u == 0 || v > 0xffffffffUL || u > 0xffffffffUL) return false;
+	hash = h;
+	validity = (uint32_t) v;
+	uid = (uint32_t) u;
+	return true;
+}
+
+std::string IMAP4Handler::ServerOf (const std::string &hash)
+{
+	for (auto &kv : State) if (kv.second.Hash == hash) return kv.first;
+	return "";
+}
+
+std::string IMAP4Handler::StateFile (void)
+{
+	return std::string (Parent->DirectoryPrefix) + "/imap.dat";
+}
+
+// Lines "F HASH UIDVALIDITY UIDNEXT MESSAGES name" then "U ranges".
+void IMAP4Handler::LoadState (void)
+{
+	StateLoaded = true;
+	State.clear ();
+	FILE *F = fopen (StateFile ().c_str (), "r");
+	if (!F) return;
+	std::string line, current;
+	bool havecurrent = false;
+	int c;
+	for (;;)
+	{
+		line.clear ();
+		while ((c = fgetc (F)) != EOF && c != '\n') line += (char) c;
+		if (c == EOF && line.empty ()) break;
+		if (line.compare (0, 2, "F ") == 0)
+		{
+			char hash[17];
+			unsigned long v, n, m;
+			int off = 0;
+			havecurrent = false;
+			if (sscanf (line.c_str (), "F %16s %lu %lu %lu %n", hash, &v, &n, &m, &off) != 4 || off <= 0) continue;
+			current = line.substr (off);
+			if (current.empty ()) continue;
+			FolderState &st = State[current];
+			st.Hash = FolderHash (current);
+			st.Validity = (uint32_t) v;
+			st.UidNext = (uint32_t) n;
+			st.Messages = (uint32_t) m;
+			havecurrent = true;
+		}
+		else if (line.compare (0, 2, "U ") == 0 && havecurrent)
+		{
+			FolderState &st = State[current];
+			if (!ParseRanges (line.substr (2), st.Uids))
+			{
+				// Damaged: read the folder again.
+				st.Uids.clear ();
+				st.UidNext = st.Messages = 0;
+			}
+		}
+		if (c == EOF) break;
+	}
+	fclose (F);
+}
+
+// Written whole to a private file, then renamed over the old one.
+void IMAP4Handler::SaveState (void)
+{
+	std::string path = StateFile (), tmp = path + ".new";
+	int fd = open (tmp.c_str (), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+	FILE *F = fd >= 0 ? fdopen (fd, "w") : NULL;
+	if (!F)
+	{
+		if (fd >= 0) close (fd);
+		eprintf ("[imap] cannot save %s\n", tmp.c_str ());
+		return;
+	}
+	fprintf (F, "# Neo-PostOffice IMAP state, version 1\n");
+	for (auto &kv : State)
+	{
+		const FolderState &st = kv.second;
+		fprintf (F, "F %s %lu %lu %lu %s\n", st.Hash.c_str (), (unsigned long) st.Validity,
+				 (unsigned long) st.UidNext, (unsigned long) st.Messages, kv.first.c_str ());
+		fprintf (F, "U %s\n", UidRanges (st.Uids).c_str ());
+	}
+	bool ok = fflush (F) == 0 && fsync (fileno (F)) == 0;
+	ok = (fclose (F) == 0) && ok;
+	if (!ok || rename (tmp.c_str (), path.c_str ()) != 0)
+		eprintf ("[imap] cannot save %s\n", path.c_str ());
+}
+
+// Messages kept here that are no longer known on the server. They are
+// removed when found gone, but the window does that after the mailbox was
+// saved, so a crash or kill can bring them back; and a folder that has not
+// changed is not looked at again. Only folders checked completely this time
+// are judged (and those no longer subscribed), so a lost imap.dat or a
+// folder that could not be opened costs nothing.
+void IMAP4Handler::Prune (void)
+{
+	std::set<std::string> current;
+	for (const Folder &f : Folders) current.insert (FolderHash (f.Server));
+	std::vector<std::string> stale;
+	Parent->Lock->LockR ();
+	for (MailMessage *M = (MailMessage *) Parent->Root->BNext; M && M != Parent->Root; M = (MailMessage *) M->BNext)
+	{
+		std::string hash;
+		uint32_t validity, uid;
+		if (!SplitMsgID (M->MsgID, hash, validity, uid)) continue;
+		if (!current.count (hash)) { stale.push_back (M->MsgID); continue; }
+		std::string server = ServerOf (hash);
+		if (!Checked.count (server)) continue;
+		const FolderState &st = State[server];
+		if (st.Validity != validity || !st.Uids.count (uid)) stale.push_back (M->MsgID);
+	}
+	Parent->Lock->UnlockR ();
+	for (const std::string &id : stale)
+		Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, id.c_str ());
+}
+
+// The window removes these messages, as for its own Delete button.
+void IMAP4Handler::Gone (const FolderState &st, const std::set<uint32_t> &uids)
+{
+	for (uint32_t uid : uids)
+	{
+		std::string id = MakeMsgID (st.Hash, st.Validity, uid);
+		if (Parent->Have (&id[0]))
+			Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, id.c_str ());
+	}
+}
+
+//-------------------------------------------------------------------------------
+// Reading
+//-------------------------------------------------------------------------------
+
+// Reports a failed command. A lost connection or a reply libetpan could not
+// read leaves the session unusable.
+bool IMAP4Handler::Failed (int r, const std::string &what)
+{
+	if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) Broken = true;
+	Report (what + ": " + Why (r) + ".");
+	return false;
+}
+
+// Opens a folder read-only, unless it is already open.
+bool IMAP4Handler::Examine (const std::string &server)
+{
+	if (Broken) return false;
+	if (Selected == server) return true;
+	Selected.clear ();
+	int r = mailimap_examine (Imap, server.c_str ());
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) Broken = true;
+		return false;
+	}
+	struct mailimap_selection_info *info = Imap->imap_selection_info;
+	SelValidity = info ? info->sel_uidvalidity : 0;
+	SelUidNext = info ? info->sel_uidnext : 0;
+	SelExists = info && info->sel_has_exists ? info->sel_exists : 0;
+	Selected = server;
+	return true;
+}
+
+// Text from the server as the store keeps it: LF line ends, no NUL bytes.
+static std::string local_text (const char *data, size_t len)
+{
+	std::string out;
+	out.reserve (len);
+	for (size_t i = 0; i < len; ++i)
+	{
+		char c = data[i];
+		if (c == '\r' && i + 1 < len && data[i + 1] == '\n') continue;
+		out += c ? c : ' ';
+	}
+	return out;
+}
+
+static time_t imap_time (const struct mailimap_date_time *d)
+{
+	if (!d) return 0;
+	struct tm t;
+	memset (&t, 0, sizeof (t));
+	t.tm_year = d->dt_year - 1900;
+	t.tm_mon = d->dt_month - 1;
+	t.tm_mday = d->dt_day;
+	t.tm_hour = d->dt_hour;
+	t.tm_min = d->dt_min;
+	t.tm_sec = d->dt_sec;
+	time_t utc = timegm (&t);
+	if (utc == (time_t) -1) return 0;
+	// dt_zone is the offset as written: -700 for "-0700".
+	int z = d->dt_zone < 0 ? -d->dt_zone : d->dt_zone;
+	long off = (z / 100) * 3600L + (z % 100) * 60L;
+	return d->dt_zone < 0 ? utc + off : utc - off;
+}
+
+// One message of a FETCH reply, picked apart.
+struct Fetched
+{
+	uint32_t			 Uid = 0;
+	bool				 HaveFlags = false, Seen = false, Answered = false, Flagged = false, Forwarded = false;
+	time_t				 Internal = 0;
+	const char			*Section = NULL;	// the BODY[...] data
+	size_t				 SectionLen = 0;
+	bool				 HaveSection = false;
+};
+
+static Fetched pick_apart (struct mailimap_msg_att *att)
+{
+	Fetched f;
+	for (clistiter *it = att && att->att_list ? clist_begin (att->att_list) : NULL; it; it = clist_next (it))
+	{
+		struct mailimap_msg_att_item *item = (struct mailimap_msg_att_item *) clist_content (it);
+		if (!item) continue;
+		if (item->att_type == MAILIMAP_MSG_ATT_ITEM_DYNAMIC && item->att_data.att_dyn)
+		{
+			f.HaveFlags = true;
+			clist *fl = item->att_data.att_dyn->att_list;
+			for (clistiter *k = fl ? clist_begin (fl) : NULL; k; k = clist_next (k))
+			{
+				struct mailimap_flag_fetch *ff = (struct mailimap_flag_fetch *) clist_content (k);
+				if (!ff || ff->fl_type != MAILIMAP_FLAG_FETCH_OTHER || !ff->fl_flag) continue;
+				switch (ff->fl_flag->fl_type)
+				{
+					case MAILIMAP_FLAG_SEEN: f.Seen = true; break;
+					case MAILIMAP_FLAG_ANSWERED: f.Answered = true; break;
+					case MAILIMAP_FLAG_FLAGGED: f.Flagged = true; break;
+					case MAILIMAP_FLAG_KEYWORD:
+						if (ff->fl_flag->fl_data.fl_keyword && strcasecmp (ff->fl_flag->fl_data.fl_keyword, "$Forwarded") == 0)
+							f.Forwarded = true;
+						break;
+					default: break;
+				}
+			}
+		}
+		else if (item->att_type == MAILIMAP_MSG_ATT_ITEM_STATIC && item->att_data.att_static)
+		{
+			struct mailimap_msg_att_static *st = item->att_data.att_static;
+			switch (st->att_type)
+			{
+				case MAILIMAP_MSG_ATT_UID: f.Uid = st->att_data.att_uid; break;
+				case MAILIMAP_MSG_ATT_INTERNALDATE: f.Internal = imap_time (st->att_data.att_internal_date); break;
+				case MAILIMAP_MSG_ATT_BODY_SECTION:
+					f.HaveSection = true;
+					if (st->att_data.att_body_section)
+					{
+						f.Section = st->att_data.att_body_section->sec_body_part;
+						f.SectionLen = st->att_data.att_body_section->sec_length;
+					}
+					break;
+				default: break;
+			}
+		}
+	}
+	return f;
+}
+
+// The header fields the message list needs; the rest come with the body.
+static const char *list_headers[] = {
+	"Date", "From", "Sender", "Reply-To", "To", "Cc", "Subject", "Message-ID", "In-Reply-To",
+	"References", "Newsgroups", "Content-Type", "MIME-Version", "List-Id", "X-Priority", "Importance", NULL
+};
+
+// Brings one folder up to date. False when checking must stop (Stop was
+// pressed, or the session failed); a folder that cannot be opened is
+// reported and skipped.
+bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t count, int &added)
+{
+	const size_t batch = 200;
+	FolderState &st = State[f.Server];
+	st.Hash = FolderHash (f.Server);
+
+	std::string where = count > 1 ? " (folder " + std::to_string (index + 1) + " of " + std::to_string (count) + ")" : "";
+	ShowStatus (jid, "Checking " + f.Client + where);
+	Selected.clear ();		// read it fresh
+	if (!Examine (f.Server))
+	{
+		if (Broken) return Failed (MAILIMAP_ERROR_STREAM, "The connection to " + Host + " was lost");
+		Report ("Cannot open the folder " + f.Client + " on " + Host + ": " + Why (MAILIMAP_ERROR_EXAMINE) + ".");
+		return true;
+	}
+	uint32_t validity = SelValidity, uidnext = SelUidNext, exists = SelExists;
+	if (validity == 0)
+	{
+		Report ("The IMAP server " + Host + " gives no UIDVALIDITY for " + f.Client + ", so its messages cannot be read.");
+		return true;
+	}
+	// New UIDs: everything known of the folder is out of date.
+	if (st.Validity != validity)
+	{
+		if (st.Validity) Gone (st, st.Uids);
+		st.Uids.clear ();
+		st.UidNext = st.Messages = 0;
+		st.Validity = validity;
+	}
+	if (uidnext && st.UidNext == uidnext && st.Messages == exists)
+	{
+		Checked.insert (f.Server);
+		return true;
+	}
+
+	// The messages on the server.
+	std::set<uint32_t> server;
+	if (exists > 0)
+	{
+		clist *res = NULL;
+		struct mailimap_search_key *key = mailimap_search_key_new_all ();
+		int r = key ? mailimap_uid_search (Imap, NULL, key, &res) : MAILIMAP_ERROR_MEMORY;
+		if (key) mailimap_search_key_free (key);
+		if (r != MAILIMAP_NO_ERROR) return Failed (r, "Cannot list the messages in " + f.Client) || !Broken;
+		for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+		{
+			uint32_t *u = (uint32_t *) clist_content (it);
+			if (u && *u) server.insert (*u);
+		}
+		if (res) mailimap_search_result_free (res);
+	}
+
+	std::set<uint32_t> gone;
+	for (uint32_t u : st.Uids) if (!server.count (u)) gone.insert (u);
+	if (!gone.empty ())
+	{
+		Gone (st, gone);
+		for (uint32_t u : gone) st.Uids.erase (u);
+	}
+
+	// New ones, newest first, keeping the folder in UID order: mail newer
+	// than everything known is added at the end (oldest of it first); the
+	// rest (the whole folder at the first check) is fetched newest first and
+	// added at the start.
+	uint32_t newest = st.Uids.empty () ? 0xffffffffu : *st.Uids.rbegin ();
+	std::vector<uint32_t> fresh;
+	size_t above = 0;		// fresh[0..above) are appended
+	for (uint32_t u : server)
+		if (!st.Uids.count (u) && u > newest) fresh.push_back (u);
+	above = fresh.size ();
+	for (auto it = server.rbegin (); it != server.rend (); ++it)
+		if (!st.Uids.count (*it) && *it <= newest) fresh.push_back (*it);
+
+	size_t done = 0;
+	bool all = true;
+	for (size_t b = 0, n = 0; b < fresh.size (); b += n)
+	{
+		if (Parent->ToCollector->UrgentPending) return false;
+		ServiceBodies (jid);
+		if (Broken) return false;
+		if (!Examine (f.Server))
+		{
+			if (Broken) return Failed (MAILIMAP_ERROR_STREAM, "The connection to " + Host + " was lost");
+			return true;
+		}
+		if (SelValidity != validity) return true;	// changed meanwhile: next check
+
+		// A batch is all appended or all prepended.
+		n = std::min (batch, fresh.size () - b);
+		if (b < above) n = std::min (n, above - b);
+		bool front = b >= above;
+		ShowStatus (jid, "Fetching headers in " + f.Client + ": " + std::to_string (done) + " of " +
+					std::to_string (fresh.size ()) + where);
+		JOBQ.Progress (jid, (int) (5 + 90 * done / fresh.size ()));
+
+		struct mailimap_set *set = mailimap_set_new_empty ();
+		std::set<uint32_t> asked;
+		for (size_t k = 0; k < n; ++k) { mailimap_set_add_single (set, fresh[b + k]); asked.insert (fresh[b + k]); }
+		struct mailimap_fetch_type *ft = mailimap_fetch_type_new_fetch_att_list_empty ();
+		mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_uid ());
+		mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_flags ());
+		mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_internaldate ());
+		clist *names = clist_new ();
+		for (int k = 0; list_headers[k]; ++k) clist_append (names, strdup (list_headers[k]));
+		struct mailimap_section *sec = mailimap_section_new_header_fields (mailimap_header_list_new (names));
+		mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_body_peek_section (sec));
+
+		clist *res = NULL;
+		int r = mailimap_uid_fetch (Imap, set, ft, &res);
+		mailimap_fetch_type_free (ft);
+		mailimap_set_free (set);
+		if (r != MAILIMAP_NO_ERROR)
+		{
+			if (res) mailimap_fetch_list_free (res);
+			return Failed (r, "Cannot fetch the messages in " + f.Client) || !Broken;
+		}
+
+		// Only answers to what was asked (a server may add FLAGS of others),
+		// in the order they are to be filed.
+		std::vector<Fetched> list;
+		for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+		{
+			Fetched m = pick_apart ((struct mailimap_msg_att *) clist_content (it));
+			if (!m.Uid || !asked.count (m.Uid) || !m.HaveSection) continue;
+			asked.erase (m.Uid);
+			list.push_back (m);
+		}
+		std::sort (list.begin (), list.end (), [front](const Fetched &x, const Fetched &y)
+				   { return front ? x.Uid > y.Uid : x.Uid < y.Uid; });
+
+		size_t got = 0;
+		for (const Fetched &m : list)
+		{
+			++got;
+			std::string id = MakeMsgID (st.Hash, validity, m.Uid);
+			st.Uids.insert (m.Uid);
+			if (Parent->Have (&id[0])) continue;
+
+			std::string head = local_text (m.Section ? m.Section : "", m.Section ? m.SectionLen : 0);
+			while (!head.empty () && head.back () == '\n') head.pop_back ();
+			head += '\n';
+			MailMessage *M = new MailMessage (Parent, id.c_str ());
+			if (front)
+			{
+				// Saved (and so shown after a restart) in UID order too.
+				Parent->Lock->LockRW ();
+				M->ChainToFront ();
+				Parent->Lock->UnlockRW ();
+			}
+			M->ProcessHeaders (&head[0]);
+			M->ReceiveDate = m.Internal ? m.Internal : time (NULL);
+			if (!*M->Header ("Date"))
+			{
+				char date[64];
+				struct tm tmv;
+				localtime_r (&M->ReceiveDate, &tmv);
+				strftime (date, sizeof (date), "%a, %d %b %Y %H:%M:%S %z", &tmv);
+				M->Envelope->Set (ENVELOPE_DATE, date);
+			}
+			M->Envelope->Set (ENVELOPE_GROUPS, f.Client.c_str ());
+			M->Envelope->SetInt (ENVELOPE_I_READ, m.Seen ? 1 : 0);
+			M->Envelope->SetInt (ENVELOPE_I_FLAGS, (m.Flagged ? EFLAG_FLAGGED : 0) | (m.Answered ? EFLAG_REPLIED : 0) |
+								 (m.Forwarded ? EFLAG_PASSED : 0));
+			M->AtFront = front;
+			Parent->Deliver (M);
+			M->AtFront = false;
+			++added;
+			// Older mail is shown when the folder is redrawn after the batch;
+			// the window adds announced messages at the end of the list.
+			if (front) continue;
+
+			Parent->Lock->LockRW ();
+			for (int j = 0; j < M->Subscribers->Count (); ++j)
+			{
+				ViewListNode *VLN = M->Subscribers->Get (j);
+				if (VLN) Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, VLN->View->Name, M->MsgID);
+			}
+			Parent->Lock->UnlockRW ();
+		}
+		// The data the list pointed into.
+		if (res) mailimap_fetch_list_free (res);
+		// Not sent: deleted meanwhile, or the server could not give it.
+		if (!asked.empty ()) all = false;
+		done += got;
+
+		// Save as we go, so that a crash does not fetch everything again.
+		Parent->SaveMailBox ();
+		SaveState ();
+		if (got) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	}
+	if (all)
+	{
+		st.UidNext = uidnext;
+		st.Messages = exists;
+	}
+	Checked.insert (f.Server);
+	return true;
+}
+
+// Fetches the bodies the user is waiting for, during a check.
+void IMAP4Handler::ServiceBodies (int jid)
+{
+	ITCMessage *M;
+	while (!Broken && Parent->ToCollector->PriorityPending && (M = Parent->ToCollector->GetNextMessage (CLASS_GETBODY)))
+	{
+		FetchBody (M->Message->Get (0), jid);
+		Parent->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get (0));
+		delete M;
+	}
+}
+
+// libetpan reports the bytes of a large reply as they come in. Shown for a
+// message being opened, a few times a second.
+void IMAP4Handler::BodyProgress (size_t current, size_t maximum, void *context)
+{
+	IMAP4Handler *H = (IMAP4Handler *) context;
+	if (!H || H->ProgressJob < 0 || maximum < 65536) return;
+	struct timespec now;
+	clock_gettime (CLOCK_MONOTONIC, &now);
+	double t = now.tv_sec + now.tv_nsec / 1e9;
+	if (t - H->ProgressShown < 0.3 && current < maximum) return;
+	H->ProgressShown = t;
+	char text[96];
+	snprintf (text, sizeof (text), "Fetching the message text: %.1f of %.1f MB", current / 1048576.0, maximum / 1048576.0);
+	JOBQ.Progress (H->ProgressJob, (int) (100.0 * current / maximum));
+	H->ShowStatus (H->ProgressJob, text);
+}
+
+// Fetches a message's text within the open session. True if the message
+// has its text (now or already).
+bool IMAP4Handler::FetchBody (const char *msgid, int jid)
+{
+	MailMessage *X = Parent->Find ((char *) msgid);
+	if (!X) return true;
+	bool have = X->Flags & MMFL_HAVEBODY;
+	if (have && !X->CaptureRaw) return true;
+
+	std::string hash, server;
+	uint32_t validity = 0, uid = 0;
+	if (SplitMsgID (msgid, hash, validity, uid)) server = ServerOf (hash);
+	if (server.empty () || State[server].Validity != validity || !State[server].Uids.count (uid))
+	{
+		if (!have) Report ("This message is no longer on the IMAP server, so its text cannot be fetched.");
+		return have;
+	}
+	if (!Examine (server))
+	{
+		if (!Broken) Report ("Cannot open the folder of this message on " + Host + ": " + Why (MAILIMAP_ERROR_EXAMINE) + ".");
+		else Report ("The connection to " + Host + " was lost.");
+		return have;
+	}
+	if (SelValidity != validity)
+	{
+		if (!have) Report ("This message is no longer on the IMAP server, so its text cannot be fetched.");
+		return have;
+	}
+
+	ShowStatus (jid, "Fetching the message text");
+	struct mailimap_set *set = mailimap_set_new_single (uid);
+	struct mailimap_fetch_type *ft = mailimap_fetch_type_new_fetch_att_list_empty ();
+	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_uid ());
+	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_body_peek_section (mailimap_section_new (NULL)));
+	clist *res = NULL;
+	ProgressJob = jid;
+	ProgressShown = 0;
+	int r = mailimap_uid_fetch (Imap, set, ft, &res);
+	ProgressJob = -1;
+	mailimap_fetch_type_free (ft);
+	mailimap_set_free (set);
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		if (res) mailimap_fetch_list_free (res);
+		Failed (r, "The IMAP server did not send the message");
+		return have;
+	}
+
+	bool found = false;
+	std::string text;
+	for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+	{
+		Fetched m = pick_apart ((struct mailimap_msg_att *) clist_content (it));
+		if (m.Uid != uid || !m.HaveSection) continue;
+		text = local_text (m.Section ? m.Section : "", m.Section ? m.SectionLen : 0);
+		found = true;
+		break;
+	}
+	if (res) mailimap_fetch_list_free (res);
+	if (!found)
+	{
+		if (!have) Report ("This message was deleted on the IMAP server, so its text cannot be fetched.");
+		return have;
+	}
+
+	X = Parent->Find ((char *) msgid);		// still here?
+	if (!X) return true;
+	if (X->CaptureRaw)
+	{
+		*X->CaptureRaw = text;
+		if (have) return true;
+	}
+	// The whole header replaces the few fields fetched for the list.
+	std::string *capture = X->CaptureRaw;
+	X->CaptureRaw = NULL;
+	std::vector<char> buf (text.begin (), text.end ());
+	buf.push_back (0);
+	X->ProcessMessage (buf.data ());
+	X->CaptureRaw = capture;
+	X->StoreFile ();
+	return true;
+}
+
+void IMAP4Handler::GetBody (char *msgid)
+{
+	MailMessage *X = Parent->Find (msgid);
+	if (!X) return;
+	bool have = X->Flags & MMFL_HAVEBODY;
+	if (have && !X->CaptureRaw) return;
+	if (!StateLoaded) LoadState ();
+	// Only the original for a copy: there is a local one to fall back on.
+	Quiet = have;
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (Session (jid))
+	{
+		if (FetchBody (msgid, jid) && !have && !Broken) LastError.clear ();
+		// The session stays open for the next message; it is closed when
+		// idle for a few minutes, and before each check.
+		if (Broken) EndSession (false);
+	}
+	JOBQ.EndJob (jid);
+	Quiet = false;
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+}
+
 void IMAP4Handler::CheckGroup (const char * /*group*/)
 {
 	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Progress (jid, 1);
+	if (!StateLoaded) LoadState ();
 	if (Session (jid) && ListFolders (jid))
 	{
 		SyncFolders ();
-		LastError.clear ();
-		ShowStatus (jid, std::to_string (Folders.size ()) + (Folders.size () == 1 ? " folder" : " folders"));
+		int added = 0;
+		bool complete = true;
+		Checked.clear ();
+		for (size_t i = 0; i < Folders.size (); ++i)
+		{
+			if (!SyncFolder (jid, Folders[i], i, Folders.size (), added) || Broken) { complete = false; break; }
+		}
+		ServiceBodies (jid);
+		Prune ();
+		SaveState ();
+		Parent->SaveMailBox ();
+		if (complete && !Broken) LastError.clear ();
+		ShowStatus (jid, added ? std::to_string (added) + (added == 1 ? " new message" : " new messages")
+							   : std::string ("No new messages"));
+		Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
 	}
-	// Step 1 keeps no connection open between checks.
-	EndSession (true);
+	if (Broken || Parent->ToCollector->UrgentPending) EndSession (false);
 	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 }
 
 #endif // PO_HAVE_LIBETPAN

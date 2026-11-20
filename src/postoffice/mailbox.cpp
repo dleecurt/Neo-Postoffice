@@ -690,6 +690,19 @@ static std::string folder_view_name (const std::string &folder)
     return out.empty() ? "_" : out;
 }
 
+// The filter pattern that matches exactly this folder name. "*" and "?" are
+// escaped; a comma (the filter list's separator) is matched by "?".
+static std::string folder_pattern (const std::string &value)
+{
+    std::string pattern;
+    for (char c : value)
+    {
+        if (c == '*' || c == '?') pattern += '\\';
+        pattern += c == ',' ? '?' : c;
+    }
+    return pattern;
+}
+
 bool MailBox::EnsureFolder (const std::string &value)
 {
     std::string name = folder_view_name (value);
@@ -697,15 +710,12 @@ bool MailBox::EnsureFolder (const std::string &value)
 
     // New folders get a filter that takes exactly the messages whose folder
     // field (ENVELOPE_GROUPS) is value, and are saved with the settings at
-    // exit. The filter list is separated by commas, so a comma in the name
-    // is matched by the wildcard '?'.
+    // exit.
     Var *box = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Name);
     Var *F = box->Get_collection ("folders")->Get_collection (name.c_str());
     if (!*F->Get_char ("filters"))
     {
-        std::string pattern = value;
-        for (char &c : pattern) if (c == ',') c = '?';
-        F->Set_char ("filters", ("7,glob,accept,0," + pattern).c_str());
+        F->Set_char ("filters", ("7,glob,accept,0," + folder_pattern (value)).c_str());
         F->Set_int ("autofolder", 1);
     }
     CreateMailView (name.c_str());
@@ -721,7 +731,8 @@ bool MailBox::IsAutoFolder (const char *name)
     // Made before the marker existed: it has the exact-match filter.
     std::string pattern = name;
     for (char &c : pattern) if (c == ',') c = '?';
-    return strcmp (F->Get_char ("filters"), ("7,glob,accept,0," + pattern).c_str()) == 0;
+    return strcmp (F->Get_char ("filters"), ("7,glob,accept,0," + pattern).c_str()) == 0 ||
+           strcmp (F->Get_char ("filters"), ("7,glob,accept,0," + folder_pattern (name)).c_str()) == 0;
 }
 
 void MailBox::CreateMailView (const char *name)

@@ -165,22 +165,8 @@ int MailView::ProcessRules (MailMessage *M)
 	}
 	if (result!=0)
 	{
-		MailViewNode *N = new MailViewNode (M, this);
+		Associate (M);
 		Lock->LockRW();
-		if (Last)
-		{
-			N->Next = NULL;
-			N->Prev = Last;
-			Last->Next = N;
-			Last = N;
-		}
-		else
-		{
-			N->Next = NULL;
-			N->Prev = NULL;
-			First = Last = N;
-		}
-		++_Count;
 		++NewCount;
 		Lock->UnlockRW();
 	}
@@ -260,11 +246,24 @@ int MailView::ProcessScore (MailMessage *M)
 	return (result);
 }
 
+// Adds the message at the end, or at the start for a message marked
+// AtFront (older mail fetched after newer, by IMAP).
 void MailView::Associate (MailMessage *M)
 {
 	MailViewNode *N = new MailViewNode (M, this);
 	Lock->LockRW();
-	if (Last)
+	if (M->AtFront && First)
+	{
+		N->Prev = NULL;
+		N->Next = First;
+		First->Prev = N;
+		First = N;
+		// Every position moved up by one.
+		CacheLock->LockOnce();
+		_CachePos = -2;
+		CacheLock->UnlockOnce();
+	}
+	else if (Last)
 	{
 		N->Next = NULL;
 		N->Prev = Last;

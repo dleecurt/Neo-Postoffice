@@ -139,7 +139,8 @@ named after its SHA-256 fingerprint). Use it for a local or company CA:
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
 the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
-It is not finished: **step 1 of 6** is done.
+It is not finished: **steps 1 and 2 of 6** are done, so mail can be read
+but changes are not sent back to the server yet.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
@@ -148,7 +149,24 @@ network, without encryption; certificates are checked as for POP3
 name), with no way to
 turn that off. It logs in with the password or the first line printed
 by the password command, and shows the folders you subscribe to on the
-server (and always the inbox) as its folders. Messages are not read yet.
+server (and always the inbox) as its folders.
+
+Reading: each check brings every folder up to date. The first check of a
+folder fetches the headers of all its messages, newest first, so recent
+mail shows up while older mail is still coming in; later checks fetch
+only new messages, remove those deleted on the server, and skip folders
+that have not changed. A message's text is fetched when you open it
+(with a progress count for large ones), even in the middle of a check,
+and kept here; opening it does not mark it read on the server. The read
+state and flags (flagged, answered, forwarded) are taken from the server
+when a message first arrives. **Stop** ends a check at once; the next
+check carries on where it stopped. What is known of each folder is kept
+in `imap.dat` in the mailbox's directory.
+
+Not yet (steps 3 to 6): reading a message, flagging it or deleting it
+here changes only the copy here, not the server; moving, copying to the
+server, IDLE and folder management come later. The message list shows
+at most the newest 1024 messages of a folder (as for every mailbox type).
 
 An IMAP4 mailbox from PostOffice 0.7, which has no encryption setting,
 uses STARTTLS on its old port rather than sending the password in the
@@ -439,8 +457,11 @@ See the git history for details. In summary:
   deletion only after messages are saved. Deletions are sent in one
   session, and messages expired as headers leave the list.
 - The old IMAP4 client was removed (it could not work); a new one is
-  being built on libetpan (step 1: connecting, logging in and folders),
-  and IMAP4 mailboxes keep their settings.
+  being built on libetpan (step 1: connecting, logging in and folders;
+  step 2: reading mail), and IMAP4 mailboxes keep their settings.
+- Folder filters made for a mailbox's folders now escape `*` and `?` in
+  the folder name, so a folder called `Lists*` no longer takes the
+  messages of `Lists2`.
 - The settings file and `uidl.dat` are private (mode 600). Long error
   messages are wrapped. Changing mailbox settings no longer leaves the
   window pointing at a deleted mailbox (a crash when its next message
@@ -492,6 +513,8 @@ See the git history for details. In summary:
 Found while modernizing and left for later:
 
 - NNTP has no TLS support.
+- The message list shows at most the newest 1024 messages of a folder
+  (a limit kept from PostOffice 0.7, to keep the window responsive).
 - The built-in SMTP client and IMAP do not support OAuth2 logins.
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.
