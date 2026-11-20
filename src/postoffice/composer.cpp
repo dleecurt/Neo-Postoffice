@@ -4,6 +4,10 @@
 #include "helpdesk.h"
 #include "encode.h"
 #include "wordlist.h"
+#include <random>
+#include <string>
+#include <ctype.h>
+#include <unistd.h>
 #include "wordlist.h"
 #include "buffer.h"
 #include "formatter.h"
@@ -402,18 +406,48 @@ void cb_discardmessage (Fl_Window */*b*/, Composer_Window *W)
 	delete (W);
 }
 
-char *make_msgid (void);
-char *make_msgid (void)
+// A Message-ID (RFC 5322 3.6.4) on the sender's domain, so it is unique to
+// it and does not give away (or make up) the machine's name.
+char *make_msgid (const char *email);
+char *make_msgid (const char *email)
 {
-	unsigned long x,y;
-	const char *hostname = getenv ("HOSTNAME");
-	if (!hostname) hostname = "localhost";
-	if (strlen (hostname) < 2) hostname = "localhost";
-	char *result = new char[32+strlen (hostname)];
-	x = time (NULL);
-	y = rand() & 0xffffff;
-	sprintf (result, "<PstOfc.%08x.%06x@%s>", (unsigned int) x, (unsigned int) y, hostname);
+	std::string domain;
+	if (email)
+	{
+		const char *at = strrchr (email, '@');
+		if (at)
+			for (const char *c = at + 1; *c && *c != '>' && *c != ' ' && *c != '\t'; ++c) domain += *c;
+	}
+	if (domain.empty ())
+	{
+		char host[256] = "";
+		if (gethostname (host, sizeof (host) - 1) == 0 && strchr (host, '.')) domain = host;
+		else domain = "localhost.localdomain";
+	}
+	std::random_device rd;
+	unsigned long long r = ((unsigned long long) rd () << 32) | rd ();
+	char *result = new char[64 + domain.size ()];
+	sprintf (result, "<PstOfc.%08x.%016llx@%s>", (unsigned int) time (NULL), r, domain.c_str ());
 	return result;
+}
+
+// The Date header (RFC 5322 3.3): English names whatever the locale, and
+// the offset from UTC as a number (the old code always wrote the summer
+// time zone name, an hour off in winter).
+static std::string rfc5322_date (time_t t)
+{
+	static const char *days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+	static const char *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+									"Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+	struct tm tm;
+	localtime_r (&t, &tm);
+	long off = tm.tm_gmtoff / 60;
+	char sign = off < 0 ? '-' : '+';
+	if (off < 0) off = -off;
+	char buf[64];
+	snprintf (buf, sizeof (buf), "%s, %d %s %04d %02d:%02d:%02d %c%02ld%02ld", days[tm.tm_wday], tm.tm_mday,
+			  months[tm.tm_mon], tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec, sign, off / 60, off % 60);
+	return buf;
 }
 
 void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
@@ -423,8 +457,6 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	WordList *HdrValues;
 	WordList *RCPT = new WordList;
 	time_t ti;
-	char *ct;
-	WordList WD;
 //	char emailto[256];
 //	char nameto[256];
 	char buf[512];
@@ -433,23 +465,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	char *mid;
 	char *ref;
 
-	// Build a clean data-string out of ctime()
-
 	ti = time (NULL);
-	ct = strdupp (ctime (&ti));
-	ct[3] = ct[7] = ct[10] = ct[19] = ct[24] = '/';
-	WD.MakeGeneric (ct, '/');
-	delete[] ct;
-
-	// Create a new message for the OutBox
-
-	MailMessage *M = new MailMessage (OUTBOX, mid = make_msgid());
-	HdrNames = M->HeaderNames;
-	HdrValues = M->HeaderValues;
-	
-//	int crsrpos = 0;
-//	char *tmp;
-	
 
 	const char *pers_from = NULL;
 	const char *pers_email = NULL;
@@ -459,7 +475,9 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 
 	// Get the right headers for the personality that the user selected
 	
-	char *pers_val = (char *) compose_ch_personality->text (compose_ch_personality->value());
+	// This window's identity (compose_ch_personality is the last window's).
+	const char *pers_val = W->ch_personality->text (W->ch_personality->value());
+	if (!pers_val) pers_val = "";
 	WordList *X = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("identities");
 	for (i=0;i<X->Count;++i)
 	{
@@ -474,7 +492,17 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 		}
 	}
 
-	if (!sig) sig = strdupp (".sigs are for the weak\n");
+	// Create a new message for the OutBox
+
+	MailMessage *M = new MailMessage (OUTBOX, mid = make_msgid (pers_email));
+	HdrNames = M->HeaderNames;
+	HdrValues = M->HeaderValues;
+	
+//	int crsrpos = 0;
+//	char *tmp;
+	
+
+	if (!sig) sig = strdupp ("");
 
 	// Actually I should tell the user to sod off and fix his prefs, but this'll work for now
 
@@ -485,8 +513,16 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	char *body = new char[W->in_message->SaveSize()+16+strlen (sig)];
 	W->in_message->SaveTo (body); // Store the edit buffer inside the body
 
-	strcat (body, "-- \n");
-	strcat (body, sig);
+	// The signature separator only before a signature (RFC 3676 4.3).
+	bool has_sig = false;
+	for (const char *c = sig; *c; ++c) if (!isspace ((unsigned char) *c)) { has_sig = true; break; }
+	if (has_sig)
+	{
+		size_t n = strlen (body);
+		if (n && body[n - 1] != '\n' && body[n - 1] != '\r') strcat (body, "\n");
+		strcat (body, "-- \n");
+		strcat (body, sig);
+	}
 	delete[] sig;
 
 	if (strlen (W->msgid) > 0) // W->msgid contains the original message's message-id if the message is a reply
@@ -523,9 +559,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	// Add the Date header cleanly
 
 	HdrNames->Add ("Date");
-	char *daymonth = WD.Get(2);
-	if (daymonth[0]==' ') ++daymonth;
-	snprintf (buf, sizeof (buf), "%s, %s %s %s %s %s", WD.Get(0), daymonth, WD.Get(1), WD.Get(4), WD.Get(3), tzname[1]);
+	snprintf (buf, sizeof (buf), "%s", rfc5322_date (ti).c_str ());
 	HdrValues->Add (buf);
 	M->Envelope->Set (ENVELOPE_DATE, buf);
 
@@ -600,7 +634,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	}
 
 	HdrNames->Add ("X-Mailer");
-	HdrValues->Add ( __VERSIONSTRING "(by " __BUILDINFO ")" );
+	HdrValues->Add ( __VERSIONSTRING " (by " __BUILDINFO ")" );
 
 	// This should become a lot more niffty. Right now I just add one text/plain part.
 
