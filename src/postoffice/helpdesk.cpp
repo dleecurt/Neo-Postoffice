@@ -5043,6 +5043,10 @@ Fl_Menu_Item menu_ch_prefs_collection[] = {
  {0,0,0,0,0,0,0,0,0}
 };
 
+Fl_Group *gr_prefs_idle_row=(Fl_Group *)0;
+
+Fl_Check_Button *ck_prefs_idle=(Fl_Check_Button *)0;
+
 Fl_Int_Input *in_prefs_expire_onserver_received=(Fl_Int_Input *)0;
 
 Fl_Int_Input *in_prefs_expire_onserver_notreceived=(Fl_Int_Input *)0;
@@ -5680,6 +5684,23 @@ Fl_Window* make_prefs_window() {
               } // Fl_Button* o
               gr_prefs_collection_row->end();
             } // Fl_Group* gr_prefs_collection_row
+            { gr_prefs_idle_row = new Fl_Group(35, 255, 565, 20);
+              gr_prefs_idle_row->hide();
+              { Fl_Button* o = new Fl_Button(35, 255, 220, 20, "New mail");
+                o->box(FL_NO_BOX);
+                o->labelsize(12);
+                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+              } // Fl_Button* o
+              { ck_prefs_idle = new Fl_Check_Button(315, 255, 285, 20, "Push new mail at once (IMAP IDLE)");
+                ck_prefs_idle->tooltip("Keeps a connection open on the Inbox so new mail shows at once, when the serv"
+"er offers IDLE. Other folders are checked at the interval. Off: the Inbox too "
+"is checked at the interval only.");
+                ck_prefs_idle->down_box(FL_DOWN_BOX);
+                ck_prefs_idle->labelsize(12);
+                ck_prefs_idle->callback((Fl_Callback*)cb_prefs_idle);
+              } // Fl_Check_Button* ck_prefs_idle
+              gr_prefs_idle_row->end();
+            } // Fl_Group* gr_prefs_idle_row
             { Fl_Group* o = new Fl_Group(35, 300, 565, 20);
               { Fl_Button* o = new Fl_Button(35, 300, 270, 20, "Expire received messages on server after");
                 o->box(FL_NO_BOX);

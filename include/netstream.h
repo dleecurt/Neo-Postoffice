@@ -50,6 +50,9 @@ public:
 	long			 ReadSome (void *buf, size_t n);
 	// Bytes read from the server and not yet taken.
 	size_t			 Buffered (void) const { return in.size (); }
+	// Bytes that can be read without waiting: in our buffer, or decrypted
+	// by OpenSSL and not yet taken (the socket shows neither as readable).
+	size_t			 Pending (void) const;
 	int				 Fd (void) const { return fd; }
 
 	const std::string &Error (void) const { return error; }

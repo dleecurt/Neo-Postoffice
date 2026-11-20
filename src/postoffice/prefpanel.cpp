@@ -142,6 +142,15 @@ void certs_refresh (void);
 
 // POP3 and IMAP share the server fields (host, port, encryption, login,
 // CA file); only the labels and default ports differ.
+// Push on or off. Handlers keep a copy of their settings, so the
+// mailboxes are made again at Apply for this to take effect at once.
+void cb_prefs_idle (Fl_Check_Button *b, void *)
+{
+	if (!PREFS_CURRENTBOX) return;
+	PREFS_CURRENTBOX->Set_char ("idle", (char *) (b->value () ? "Y" : "N"));
+	PREFS_MBOX_CHANGE = 1;
+}
+
 static void server_fields_for (bool imap)
 {
 	lb_prefs_protocol_pop3_host->label (imap ? "IMAP Host" : "POP3 Host");
@@ -304,12 +313,24 @@ void func_view_protocol (void)
 		ch_prefs_collection->value (PREFS_CURRENTBOX->Get_int ("collection"));
 		// Mailboxes kept in local files can have a command that fetches
 		// their mail; the collection method only applies to servers.
+		gr_prefs_idle_row->hide ();
 		if (val == 3 || val == 5 || val == 6)
 		{
 			in_prefs_fetchcmd->value (PREFS_CURRENTBOX->Get_char ("fetchcmd"));
 			gr_prefs_collection_row->hide ();
 			gr_prefs_fetchcmd->show ();
 		}
+#ifdef PO_HAVE_LIBETPAN
+		else if (val == 4)
+		{
+			// IMAP: bodies always come when opened; instead, push (IDLE),
+			// on unless set to "N".
+			gr_prefs_fetchcmd->hide ();
+			gr_prefs_collection_row->hide ();
+			ck_prefs_idle->value (strcasecmp (PREFS_CURRENTBOX->Get_char ("idle"), "N") != 0);
+			gr_prefs_idle_row->show ();
+		}
+#endif
 		else
 		{
 			gr_prefs_fetchcmd->hide ();

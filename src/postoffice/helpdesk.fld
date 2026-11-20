@@ -1429,6 +1429,19 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 code0 {xloc(o, "collection_method");}
               }
             }
+            Fl_Group gr_prefs_idle_row {open
+              xywh {35 255 565 20} hide
+            } {
+              Fl_Button {} {
+                label {New mail}
+                xywh {35 255 220 20} box NO_BOX labelsize 12 align 20
+              }
+              Fl_Check_Button ck_prefs_idle {
+                label {Push new mail at once (IMAP IDLE)}
+                callback cb_prefs_idle
+                tooltip {Keeps a connection open on the Inbox so new mail shows at once, when the server offers IDLE. Other folders are checked at the interval. Off: the Inbox too is checked at the interval only.} xywh {315 255 285 20} down_box DOWN_BOX labelsize 12
+              }
+            }
             Fl_Group {} {open
               xywh {35 300 565 20}
             } {

@@ -27,6 +27,11 @@ public:
 	virtual void			 DeleteMessage (char *);
 	// The original of a message moved to another mailbox, now stored there.
 	virtual void			 RemoveAfterTransfer (char *msgid) { DeleteMessage (msgid); }
+	// Called a few times a second while the mailbox thread has nothing to
+	// do (IMAP IDLE). A handler that keeps its connection open on purpose
+	// says so, and the thread does not close it when idle.
+	virtual void			 Idle (void) {}
+	virtual bool			 KeepsConnection (void) { return false; }
 	bool					 UserCheck = false;	// this check was asked for (not scheduled)
 	virtual void			 Expire (void);
 	virtual int				 PostMessage (WordList *, MailMessage *);
@@ -125,6 +130,9 @@ public:
 	bool					 CanMove (void) { return true; }
 	void					 MoveMessage (char *, const char *);
 	bool					 DeliverRaw (const std::string &, const char *, const std::string &, std::string &);
+	// Push (step 5): IDLE on the Inbox while nothing else is going on.
+	void					 Idle (void);
+	bool					 KeepsConnection (void);
 
 	// A server folder (one LSUB/LIST line) and its name in the client.
 	struct Folder
@@ -186,6 +194,16 @@ private:
 	};
 	std::vector<Op>			 Ops;
 	std::map<std::string, std::string> SpecialCache;	// "Trash" -> server name, this session
+	// Push: IDLE, and getting back after the connection was lost.
+	bool					 Idling = false;
+	time_t					 IdleStarted = 0;
+	bool					 Dropped = false;	// lost while pushing: reconnect quietly
+	time_t					 DownSince = 0, NextTry = 0;
+	int						 Tries = 0;
+	bool					 ToldDown = false;
+	std::string				 DownWhy;
+	bool					 Qresync = false;	// QRESYNC enabled in this session
+	bool					 PushBegun = false;	// the first Idle() call has been
 	bool					 Broken = false;	// the session failed: stop using it
 	std::set<std::string>	 Checked;		// folders fully checked by this check
 	int						 ProgressJob = -1;	// job shown while a body comes in
@@ -202,7 +220,13 @@ private:
 	bool					 SyncFolder (int jid, const Folder &, size_t index, size_t count, int &added);
 	bool					 Examine (const std::string &server);
 	bool					 Select (const std::string &server);
-	bool					 SyncFlags (const Folder &, FolderState &, uint64_t since, int &changed);
+	bool					 SyncFlags (const Folder &, FolderState &, uint64_t since, int &changed,
+										std::set<uint32_t> &vanished);
+	bool					 PushWanted (void);
+	bool					 StartIdle (void);
+	void					 StopIdle (void);
+	void					 Lost (const std::string &why = "");
+	void					 QuickSync (int jid);
 	bool					 QueueFlag (const char *msgid, char letter, bool on);
 	bool					 PushPending (int jid);
 	void					 PushQuietly (void);

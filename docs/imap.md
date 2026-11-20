@@ -57,9 +57,7 @@ as `.`). Folders marked `\Noselect` or `\NonExistent` are not shown.
    step 4.)
 4. **Done: changes on the server.** See *Deleting, moving and storing*
    below.
-5. **New mail and speed:** a connection kept open with `IDLE`, falling
-   back to the interval; `CONDSTORE`/`QRESYNC` for quick resyncs of large
-   folders; reconnecting after a dropped connection.
+5. **Done: push and speed.** See *Push* below.
 6. **Folder management:** `CREATE`, `RENAME`, `DELETE`, `SUBSCRIBE`.
 
 ## Reading
@@ -194,6 +192,51 @@ change made here. The window starts a check of the target after a copy;
 the outbox does after a sent copy. A message the server refuses is
 renamed `*.failed` and reported.
 
+## Push
+
+Decided with the project's owner: IDLE on the Inbox only (other folders
+at the interval); a per-mailbox setting, on by default (`idle`, "N" for
+off); a lost connection is made again quietly, and the user is told once
+if it is still down after 10 minutes.
+
+The mailbox thread polls its queue every 15 ms; while it has nothing to
+do it now calls the handler's `Idle()` about three times a second, and
+does not close an idle connection the handler keeps open on purpose
+(`KeepsConnection()`: push on, and the server offers IDLE, or a
+reconnect is pending). For IMAP, `Idle()`:
+
+- starts push by itself once after the program starts (as a reconnect
+  that has not happened yet), so the Inbox is pushed even with no timer;
+- with an open session not in IDLE (after a check, a message opened, a
+  flag changed): `EXAMINE` the Inbox and `IDLE`;
+- in IDLE: looks for data without waiting, on the socket (`poll`) and in
+  the buffers that hide it from the socket (libetpan's read buffer and
+  OpenSSL's decrypted bytes, `NetStream::Pending`). Data: `DONE`, the
+  Inbox is brought up to date as in a check (flags, removals, new
+  messages), and `IDLE` again. After 10 minutes without data: `DONE` and
+  `IDLE` again (servers end IDLE after 30 minutes, routers drop quiet
+  connections, and a dead connection shows up here);
+- any other work ends IDLE first (`Session()` sends `DONE`). A check
+  closes the connection and makes a new one, as for every mailbox; push
+  starts again after it. **Stop** closes it and push waits for the next
+  check;
+- a connection lost while pushing (an error on `DONE`, a dropped socket)
+  is made again after 10 s, 30 s, 60 s, 120 s and then every 5 minutes,
+  quietly; once back, the queued changes and the spool go out and the
+  Inbox is brought up to date. After 10 minutes down, one message says
+  since when and why. With push on, a timer check that cannot connect
+  joins this instead of showing an error; a check the user starts shows
+  its error at once.
+
+**Faster checks of changed folders.** With QRESYNC (enabled after
+logging in), the flag read of a changed folder is `UID FETCH 1:* (UID
+FLAGS) (CHANGEDSINCE n VANISHED)`, which also names the messages removed
+since. New messages: `UID SEARCH UID next:*` (the UIDs above the last one
+known; the server answers `n:*` with at least its highest UID, which is
+left out). If the known UIDs, less the removed ones, plus the new ones
+make the folder's count, that is the list; otherwise (no QRESYNC and
+something removed, or the first check) all UIDs are listed as before.
+
 ## Not planned yet
 
 - `AUTHENTICATE` (SASL) and OAuth2 (`XOAUTH2`/`OAUTHBEARER`). libetpan
@@ -256,6 +299,18 @@ with 1.9.4:
 | Server without MOVE: move, and Delete | `UID COPY` + `\Deleted` + `UID EXPUNGE` |
 | Message sent with *Save sent mail to* set | `APPEND Sent (\Seen)` with the headers as sent |
 | Message sent with the IMAP server down | Copy kept in the spool; stored at the next check |
+
+Step 5, against mox (IDLE, CONDSTORE, QRESYNC), with libetpan 1.10.1:
+
+| Case | Result |
+|---|---|
+| Program started, no check pressed (interval 0) | Connected by itself, `ENABLE QRESYNC`, Inbox brought up to date, `IDLE` |
+| A message delivered to the Inbox by another client | Shown about a second later: `CHANGEDSINCE ... VANISHED`, `UID SEARCH UID n:*`, the header fetched, `IDLE` again |
+| A flag set and a message expunged by another client | Both shown at once; the removal from VANISHED, no full UID listing |
+| A message opened during IDLE | `DONE`, the body fetched, `\Seen` stored, `IDLE` again |
+| Server stopped during IDLE | No dialog; back by itself 25 seconds after the server returned, with the mail that came meanwhile |
+| Program started with the server down, left for 10 minutes | Quiet at the start; one message at 10 minutes; back by itself when the server returned, no second message |
+| 10 minutes in IDLE with no news | `DONE` and `IDLE` again |
 
 Not tested yet: Dovecot, Cyrus, Gmail and other providers. Reports are
 welcome.

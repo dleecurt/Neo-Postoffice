@@ -139,9 +139,9 @@ named after its SHA-256 fingerprint). Use it for a local or company CA:
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
 the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
-It is not finished: **steps 1 to 4 of 6** are done: mail is read; read
-state, flags, deletes and moves go to the server; IDLE and folder
-management come next.
+It is not finished: **steps 1 to 5 of 6** are done: mail is read and
+pushed; read state, flags, deletes and moves go to the server; folder
+management comes next.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
@@ -183,8 +183,24 @@ reached. Messages put into an IMAP mailbox from elsewhere wait in its
 `spool` directory, safely on disk, until the server has them; one the
 server refuses is kept there as `*.failed`.
 
-Not yet (steps 5 and 6): IDLE (new mail without waiting for the
-interval) and creating, renaming or deleting folders.
+Push: new mail in the Inbox (and flag changes and removals there) shows
+at once, without waiting for the interval, on servers that offer IDLE.
+The connection stays open on the Inbox while nothing else is going on;
+other folders are brought up to date at the interval checks. Config →
+Mailboxes → *New mail: Push new mail at once* turns it off. If the
+connection is lost (the computer slept, the network changed, the server
+restarted), it is made again quietly, after 10 seconds, then 30, 60, 120
+and every 5 minutes; changes made meanwhile are sent when it is back.
+You are told once if the server is still out of reach after 10 minutes.
+With push on, checks on the interval that cannot connect are quiet in
+the same way; a check you start says what is wrong at once.
+
+Large folders: on servers with QRESYNC (Dovecot, Cyrus, mox, Fastmail)
+a changed folder's removed messages come with its flag changes; on
+others the messages of a folder are listed in full only when its count
+shows that some were removed.
+
+Not yet (step 6): creating, renaming or deleting folders.
 
 The message list shows the newest 1024 messages of a folder, for every
 mailbox type; Config → Style → *Message list* changes that (0 shows them
@@ -488,8 +504,9 @@ See the git history for details. In summary:
 - The old IMAP4 client was removed (it could not work); a new one is
   being built on libetpan (step 1: connecting, logging in and folders;
   step 2: reading mail; step 3: read state and flags both ways; step 4:
-  delete to the Trash, moves and copies, sent mail to the Sent folder),
-  and IMAP4 mailboxes keep their settings.
+  delete to the Trash, moves and copies, sent mail to the Sent folder;
+  step 5: push with IDLE, quiet reconnecting, QRESYNC), and IMAP4
+  mailboxes keep their settings.
 - Move to folder, Copy to folder and dragging messages work for IMAP
   folders too (they were for Maildir and MH).
 - The flagged, replied and forwarded flags of messages are kept in the

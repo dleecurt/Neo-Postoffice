@@ -182,6 +182,10 @@ extern Fl_Input *in_prefs_fetchcmd;
 extern Fl_Group *gr_prefs_collection_row;
 extern void cb_prefs_mailbox_flags(Fl_Choice*, void*);
 extern Fl_Choice *ch_prefs_collection;
+extern Fl_Group *gr_prefs_idle_row;
+#include <FL/Fl_Check_Button.H>
+extern void cb_prefs_idle(Fl_Check_Button*, void*);
+extern Fl_Check_Button *ck_prefs_idle;
 #include <FL/Fl_Int_Input.H>
 extern void cb_prefs_mailbox_flags_b(Fl_Int_Input*, void*);
 extern Fl_Int_Input *in_prefs_expire_onserver_received;

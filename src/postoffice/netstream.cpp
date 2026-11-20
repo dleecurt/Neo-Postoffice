@@ -324,3 +324,10 @@ bool NetStream::Write (const std::string &data)
 	}
 	return true;
 }
+
+size_t NetStream::Pending (void) const
+{
+	size_t n = in.size ();
+	if (ssl) n += (size_t) SSL_pending (ssl);
+	return n;
+}

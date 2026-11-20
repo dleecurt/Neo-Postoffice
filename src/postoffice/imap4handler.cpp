@@ -37,6 +37,16 @@
 // with APPEND by this mailbox's thread, so a move never loses a message and
 // the server may be away meanwhile.
 //
+// Push (step 5): while the mailbox's thread has nothing to do, the session
+// stays open in IDLE on the Inbox; news from the server brings the Inbox up
+// to date at once. IDLE is renewed every 10 minutes. Any other work ends it
+// first. A connection lost while pushing is made again quietly, with longer
+// and longer waits; the user is told once if it is still down after 10
+// minutes. Other folders are checked at the interval. With QRESYNC, a
+// changed folder's removed messages come with its flag changes (VANISHED);
+// without, the UIDs are only all listed when the count says that some were
+// removed.
+//
 // GNU LGPL like PostOffice itself.
 //===============================================================================
 
@@ -60,6 +70,7 @@
 #include <unistd.h>
 
 #include <dirent.h>
+#include <poll.h>
 #include <sys/stat.h>
 
 #include <algorithm>
@@ -255,7 +266,8 @@ IMAP4Handler::~IMAP4Handler (void)
 
 void IMAP4Handler::Report (const std::string &what)
 {
-	if (Quiet || what == LastError || Parent->ToCollector->UrgentPending) return;
+	if (Quiet) { DownWhy = what; return; }
+	if (what == LastError || Parent->ToCollector->UrgentPending) return;
 	LastError = what;
 	Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Parent->Name, what.c_str());
 }
@@ -308,6 +320,10 @@ int IMAP4Handler::RefreshCapabilities (void)
 
 void IMAP4Handler::EndSession (bool logout)
 {
+	// No LOGOUT in the middle of IDLE: the connection is simply closed.
+	if (Idling) logout = false;
+	Idling = false;
+	Qresync = false;
 	if (Imap)
 	{
 		if (logout && Net->IsOpen ()) mailimap_logout (Imap);
@@ -333,6 +349,7 @@ void IMAP4Handler::CloseConnection (void)
 // Connects and logs in, unless a session is open and still answers.
 bool IMAP4Handler::Session (int jid)
 {
+	if (Idling) StopIdle ();
 	if (Imap && Net->IsOpen () && !Broken)
 	{
 		if (mailimap_noop (Imap) == MAILIMAP_NO_ERROR) return true;
@@ -513,6 +530,17 @@ bool IMAP4Handler::Session (int jid)
 			}
 			mailimap_namespace_data_free (ns);
 		}
+	}
+	// QRESYNC (RFC 7162): removed messages are named in flag-change replies.
+	if (Capability ("QRESYNC") && Capability ("CONDSTORE"))
+	{
+		clist *caps = clist_new ();
+		clist_append (caps, mailimap_capability_new (MAILIMAP_CAPABILITY_NAME, NULL, strdup ("QRESYNC")));
+		struct mailimap_capability_data *want = mailimap_capability_data_new (caps), *got = NULL;
+		Qresync = mailimap_enable (Imap, want, &got) == MAILIMAP_NO_ERROR;
+		mailimap_capability_data_free (want);
+		if (got) mailimap_capability_data_free (got);
+		if (!Net->IsOpen ()) { EndSession (false); return false; }
 	}
 	ConnectionOpen = 1;
 	return true;
@@ -1076,10 +1104,14 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 
 	// Flags of the messages known here (with CONDSTORE, only changes since
 	// the last check).
+	std::set<uint32_t> vanished;
+	bool knowvanished = false;		// QRESYNC told which were removed
 	if (!flagssame && !st.Uids.empty () && exists > 0)
 	{
 		int changed = 0;
-		if (!SyncFlags (f, st, modseq && st.ModSeq ? st.ModSeq : 0, changed)) return !Broken;
+		uint64_t since = modseq && st.ModSeq ? st.ModSeq : 0;
+		if (!SyncFlags (f, st, since, changed, vanished)) return !Broken;
+		knowvanished = since && Qresync;
 		if (changed) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
 	}
 	if (listsame)
@@ -1089,9 +1121,36 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 		return true;
 	}
 
-	// The messages on the server.
+	// The messages on the server. After a complete check, only the UIDs
+	// above the last one known are asked for (UID SEARCH UID n:*); if the
+	// count then adds up, after taking away what QRESYNC said was removed,
+	// nothing else was. Else (and at the first check) all are listed.
 	std::set<uint32_t> server;
-	if (exists > 0)
+	bool listed = false;
+	if (exists > 0 && st.UidNext && !st.Uids.empty ())
+	{
+		clist *res = NULL;
+		struct mailimap_search_key *key = mailimap_search_key_new_uid (mailimap_set_new_interval (st.UidNext, 0));
+		int r = key ? mailimap_uid_search (Imap, NULL, key, &res) : MAILIMAP_ERROR_MEMORY;
+		if (key) mailimap_search_key_free (key);
+		if (r != MAILIMAP_NO_ERROR) return Failed (r, "Cannot list the messages in " + f.Client) || !Broken;
+		std::set<uint32_t> above;
+		for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+		{
+			uint32_t *u = (uint32_t *) clist_content (it);
+			// "n:*" means at least the highest UID, even below n.
+			if (u && *u >= st.UidNext) above.insert (*u);
+		}
+		if (res) mailimap_search_result_free (res);
+		if (!knowvanished) vanished.clear ();
+		if (st.Uids.size () - vanished.size () + above.size () == exists)
+		{
+			for (uint32_t u : st.Uids) if (!vanished.count (u)) server.insert (u);
+			server.insert (above.begin (), above.end ());
+			listed = true;
+		}
+	}
+	if (exists > 0 && !listed)
 	{
 		clist *res = NULL;
 		struct mailimap_search_key *key = mailimap_search_key_new_all ();
@@ -1257,14 +1316,31 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 // Takes the flags of known messages from the server (all of them, or with
 // CONDSTORE those changed since modseq "since"). A flag with a change of
 // ours not yet sent keeps our value.
-bool IMAP4Handler::SyncFlags (const Folder &f, FolderState &st, uint64_t since, int &changed)
+bool IMAP4Handler::SyncFlags (const Folder &f, FolderState &st, uint64_t since, int &changed,
+							  std::set<uint32_t> &vanished)
 {
 	struct mailimap_set *set = mailimap_set_new_interval (1, 0);		// 1:*
 	struct mailimap_fetch_type *ft = mailimap_fetch_type_new_fetch_att_list_empty ();
 	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_uid ());
 	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_flags ());
 	clist *res = NULL;
-	int r = since ? mailimap_uid_fetch_changedsince (Imap, set, ft, since, &res) : mailimap_uid_fetch (Imap, set, ft, &res);
+	struct mailimap_qresync_vanished *gone = NULL;
+	int r = since && Qresync ? mailimap_uid_fetch_qresync (Imap, set, ft, since, &res, &gone)
+		  : since ? mailimap_uid_fetch_changedsince (Imap, set, ft, since, &res) : mailimap_uid_fetch (Imap, set, ft, &res);
+	if (gone)
+	{
+		// UIDs removed since "since" (VANISHED (EARLIER)).
+		clist *items = gone->qr_known_uids ? gone->qr_known_uids->set_list : NULL;
+		for (clistiter *it = items ? clist_begin (items) : NULL; it; it = clist_next (it))
+		{
+			struct mailimap_set_item *si = (struct mailimap_set_item *) clist_content (it);
+			if (!si) continue;
+			uint32_t last = si->set_last ? si->set_last : si->set_first;
+			for (auto u = st.Uids.lower_bound (si->set_first); u != st.Uids.end () && *u <= last; ++u)
+				vanished.insert (*u);
+		}
+		mailimap_qresync_vanished_free (gone);
+	}
 	mailimap_fetch_type_free (ft);
 	mailimap_set_free (set);
 	if (r != MAILIMAP_NO_ERROR)
@@ -1905,6 +1981,198 @@ bool IMAP4Handler::FlushSpool (int jid)
 	return true;
 }
 
+//-------------------------------------------------------------------------------
+// Push (step 5)
+//-------------------------------------------------------------------------------
+
+// "Push new mail at once (IMAP IDLE)" in Config -> Mailboxes; on unless "N".
+bool IMAP4Handler::PushWanted (void)
+{
+	return strcasecmp (Parameters->Get_char ("idle"), "N") != 0;
+}
+
+// The mailbox thread keeps the connection open: it is in IDLE, or about to
+// be. A server without IDLE is checked at the interval only.
+bool IMAP4Handler::KeepsConnection (void)
+{
+	return PushWanted () && (Dropped || (Imap && Capability ("IDLE")));
+}
+
+// IDLE on the Inbox. False if it could not be started.
+bool IMAP4Handler::StartIdle (void)
+{
+	if (Idling) return true;
+	if (!Imap || Broken || !Net->IsOpen () || !Capability ("IDLE")) return false;
+	std::string inbox = "INBOX";
+	for (const Folder &f : Folders) if (f.Client == "Inbox") inbox = f.Server;
+	if (!Examine (inbox))
+	{
+		if (Broken || !Net->IsOpen ()) Lost ();
+		return false;
+	}
+	int r = mailimap_idle (Imap);
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) Lost ();
+		return false;
+	}
+	Idling = true;
+	IdleStarted = time (NULL);
+	return true;
+}
+
+// DONE: back to normal commands. What the server sent meanwhile has been
+// read; a failure leaves the session broken.
+void IMAP4Handler::StopIdle (void)
+{
+	if (!Idling) return;
+	Idling = false;
+	if (mailimap_idle_done (Imap) != MAILIMAP_NO_ERROR) Broken = true;
+}
+
+// The connection went away while pushing: try again later, quietly.
+void IMAP4Handler::Lost (const std::string &why)
+{
+	time_t now = time (NULL);
+	if (!Dropped)
+	{
+		Dropped = true;
+		DownSince = now;
+		Tries = 0;
+		ToldDown = false;
+		DownWhy = !why.empty () ? why : !Net->Error ().empty () ? Net->Error () : "the connection was lost";
+	}
+	NextTry = now + 10;
+	EndSession (false);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+}
+
+// The Inbox brought up to date after news from the server.
+void IMAP4Handler::QuickSync (int jid)
+{
+	for (const Folder &f : Folders)
+	{
+		if (f.Client != "Inbox") continue;
+		int added = 0;
+		SyncFolder (jid, f, 0, 1, added);
+		SaveState ();
+		Parent->SaveMailBox ();
+		if (added)
+		{
+			ShowStatus (jid, std::to_string (added) + (added == 1 ? " new message" : " new messages"));
+			Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+		}
+		break;
+	}
+}
+
+// Called by the mailbox thread while it has nothing else to do, a few
+// times a second. Cheap when nothing happens: one poll() of the socket.
+void IMAP4Handler::Idle (void)
+{
+	if (!PushWanted ())
+	{
+		Dropped = false;
+		return;
+	}
+	time_t now = time (NULL);
+
+	// Push starts by itself after the program starts, even if the mailbox
+	// is never checked on a timer.
+	if (!PushBegun)
+	{
+		PushBegun = true;
+		if (!Imap && !Dropped)
+		{
+			Dropped = true;
+			DownSince = now;
+			NextTry = now;
+			DownWhy = "no connection yet";
+		}
+	}
+
+	if (Dropped)
+	{
+		// Told once, 10 minutes after it went (whenever the next try is).
+		if (!ToldDown && now - DownSince >= 600)
+		{
+			ToldDown = true;
+			char when[16];
+			struct tm tmv;
+			localtime_r (&DownSince, &tmv);
+			strftime (when, sizeof (when), "%H:%M", &tmv);
+			std::string why = DownWhy;
+			while (!why.empty () && (why.back () == '.' || why.back () == ' ')) why.pop_back ();
+			Report ("The IMAP server " + (Host.empty () ? std::string (Parameters->Get_char ("host")) : Host) +
+					" has been out of reach since " + when + " (" + why + "). It is tried again every few"
+					" minutes, and new mail shows again when it is back.");
+		}
+		if (now < NextTry) return;
+		if (!StateLoaded) LoadState ();
+		int jid = JOBQ.NewJob (Parent->Name);
+		bool quiet = Quiet;
+		Quiet = true;
+		bool up = Session (jid) && ListFolders (jid);
+		Quiet = quiet;
+		if (!up)
+		{
+			EndSession (false);
+			static const int waits[] = { 10, 30, 60, 120, 300 };
+			++Tries;
+			NextTry = now + waits[std::min (Tries, 5) - 1];
+			JOBQ.EndJob (jid);
+			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+			return;
+		}
+		// Back: what waited goes out, then the Inbox is brought up to date.
+		Dropped = false;
+		Tries = 0;
+		if (ToldDown) LastError.clear ();
+		ToldDown = false;
+		SyncFolders ();
+		if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
+		if (!Broken) QuickSync (jid);
+		JOBQ.EndJob (jid);
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+		if (Broken) { Lost (); return; }
+	}
+
+	// No session (closed by Stop, or none yet): push starts after the next check.
+	if (!Imap || Broken || !Net->IsOpen ()) return;
+	if (!Idling)
+	{
+		StartIdle ();
+		return;
+	}
+
+	// Anything from the server? Bytes already read (by libetpan or OpenSSL)
+	// do not show on the socket.
+	bool news = Net->Pending () > 0 || (Imap->imap_stream && Imap->imap_stream->read_buffer_len > 0);
+	if (!news)
+	{
+		struct pollfd p;
+		p.fd = Net->Fd ();
+		p.events = POLLIN;
+		p.revents = 0;
+		news = poll (&p, 1, 0) > 0;
+	}
+	// Renewed every 10 minutes: servers end IDLE after 30, and routers
+	// forget quiet connections; a dead one shows here.
+	if (!news && now - IdleStarted < 600) return;
+
+	StopIdle ();
+	if (Broken || !Net->IsOpen ()) { Lost (); return; }
+	if (news)
+	{
+		int jid = JOBQ.NewJob (Parent->Name);
+		QuickSync (jid);
+		JOBQ.EndJob (jid);
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+		if (Broken || !Net->IsOpen ()) { Lost (); return; }
+	}
+	StartIdle ();
+}
+
 // Fetches the bodies the user is waiting for, during a check.
 void IMAP4Handler::ServiceBodies (int jid)
 {
@@ -2059,7 +2327,29 @@ void IMAP4Handler::CheckGroup (const char * /*group*/)
 	int jid = JOBQ.NewJob (Parent->Name);
 	JOBQ.Progress (jid, 1);
 	if (!StateLoaded) LoadState ();
-	if (Session (jid) && ListFolders (jid))
+	// With push on, a check of the timer that cannot connect (after the
+	// computer slept, say) is quiet like the push: retried, and told after
+	// 10 minutes. A check the user starts says what is wrong at once.
+	bool quietly = PushWanted () && !UserCheck;
+	bool quiet = Quiet;
+	if (quietly) Quiet = true;
+	bool up = Session (jid);
+	Quiet = quiet;
+	if (!up && quietly)
+	{
+		Lost (DownWhy);
+		JOBQ.EndJob (jid);
+		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+		return;
+	}
+	if (up)
+	{
+		// Connected: no longer down.
+		Dropped = false;
+		Tries = 0;
+		ToldDown = false;
+	}
+	if (up && ListFolders (jid))
 	{
 		SyncFolders ();
 		// Changes made here go first, so what is read below includes them.

@@ -208,12 +208,22 @@ void *MailerThread::MailerMain (void *_box)
 		}
 		else 
 		{
-			if (++idlecount == 20000) // On excessive idletime it is better to close the connection
+			++idlecount;
+			// Neo-PostOffice: a handler waiting for its server (IMAP IDLE)
+			// looks for news about three times a second.
+			if (idlecount % 20 == 0)
+			{
+				Box->Handler->Lock.LockOnce();
+				Box->Handler->Idle ();
+				Box->Handler->Lock.UnlockOnce();
+			}
+			if (idlecount == 20000) // On excessive idletime it is better to close the connection
 								  // before the server gets any funny ideas.
 			{
 				dprintf ("idle-out mailhandler after %i counts\n", idlecount);
 				Box->Handler->Lock.LockOnce();
-				Box->Handler->CloseConnection ();
+				// Unless it is kept open on purpose (IDLE renews itself).
+				if (!Box->Handler->KeepsConnection ()) Box->Handler->CloseConnection ();
 				Box->Handler->Lock.UnlockOnce();
 			}
 			_usleep (15000);
