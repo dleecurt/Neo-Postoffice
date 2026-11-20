@@ -53,8 +53,8 @@ as `.`). Folders marked `\Noselect` or `\NonExistent` are not shown.
    `LSUB` → folders, and folders no longer subscribed are removed. The
    connection is closed after each check.
 2. **Done: reading mail.** See *Reading* below.
-3. **Flags** both ways: `\Seen`, `\Answered`, `\Flagged`, `\Deleted`,
-   `$Forwarded` (`KeepsFlags`, `MarkRead`, `SetFlag`).
+3. **Done: flags both ways.** See *Flags* below. (`\Deleted` belongs to
+   step 4.)
 4. **Changes on the server:** delete (`\Deleted` + `UID EXPUNGE`, or a
    move to Trash), `UID MOVE` (RFC 6851) or `UID COPY` + delete, `APPEND`
    (copies from other mailboxes, sent mail to a Sent folder).
@@ -102,8 +102,10 @@ Messages are filed under made-up IDs, `<imap.HASH.UIDVALIDITY.UID@imap>`
 two folders, or a message without a `Message-ID`, is no problem.
 
 `imap.dat` (mode 600, written to a new file and renamed) has a line
-`F HASH UIDVALIDITY UIDNEXT MESSAGES name` per folder and a line
-`U 1:49,51:499` with the UIDs known in it. A damaged `U` line makes the
+`F HASH UIDVALIDITY UIDNEXT MESSAGES name` per folder, then `M modseq`
+(its `HIGHESTMODSEQ`, with CONDSTORE) and `U 1:49,51:499` (the UIDs known
+in it); at the end, `P <message-id> +S-F` for each message with flag
+changes not yet sent. A damaged `U` line makes the
 folder be read again; a lost file only costs fetching the headers again
 (nothing kept here is removed for it).
 
@@ -112,6 +114,40 @@ could bring removed messages back, and an unchanged folder is not looked
 at again. After each check, messages of folders that were checked
 completely, and of folders no longer subscribed, are compared with
 `imap.dat` and removed if they are not known there.
+
+## Flags
+
+`\Seen`, `\Flagged`, `\Answered` and `$Forwarded` are kept in step with
+the server, as the read state and the flagged, replied and forwarded
+flags here.
+
+**Here to the server.** The handler says it keeps flags, so the window
+sends it what Maildir and MH get: opening a message (its text fetched
+or already here) means `\Seen`; *Mark as unread*, *Flag / unflag* and a
+reply or forward sent set or clear the others. Each change is put on the
+message here and in a queue (`P` lines in `imap.dat`), then sent at once:
+the folder is opened with `SELECT` and the changes go out as one
+`UID STORE uids +FLAGS.SILENT (...)` or `-FLAGS.SILENT` per flag and
+direction. If the server cannot be reached, the queue waits (without an
+error dialog) and is sent first thing at the next check. A flag with a
+change still queued keeps the value set here when the server's flags are
+read. A folder the server opens read-only gets one message saying so,
+and its changes stay here only; a refused `STORE` (a server that does not
+take `$Forwarded`, say) is reported and not tried again.
+
+**The server to here.** Each check, before looking for new messages:
+
+- With CONDSTORE, folders are opened with `EXAMINE folder (CONDSTORE)`,
+  which gives `HIGHESTMODSEQ`. If that and `UIDNEXT` and the count are
+  what they were, the folder is done (one command). If only the modseq
+  changed, `UID FETCH 1:* (UID FLAGS) (CHANGEDSINCE n)` reads just the
+  messages changed since the last check.
+- Without CONDSTORE, `UID FETCH 1:* (UID FLAGS)` reads the flags of every
+  message of every folder that has messages, at each check.
+
+The flagged, replied and forwarded flags are saved in the mailbox index
+(bits 8 to 10 of its flags field), so they survive a restart without
+being read from the server again.
 
 ## Not planned yet
 
@@ -145,6 +181,20 @@ under AddressSanitizer and UndefinedBehaviorSanitizer (no reports):
 | App killed right after messages were removed | Removed again at the next check |
 | `imap.dat` damaged, or deleted | Rebuilt; nothing duplicated or lost |
 | Copy of an IMAP message to a Maildir | The original text, complete |
+
+Step 3, against mox with CONDSTORE, and through a relay that hid CONDSTORE
+from its capabilities:
+
+| Case | Result |
+|---|---|
+| Flags changed by another client (`\Seen`, `\Flagged` both ways, `\Answered`) | Shown here after the next check |
+| Second check with nothing changed | One `EXAMINE (CONDSTORE)` per folder |
+| A flag changed in one folder | `UID FETCH 1:* (UID FLAGS) (CHANGEDSINCE n)` there only |
+| Mark as unread, Flag, opening an unread message | `UID STORE` at once; the server shows the change |
+| Reply and forward sent | `\Answered` and `$Forwarded` set on the original |
+| Server stopped, two changes made, server started, Check | Changes shown here at once, queued, sent at the start of the check |
+| Server without CONDSTORE | Plain `EXAMINE` and a full flag read per folder; changes arrive |
+| Restart without a check | Flags kept (from the index) |
 
 Not tested yet: Dovecot, Cyrus, Gmail and other providers. Reports are
 welcome.

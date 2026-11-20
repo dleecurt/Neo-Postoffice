@@ -139,8 +139,8 @@ named after its SHA-256 fingerprint). Use it for a local or company CA:
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
 the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
-It is not finished: **steps 1 and 2 of 6** are done, so mail can be read
-but changes are not sent back to the server yet.
+It is not finished: **steps 1 to 3 of 6** are done: mail is read, and the
+read state and flags go both ways; deleting and moving come next.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
@@ -157,15 +157,22 @@ mail shows up while older mail is still coming in; later checks fetch
 only new messages, remove those deleted on the server, and skip folders
 that have not changed. A message's text is fetched when you open it
 (with a progress count for large ones), even in the middle of a check,
-and kept here; opening it does not mark it read on the server. The read
-state and flags (flagged, answered, forwarded) are taken from the server
-when a message first arrives. **Stop** ends a check at once; the next
-check carries on where it stopped. What is known of each folder is kept
-in `imap.dat` in the mailbox's directory.
+and kept here. **Stop** ends a check at once; the next check carries on
+where it stopped. What is known of each folder is kept in `imap.dat` in
+the mailbox's directory.
 
-Not yet (steps 3 to 6): reading a message, flagging it or deleting it
-here changes only the copy here, not the server; moving, copying to the
-server, IDLE and folder management come later.
+Read state and flags: opening a message marks it read on the server;
+**Mark as unread**, **Flag / unflag** and sending a reply or forward
+(answered, `$Forwarded`) change it there too, at once. When the server
+cannot be reached the changes wait in `imap.dat` and are sent at the
+start of the next check; until then they win over the server's. Changes
+made elsewhere (webmail, a phone) show up at the next check: on servers
+with CONDSTORE (Dovecot, Cyrus, Gmail, Fastmail and others) only what
+changed is read, otherwise the flags of every message in the folder.
+
+Not yet (steps 4 to 6): deleting a message here removes only the copy
+here; moving, copying to the server, IDLE and folder management come
+later.
 
 The message list shows the newest 1024 messages of a folder, for every
 mailbox type; Config → Style → *Message list* changes that (0 shows them
@@ -461,7 +468,10 @@ See the git history for details. In summary:
   session, and messages expired as headers leave the list.
 - The old IMAP4 client was removed (it could not work); a new one is
   being built on libetpan (step 1: connecting, logging in and folders;
-  step 2: reading mail), and IMAP4 mailboxes keep their settings.
+  step 2: reading mail; step 3: read state and flags both ways), and
+  IMAP4 mailboxes keep their settings.
+- The flagged, replied and forwarded flags of messages are kept in the
+  mailbox index, so they survive a restart for every mailbox type.
 - How many messages of a folder the list shows (1024 in PostOffice 0.7)
   is a setting: Config → Style → *Message list*, 0 for all.
 - Folder filters made for a mailbox's folders now escape `*` and `?` in
@@ -518,6 +528,10 @@ See the git history for details. In summary:
 Found while modernizing and left for later:
 
 - NNTP has no TLS support.
+- Settings (including folders added or removed by a check) are saved
+  when you quit through File → Quit; if the program is killed instead,
+  they are as at the last save, and the next check puts the folders
+  right again.
 - The built-in SMTP client and IMAP do not support OAuth2 logins.
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.

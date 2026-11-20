@@ -18,7 +18,14 @@
 // fetched, newest first, in batches. A body is fetched (BODY.PEEK, so the
 // message stays unread on the server) when the message is opened, and kept
 // in the local store. What is known of each folder is kept in imap.dat.
-// Flags and changes on the server come in later steps.
+//
+// Flags (step 3): the read state and the flagged, answered and forwarded
+// flags go both ways. Changes made here are queued in imap.dat and sent at
+// once (UID STORE) when the server can be reached, else at the start of the
+// next check; until sent they win over the server's. Changes made on the
+// server are read at each check: with CONDSTORE only those since the last
+// check (and an unchanged folder costs one EXAMINE), without it all flags
+// of the folder.
 //
 // GNU LGPL like PostOffice itself.
 //===============================================================================
@@ -683,6 +690,7 @@ void IMAP4Handler::LoadState (void)
 {
 	StateLoaded = true;
 	State.clear ();
+	Pending.clear ();
 	FILE *F = fopen (StateFile ().c_str (), "r");
 	if (!F) return;
 	std::string line, current;
@@ -708,6 +716,23 @@ void IMAP4Handler::LoadState (void)
 			st.UidNext = (uint32_t) n;
 			st.Messages = (uint32_t) m;
 			havecurrent = true;
+		}
+		else if (line.compare (0, 2, "M ") == 0 && havecurrent)
+		{
+			State[current].ModSeq = strtoull (line.c_str () + 2, NULL, 10);
+		}
+		else if (line.compare (0, 2, "P ") == 0)
+		{
+			// "P <msgid> +S-F": changes not yet on the server.
+			size_t sp = line.find (' ', 2);
+			if (sp == std::string::npos) continue;
+			std::string id = line.substr (2, sp - 2), ch = line.substr (sp + 1);
+			std::string hash;
+			uint32_t v, u;
+			if (!SplitMsgID (id.c_str (), hash, v, u)) continue;
+			for (size_t k = 0; k + 1 < ch.size (); k += 2)
+				if ((ch[k] == '+' || ch[k] == '-') && strchr ("SFRP", ch[k + 1]))
+					Pending[id][ch[k + 1]] = ch[k] == '+';
 		}
 		else if (line.compare (0, 2, "U ") == 0 && havecurrent)
 		{
@@ -742,7 +767,14 @@ void IMAP4Handler::SaveState (void)
 		const FolderState &st = kv.second;
 		fprintf (F, "F %s %lu %lu %lu %s\n", st.Hash.c_str (), (unsigned long) st.Validity,
 				 (unsigned long) st.UidNext, (unsigned long) st.Messages, kv.first.c_str ());
+		if (st.ModSeq) fprintf (F, "M %llu\n", (unsigned long long) st.ModSeq);
 		fprintf (F, "U %s\n", UidRanges (st.Uids).c_str ());
+	}
+	for (auto &p : Pending)
+	{
+		std::string ch;
+		for (auto &f : p.second) { ch += f.second ? '+' : '-'; ch += f.first; }
+		if (!ch.empty ()) fprintf (F, "P %s %s\n", p.first.c_str (), ch.c_str ());
 	}
 	bool ok = fflush (F) == 0 && fsync (fileno (F)) == 0;
 	ok = (fclose (F) == 0) && ok;
@@ -802,14 +834,28 @@ bool IMAP4Handler::Failed (int r, const std::string &what)
 	return false;
 }
 
-// Opens a folder read-only, unless it is already open.
+// Opens a folder read-only (EXAMINE), or for changes (SELECT), unless it is
+// open already (a folder open for changes can be read too). With CONDSTORE
+// the folder's HIGHESTMODSEQ comes with it.
+static bool open_folder (mailimap *imap, const std::string &server, bool writable, bool condstore, uint64_t &modseq, int &r)
+{
+	modseq = 0;
+	if (condstore)
+		r = writable ? mailimap_select_condstore (imap, server.c_str (), &modseq)
+					 : mailimap_examine_condstore (imap, server.c_str (), &modseq);
+	else
+		r = writable ? mailimap_select (imap, server.c_str ()) : mailimap_examine (imap, server.c_str ());
+	return r == MAILIMAP_NO_ERROR;
+}
+
 bool IMAP4Handler::Examine (const std::string &server)
 {
 	if (Broken) return false;
 	if (Selected == server) return true;
 	Selected.clear ();
-	int r = mailimap_examine (Imap, server.c_str ());
-	if (r != MAILIMAP_NO_ERROR)
+	int r;
+	uint64_t modseq;
+	if (!open_folder (Imap, server, false, Capability ("CONDSTORE"), modseq, r))
 	{
 		if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) Broken = true;
 		return false;
@@ -818,8 +864,34 @@ bool IMAP4Handler::Examine (const std::string &server)
 	SelValidity = info ? info->sel_uidvalidity : 0;
 	SelUidNext = info ? info->sel_uidnext : 0;
 	SelExists = info && info->sel_has_exists ? info->sel_exists : 0;
+	SelModSeq = modseq;
+	SelWritable = false;
 	Selected = server;
 	return true;
+}
+
+// Opens a folder for changes. False also for a folder the server only lets
+// us read.
+bool IMAP4Handler::Select (const std::string &server)
+{
+	if (Broken) return false;
+	if (Selected == server && SelWritable) return true;
+	Selected.clear ();
+	int r;
+	uint64_t modseq;
+	if (!open_folder (Imap, server, true, Capability ("CONDSTORE"), modseq, r))
+	{
+		if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) Broken = true;
+		return false;
+	}
+	struct mailimap_selection_info *info = Imap->imap_selection_info;
+	SelValidity = info ? info->sel_uidvalidity : 0;
+	SelUidNext = info ? info->sel_uidnext : 0;
+	SelExists = info && info->sel_has_exists ? info->sel_exists : 0;
+	SelModSeq = modseq;
+	SelWritable = !(info && info->sel_perm == MAILIMAP_MAILBOX_READONLY);
+	Selected = server;
+	return SelWritable;
 }
 
 // Text from the server as the store keeps it: LF line ends, no NUL bytes.
@@ -941,6 +1013,7 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 		return true;
 	}
 	uint32_t validity = SelValidity, uidnext = SelUidNext, exists = SelExists;
+	uint64_t modseq = SelModSeq;
 	if (validity == 0)
 	{
 		Report ("The IMAP server " + Host + " gives no UIDVALIDITY for " + f.Client + ", so its messages cannot be read.");
@@ -952,10 +1025,30 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 		if (st.Validity) Gone (st, st.Uids);
 		st.Uids.clear ();
 		st.UidNext = st.Messages = 0;
+		st.ModSeq = 0;
 		st.Validity = validity;
 	}
-	if (uidnext && st.UidNext == uidnext && st.Messages == exists)
+	// Nothing added or removed: same UIDNEXT and count. No flag changed: the
+	// same HIGHESTMODSEQ (CONDSTORE); without it flags are always read.
+	bool listsame = uidnext && st.UidNext == uidnext && st.Messages == exists;
+	bool flagssame = modseq && st.ModSeq == modseq;
+	if (listsame && flagssame)
 	{
+		Checked.insert (f.Server);
+		return true;
+	}
+
+	// Flags of the messages known here (with CONDSTORE, only changes since
+	// the last check).
+	if (!flagssame && !st.Uids.empty () && exists > 0)
+	{
+		int changed = 0;
+		if (!SyncFlags (f, st, modseq && st.ModSeq ? st.ModSeq : 0, changed)) return !Broken;
+		if (changed) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	}
+	if (listsame)
+	{
+		st.ModSeq = modseq;
 		Checked.insert (f.Server);
 		return true;
 	}
@@ -1119,21 +1212,240 @@ bool IMAP4Handler::SyncFolder (int jid, const Folder &f, size_t index, size_t co
 	{
 		st.UidNext = uidnext;
 		st.Messages = exists;
+		st.ModSeq = modseq;
 	}
 	Checked.insert (f.Server);
 	return true;
+}
+
+// Takes the flags of known messages from the server (all of them, or with
+// CONDSTORE those changed since modseq "since"). A flag with a change of
+// ours not yet sent keeps our value.
+bool IMAP4Handler::SyncFlags (const Folder &f, FolderState &st, uint64_t since, int &changed)
+{
+	struct mailimap_set *set = mailimap_set_new_interval (1, 0);		// 1:*
+	struct mailimap_fetch_type *ft = mailimap_fetch_type_new_fetch_att_list_empty ();
+	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_uid ());
+	mailimap_fetch_type_new_fetch_att_list_add (ft, mailimap_fetch_att_new_flags ());
+	clist *res = NULL;
+	int r = since ? mailimap_uid_fetch_changedsince (Imap, set, ft, since, &res) : mailimap_uid_fetch (Imap, set, ft, &res);
+	mailimap_fetch_type_free (ft);
+	mailimap_set_free (set);
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		if (res) mailimap_fetch_list_free (res);
+		return Failed (r, "Cannot read the flags in " + f.Client);
+	}
+	for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+	{
+		Fetched m = pick_apart ((struct mailimap_msg_att *) clist_content (it));
+		if (!m.Uid || !m.HaveFlags || !st.Uids.count (m.Uid)) continue;
+		std::string id = MakeMsgID (st.Hash, st.Validity, m.Uid);
+		MailMessage *M = Parent->Find (&id[0]);
+		if (!M) continue;
+		auto pend = Pending.find (id);
+		auto mine = [&](char c) { return pend != Pending.end () && pend->second.count (c); };
+
+		if (!mine ('S') && M->Envelope->GetInt (ENVELOPE_I_READ) != (m.Seen ? 1 : 0))
+		{
+			M->Envelope->SetInt (ENVELOPE_I_READ, m.Seen ? 1 : 0);
+			++changed;
+		}
+		int old = M->Envelope->GetInt (ENVELOPE_I_FLAGS), now = old;
+		struct { char c; int bit; bool on; } map[] = {
+			{ 'F', EFLAG_FLAGGED, m.Flagged }, { 'R', EFLAG_REPLIED, m.Answered }, { 'P', EFLAG_PASSED, m.Forwarded } };
+		for (auto &x : map)
+			if (!mine (x.c)) now = x.on ? (now | x.bit) : (now & ~x.bit);
+		if (now != old)
+		{
+			M->Envelope->SetInt (ENVELOPE_I_FLAGS, now);
+			++changed;
+		}
+	}
+	if (res) mailimap_fetch_list_free (res);
+	return true;
+}
+
+// Records a change made here, on the message and in the queue for the
+// server. False if the message is not one of this mailbox's.
+bool IMAP4Handler::QueueFlag (const char *msgid, char letter, bool on)
+{
+	std::string hash;
+	uint32_t v, u;
+	if (!strchr ("SFRP", letter) || !SplitMsgID (msgid, hash, v, u)) return false;
+	MailMessage *M = Parent->Find ((char *) msgid);
+	if (!M) return false;
+	bool changed = false;
+	if (letter == 'S')
+	{
+		changed = M->Envelope->GetInt (ENVELOPE_I_READ) != (on ? 1 : 0);
+		M->Envelope->SetInt (ENVELOPE_I_READ, on ? 1 : 0);
+	}
+	else
+	{
+		int bit = letter == 'F' ? EFLAG_FLAGGED : letter == 'R' ? EFLAG_REPLIED : EFLAG_PASSED;
+		int old = M->Envelope->GetInt (ENVELOPE_I_FLAGS), now = on ? (old | bit) : (old & ~bit);
+		changed = now != old;
+		M->Envelope->SetInt (ENVELOPE_I_FLAGS, now);
+	}
+	if (changed) Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	Pending[msgid][letter] = on;
+	return true;
+}
+
+static struct mailimap_flag *imap_flag (char letter)
+{
+	switch (letter)
+	{
+		case 'S': return mailimap_flag_new_seen ();
+		case 'F': return mailimap_flag_new_flagged ();
+		case 'R': return mailimap_flag_new_answered ();
+		default: return mailimap_flag_new_flag_keyword (strdup ("$Forwarded"));
+	}
+}
+
+// Sends the queued changes, folder by folder, one UID STORE per flag and
+// direction. False if the session failed (the rest stays queued).
+bool IMAP4Handler::PushPending (int jid)
+{
+	if (Pending.empty ()) return true;
+	// folder -> (letter, on) -> UIDs
+	std::map<std::string, std::map<std::pair<char, bool>, std::set<uint32_t>>> work;
+	std::vector<std::string> stale;
+	for (auto &p : Pending)
+	{
+		std::string hash, server;
+		uint32_t v, u;
+		if (SplitMsgID (p.first.c_str (), hash, v, u)) server = ServerOf (hash);
+		// Renumbered or gone on the server: nothing to change there.
+		if (server.empty () || State[server].Validity != v || !State[server].Uids.count (u))
+		{
+			stale.push_back (p.first);
+			continue;
+		}
+		for (auto &f : p.second) work[server][{ f.first, f.second }].insert (u);
+	}
+	for (const std::string &id : stale) Pending.erase (id);
+
+	bool ok = true;
+	for (auto &w : work)
+	{
+		const std::string &server = w.first;
+		const FolderState &st = State[server];
+		std::string name = ClientName (server, 0, Prefix);
+		for (const Folder &f : Folders) if (f.Server == server) name = f.Client;
+		if (jid) ShowStatus (jid, "Sending changes in " + name);
+		if (!Select (server))
+		{
+			if (Broken) { ok = false; break; }
+			// Not there (any more): the changes wait; the next check finds
+			// out what became of the folder.
+			if (Selected != server) continue;
+			// Read-only for us: the changes stay here only.
+			Report ("The folder " + name + " on " + Host + " cannot be changed (read-only), so read state and"
+					" flags changed here are kept here only.");
+			for (auto &c : w.second)
+				for (uint32_t u : c.second)
+				{
+					auto it = Pending.find (MakeMsgID (st.Hash, st.Validity, u));
+					if (it != Pending.end () && (it->second.erase (c.first.first), it->second.empty ())) Pending.erase (it);
+				}
+			continue;
+		}
+		if (SelValidity != st.Validity) continue;	// renumbered: the next check sorts it out
+		for (auto &c : w.second)
+		{
+			struct mailimap_set *set = mailimap_set_new_empty ();
+			for (uint32_t u : c.second) mailimap_set_add_single (set, u);
+			struct mailimap_flag_list *fl = mailimap_flag_list_new_empty ();
+			mailimap_flag_list_add (fl, imap_flag (c.first.first));
+			struct mailimap_store_att_flags *att = c.first.second ? mailimap_store_att_flags_new_add_flags_silent (fl)
+																 : mailimap_store_att_flags_new_remove_flags_silent (fl);
+			int r = mailimap_uid_store (Imap, set, att);
+			mailimap_store_att_flags_free (att);
+			mailimap_set_free (set);
+			if (r != MAILIMAP_NO_ERROR)
+			{
+				if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) { Broken = true; ok = false; break; }
+				// Refused (a server without $Forwarded, say): not tried again.
+				Report ("The IMAP server " + Host + " did not take a flag change in " + name + ": " + Why (r) + ".");
+			}
+			for (uint32_t u : c.second)
+			{
+				auto it = Pending.find (MakeMsgID (st.Hash, st.Validity, u));
+				if (it == Pending.end ()) continue;
+				auto f = it->second.find (c.first.first);
+				// Only if not changed again meanwhile.
+				if (f != it->second.end () && f->second == c.first.second) it->second.erase (f);
+				if (it->second.empty ()) Pending.erase (it);
+			}
+		}
+		if (!ok) break;
+	}
+	SaveState ();
+	return ok;
+}
+
+// Sends queued changes now if the server can be reached; if not, they wait
+// for the next check (no error dialog: the check reports problems).
+void IMAP4Handler::PushQuietly (void)
+{
+	SaveState ();
+	bool quiet = Quiet;
+	Quiet = true;
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (Session (jid)) PushPending (jid);
+	if (Broken) EndSession (false);
+	JOBQ.EndJob (jid);
+	Quiet = quiet;
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+}
+
+// The window changed a flag (Mark as unread, Flag, a reply or forward sent).
+// Other changes waiting in the queue go along.
+void IMAP4Handler::SetFlag (char *msgid, char flag, bool on)
+{
+	if (!StateLoaded) LoadState ();
+	bool any = QueueFlag (msgid, flag, on);
+	ITCMessage *M;
+	while ((M = Parent->ToCollector->GetNextMessage (CLASS_SETFLAG)))
+	{
+		if (M->Message->Count >= 2 && strlen (M->Message->Get (1)) == 2)
+			any = QueueFlag (M->Message->Get (0), M->Message->Get (1)[1], M->Message->Get (1)[0] == '+') || any;
+		delete M;
+	}
+	while ((M = Parent->ToCollector->GetNextMessage (CLASS_MARKREAD)))
+	{
+		any = QueueFlag (M->Message->Get (0), 'S', true) || any;
+		delete M;
+	}
+	if (!any) return;
+	Parent->SaveMailBox ();		// the flags are kept in the index
+	PushQuietly ();
+}
+
+// A message whose text was here already was opened.
+void IMAP4Handler::MarkRead (char *msgid)
+{
+	if (!Parent->Find (msgid)) return;
+	SetFlag (msgid, 'S', true);
 }
 
 // Fetches the bodies the user is waiting for, during a check.
 void IMAP4Handler::ServiceBodies (int jid)
 {
 	ITCMessage *M;
+	bool opened = false;
 	while (!Broken && Parent->ToCollector->PriorityPending && (M = Parent->ToCollector->GetNextMessage (CLASS_GETBODY)))
 	{
-		FetchBody (M->Message->Get (0), jid);
+		MailMessage *X = Parent->Find (M->Message->Get (0));
+		bool have = X && (X->Flags & MMFL_HAVEBODY);
+		if (FetchBody (M->Message->Get (0), jid) && !have && QueueFlag (M->Message->Get (0), 'S', true)) opened = true;
 		Parent->ToUI->PostMessage (CLASS_GOTBODY, NO_SUBCLASS, M->Message->Get (0));
 		delete M;
 	}
+	// Opened means read, on the server too.
+	if (opened && !Broken) PushPending (jid);
 }
 
 // libetpan reports the bytes of a large reply as they come in. Shown for a
@@ -1246,9 +1558,19 @@ void IMAP4Handler::GetBody (char *msgid)
 	// Only the original for a copy: there is a local one to fall back on.
 	Quiet = have;
 	int jid = JOBQ.NewJob (Parent->Name);
+	bool copy = X->CaptureRaw != NULL;
 	if (Session (jid))
 	{
-		if (FetchBody (msgid, jid) && !have && !Broken) LastError.clear ();
+		if (FetchBody (msgid, jid) && !have && !Broken)
+		{
+			LastError.clear ();
+			// Opened: read, here and on the server.
+			if (!copy && QueueFlag (msgid, 'S', true))
+			{
+				Quiet = true;
+				PushPending (jid);
+			}
+		}
 		// The session stays open for the next message; it is closed when
 		// idle for a few minutes, and before each check.
 		if (Broken) EndSession (false);
@@ -1266,6 +1588,9 @@ void IMAP4Handler::CheckGroup (const char * /*group*/)
 	if (Session (jid) && ListFolders (jid))
 	{
 		SyncFolders ();
+		// Changes made here go first, so the server's flags read below
+		// include them.
+		PushPending (jid);
 		int added = 0;
 		bool complete = true;
 		Checked.clear ();

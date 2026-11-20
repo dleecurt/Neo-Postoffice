@@ -113,6 +113,10 @@ public:
 	void					 CloseConnection (void);
 	void					 CheckGroup (const char *);
 	void					 GetBody (char *);
+	// Read state and flags, kept on the server (step 3).
+	bool					 KeepsFlags (void) { return true; }
+	void					 MarkRead (char *);
+	void					 SetFlag (char *, char, bool);
 
 	// A server folder (one LSUB/LIST line) and its name in the client.
 	struct Folder
@@ -136,6 +140,7 @@ public:
 		uint32_t			 Validity = 0;	// UIDVALIDITY the UIDs belong to
 		uint32_t			 UidNext = 0;	// as of the last complete check
 		uint32_t			 Messages = 0;	// as of the last complete check
+		uint64_t			 ModSeq = 0;	// HIGHESTMODSEQ as of the last complete check (CONDSTORE)
 		std::set<uint32_t>	 Uids;			// fetched (or deleted here), still on the server
 	};
 	// Exposed for the tests: UID sets as "1:5,9" and back, and the IDs.
@@ -157,6 +162,11 @@ private:
 	bool					 StateLoaded = false;
 	std::string				 Selected;		// folder open (EXAMINE) in this session
 	uint32_t				 SelValidity = 0, SelUidNext = 0, SelExists = 0;
+	uint64_t				 SelModSeq = 0;	// 0: no CONDSTORE for this folder
+	bool					 SelWritable = false;	// opened with SELECT, not EXAMINE
+	// Flag changes made here, not yet on the server: Message-ID -> letter
+	// (S seen, F flagged, R answered, P forwarded) -> set or cleared.
+	std::map<std::string, std::map<char, bool>> Pending;
 	bool					 Broken = false;	// the session failed: stop using it
 	std::set<std::string>	 Checked;		// folders fully checked by this check
 	int						 ProgressJob = -1;	// job shown while a body comes in
@@ -172,6 +182,11 @@ private:
 	void					 SyncFolders (void);
 	bool					 SyncFolder (int jid, const Folder &, size_t index, size_t count, int &added);
 	bool					 Examine (const std::string &server);
+	bool					 Select (const std::string &server);
+	bool					 SyncFlags (const Folder &, FolderState &, uint64_t since, int &changed);
+	bool					 QueueFlag (const char *msgid, char letter, bool on);
+	bool					 PushPending (int jid);
+	void					 PushQuietly (void);
 	bool					 FetchBody (const char *msgid, int jid);
 	void					 ServiceBodies (int jid);
 	void					 Gone (const FolderState &, const std::set<uint32_t> &uids);

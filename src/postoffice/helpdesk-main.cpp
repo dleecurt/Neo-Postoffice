@@ -430,7 +430,7 @@ static void message_context_menu (Fl_Toggle_Node *n)
 	else if (m == &items[4]) cb_delete (NULL, NULL);
 }
 
-// Flag / unflag the selected messages (the Maildir F flag).
+// Flag / unflag the selected messages (Maildir F flag, IMAP \Flagged).
 void cb_mark (Fl_Button */*w*/, void */*d*/)
 {
 	if (!currentmailbox) return;
@@ -438,7 +438,7 @@ void cb_mark (Fl_Button */*w*/, void */*d*/)
 	if (ids.empty()) return;
 	if (!currentmailbox->Handler || !currentmailbox->Handler->KeepsFlags())
 	{
-		fl_alert ("Flags are kept for Maildir mailboxes only.");
+		fl_alert ("This mailbox does not keep flags (Maildir, MH and IMAP mailboxes do).");
 		return;
 	}
 	// Flag them all, unless the first one is flagged: then unflag them all.

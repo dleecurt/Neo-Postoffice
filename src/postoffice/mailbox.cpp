@@ -303,6 +303,19 @@ MailBox::~MailBox (void)
 */
 
 // Reads the mailbox's index file into entries.
+// The index's flags field: the message's own bits, and from bit 8 its
+// flagged, replied and forwarded flags (Neo-PostOffice; indexes of 0.7
+// have none there, and only the low bits are read back as message bits).
+static int index_flags (MailMessage *M)
+{
+    return (M->Flags & 0xff) | ((M->Envelope->GetInt (ENVELOPE_I_FLAGS) & (EFLAG_FLAGGED | EFLAG_REPLIED | EFLAG_PASSED)) << 8);
+}
+
+static int index_envelope_flags (int flags)
+{
+    return (flags >> 8) & (EFLAG_FLAGGED | EFLAG_REPLIED | EFLAG_PASSED);
+}
+
 static void read_index_file (const char *DirectoryPrefix, std::vector<IndexEntry> &entries)
 {
     FILE *IDX;
@@ -384,6 +397,7 @@ void MailBox::LoadMailBox (void)
         M->Envelope->SetInt (ENVELOPE_I_READ, e.Read);
         M->Count = e.Count;
         M->Flags = e.Flags & (MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_ONDISK);
+        M->Envelope->SetInt (ENVELOPE_I_FLAGS, index_envelope_flags (e.Flags));
         M->ReceiveDate = e.Received;
         if (!M->ReceiveDate) M->ReceiveDate = time (NULL) - 864000;
 
@@ -435,7 +449,7 @@ void MailBox::SaveMailBox (void)
             e.Date     = M->Envelope->Get (ENVELOPE_DATE);
             for (int i=0;i<M->Subscribers->Count();++i)
                 if ((V=M->Subscribers->Get(i))) e.Folders.push_back (V->View->Name);
-            e.Flags    = M->Flags;
+            e.Flags    = index_flags (M);
             e.Read     = M->Envelope->GetInt (ENVELOPE_I_READ);
             e.Count    = M->Count;
             e.Received = (long) M->ReceiveDate;
@@ -532,7 +546,7 @@ void MailBox::SaveMailBox (void)
                         if (i+1 < M->Subscribers->Count()) fputc (',', OUT);
                     }
                 }
-                fprintf (OUT, "|%i|%i|%i|%d\n", M->Flags, M->Envelope->GetInt (ENVELOPE_I_READ), M->Count, (unsigned int) M->ReceiveDate);
+                fprintf (OUT, "|%i|%i|%i|%d\n", index_flags (M), M->Envelope->GetInt (ENVELOPE_I_READ), M->Count, (unsigned int) M->ReceiveDate);
 
                 //M->SaveHeaders();
 
