@@ -74,6 +74,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include "wordlist.h"
 #include <atomic>
 #include <map>
 #include <set>
@@ -240,6 +241,90 @@ std::string IMAP4Handler::ClientName (const std::string &server, char delim, con
 		}
 	}
 	return utf8;
+}
+
+// UTF-8 to modified UTF-7. Bytes that are not valid UTF-8 are taken as
+// Latin-1, so every name can be sent.
+std::string IMAP4Handler::EncodeMUTF7 (const std::string &in)
+{
+	static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+,";
+	std::string out;
+	std::vector<unsigned> units;		// UTF-16 waiting to be written
+	auto flush = [&]()
+	{
+		if (units.empty ()) return;
+		out += '&';
+		unsigned long bits = 0;
+		int nbits = 0;
+		for (unsigned u : units)
+		{
+			bits = (bits << 16) | u;
+			nbits += 16;
+			while (nbits >= 6)
+			{
+				nbits -= 6;
+				out += b64[(bits >> nbits) & 0x3f];
+			}
+			bits &= (1UL << nbits) - 1;
+		}
+		if (nbits) out += b64[(bits << (6 - nbits)) & 0x3f];
+		out += '-';
+		units.clear ();
+	};
+	for (size_t i = 0; i < in.size (); )
+	{
+		unsigned char c = in[i];
+		if (c >= 0x20 && c <= 0x7e)
+		{
+			flush ();
+			out += c == '&' ? "&-" : std::string (1, (char) c);
+			++i;
+			continue;
+		}
+		// One UTF-8 sequence; a bad one: the byte alone, as Latin-1.
+		unsigned long cp = c;
+		int more = c >= 0xf0 && c < 0xf8 ? 3 : c >= 0xe0 && c < 0xf0 ? 2 : c >= 0xc0 && c < 0xe0 ? 1 : 0;
+		bool ok = more > 0 && i + more < in.size ();
+		if (ok)
+		{
+			cp = c & (0x3f >> more);
+			for (int k = 1; k <= more; ++k)
+			{
+				unsigned char d = in[i + k];
+				if ((d & 0xc0) != 0x80) { ok = false; break; }
+				cp = (cp << 6) | (d & 0x3f);
+			}
+			static const unsigned long least[] = { 0, 0x80, 0x800, 0x10000 };
+			if (ok && (cp < least[more] || cp > 0x10ffff || (cp >= 0xd800 && cp < 0xe000))) ok = false;
+		}
+		if (ok) i += more + 1;
+		else { cp = c; ++i; }
+		if (cp >= 0x10000)
+		{
+			cp -= 0x10000;
+			units.push_back (0xd800 + (cp >> 10));
+			units.push_back (0xdc00 + (cp & 0x3ff));
+		}
+		else units.push_back (cp);
+	}
+	flush ();
+	return out;
+}
+
+// "Inbox" becomes "INBOX"; else the client's "/" becomes the delimiter (and
+// a delimiter in the name a "/"), the name is encoded and the namespace
+// prefix put in front.
+std::string IMAP4Handler::ServerName (const std::string &client, char delim, const std::string &prefix)
+{
+	if (strcasecmp (client.c_str (), "Inbox") == 0) return "INBOX";
+	std::string name = client;
+	if (delim && delim != '/')
+		for (char &c : name)
+		{
+			if (c == '/') c = delim;
+			else if (c == delim) c = '/';
+		}
+	return prefix + EncodeMUTF7 (name);
 }
 
 //-------------------------------------------------------------------------------
@@ -614,6 +699,9 @@ bool IMAP4Handler::ListFolders (int jid)
 		return a.Client < b.Client;
 	});
 	Folders = found;
+	// No delimiter on any folder: a server without subfolders.
+	NameDelim = 0;
+	for (const Folder &f : Folders) if (f.Delim) { NameDelim = f.Delim; break; }
 	return true;
 }
 
@@ -2322,6 +2410,32 @@ void IMAP4Handler::GetBody (char *msgid)
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 }
 
+// The folders listed again and every folder brought up to date, after
+// sending the changes made here: the work of a check once connected.
+bool IMAP4Handler::Refresh (int jid)
+{
+	if (!ListFolders (jid)) return false;
+	SyncFolders ();
+	// Changes made here go first, so what is read below includes them.
+	if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
+	int added = 0;
+	bool complete = true;
+	Checked.clear ();
+	for (size_t i = 0; i < Folders.size (); ++i)
+	{
+		if (!SyncFolder (jid, Folders[i], i, Folders.size (), added) || Broken) { complete = false; break; }
+	}
+	ServiceBodies (jid);
+	Prune ();
+	SaveState ();
+	Parent->SaveMailBox ();
+	if (complete && !Broken) LastError.clear ();
+	ShowStatus (jid, added ? std::to_string (added) + (added == 1 ? " new message" : " new messages")
+						   : std::string ("No new messages"));
+	Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
+	return !Broken;
+}
+
 void IMAP4Handler::CheckGroup (const char * /*group*/)
 {
 	int jid = JOBQ.NewJob (Parent->Name);
@@ -2349,28 +2463,269 @@ void IMAP4Handler::CheckGroup (const char * /*group*/)
 		Tries = 0;
 		ToldDown = false;
 	}
-	if (up && ListFolders (jid))
-	{
-		SyncFolders ();
-		// Changes made here go first, so what is read below includes them.
-		if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
-		int added = 0;
-		bool complete = true;
-		Checked.clear ();
-		for (size_t i = 0; i < Folders.size (); ++i)
-		{
-			if (!SyncFolder (jid, Folders[i], i, Folders.size (), added) || Broken) { complete = false; break; }
-		}
-		ServiceBodies (jid);
-		Prune ();
-		SaveState ();
-		Parent->SaveMailBox ();
-		if (complete && !Broken) LastError.clear ();
-		ShowStatus (jid, added ? std::to_string (added) + (added == 1 ? " new message" : " new messages")
-							   : std::string ("No new messages"));
-		Parent->ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Parent->Name, "");
-	}
+	if (up) Refresh (jid);
 	if (Broken || Parent->ToCollector->UrgentPending) EndSession (false);
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+}
+
+//-------------------------------------------------------------------------------
+// Folder management (step 6)
+//-------------------------------------------------------------------------------
+
+// The window checks names with the Maildir rules first (no = { } " , and
+// "/" only between levels); here what IMAP adds.
+std::string IMAP4Handler::CheckFolderName (const std::string &name)
+{
+	if (name.find_first_of ("*%") != std::string::npos) return "IMAP folder names cannot contain * or %.";
+	if (strcasecmp (name.c_str (), "Inbox") == 0 || strncasecmp (name.c_str (), "Inbox/", 6) == 0)
+		return "Inbox is the server's own folder; choose another name.";
+	if (!NameDelim && name.find ('/') != std::string::npos)
+		return "This server has no subfolders: the name cannot contain /.";
+	return "";
+}
+
+bool IMAP4Handler::IsFixedFolder (const char *name)
+{
+	return name && strcasecmp (name, "Inbox") == 0;
+}
+
+// Every folder on the server (LIST), and if asked the subscribed ones (LSUB).
+bool IMAP4Handler::ListAll (std::vector<Listed> &all, std::set<std::string> *subscribed)
+{
+	all.clear ();
+	clist *list = NULL;
+	int r = mailimap_list (Imap, "", "*", &list);
+	if (r != MAILIMAP_NO_ERROR)
+	{
+		if (list) mailimap_list_result_free (list);
+		return Failed (r, "Cannot list the folders on " + Host);
+	}
+	for (clistiter *it = list ? clist_begin (list) : NULL; it; it = clist_next (it))
+	{
+		struct mailimap_mailbox_list *mb = (struct mailimap_mailbox_list *) clist_content (it);
+		if (!mb || !mb->mb_name || strpbrk (mb->mb_name, "\r\n")) continue;
+		Listed l;
+		l.Server = mb->mb_name;
+		l.Delim = mb->mb_delimiter;
+		l.Selectable = true;
+		if (mb->mb_flag)
+		{
+			if (mb->mb_flag->mbf_type == MAILIMAP_MBX_LIST_FLAGS_SFLAG &&
+				mb->mb_flag->mbf_sflag == MAILIMAP_MBX_LIST_SFLAG_NOSELECT)
+				l.Selectable = false;
+			for (clistiter *o = mb->mb_flag->mbf_oflags ? clist_begin (mb->mb_flag->mbf_oflags) : NULL; o; o = clist_next (o))
+			{
+				struct mailimap_mbx_list_oflag *of = (struct mailimap_mbx_list_oflag *) clist_content (o);
+				if (of && of->of_type == MAILIMAP_MBX_LIST_OFLAG_FLAG_EXT && of->of_flag_ext &&
+					(strcasecmp (of->of_flag_ext, "NonExistent") == 0 || strcasecmp (of->of_flag_ext, "Noselect") == 0))
+					l.Selectable = false;
+			}
+		}
+		all.push_back (l);
+	}
+	if (list) mailimap_list_result_free (list);
+
+	if (subscribed)
+	{
+		subscribed->clear ();
+		list = NULL;
+		r = mailimap_lsub (Imap, "", "*", &list);
+		if (r != MAILIMAP_NO_ERROR)
+		{
+			if (list) mailimap_list_result_free (list);
+			return Failed (r, "Cannot list the subscribed folders on " + Host);
+		}
+		for (clistiter *it = list ? clist_begin (list) : NULL; it; it = clist_next (it))
+		{
+			struct mailimap_mailbox_list *mb = (struct mailimap_mailbox_list *) clist_content (it);
+			if (mb && mb->mb_name) subscribed->insert (mb->mb_name);
+		}
+		if (list) mailimap_list_result_free (list);
+	}
+	return true;
+}
+
+// For the Subscriptions dialog: the folders that can hold messages, but
+// the Inbox, which is always shown.
+void IMAP4Handler::SendFolderList (int jid)
+{
+	ShowStatus (jid, "Listing the folders");
+	std::vector<Listed> all;
+	std::set<std::string> subs;
+	if (!ListAll (all, &subs)) return;
+	std::vector<std::pair<std::string, const Listed *>> shown;
+	for (const Listed &l : all)
+	{
+		if (!l.Selectable || strcasecmp (l.Server.c_str (), "INBOX") == 0) continue;
+		std::string name = ClientName (l.Server, l.Delim, Prefix);
+		if (name.empty () || name == "Inbox") continue;
+		shown.push_back ({ name, &l });
+	}
+	std::sort (shown.begin (), shown.end ());
+	WordList *W = new WordList;
+	W->Add (Parent->Name);
+	for (auto &s : shown)
+	{
+		W->Add (subs.count (s.second->Server) ? "1" : "0");
+		W->Add (s.first.c_str ());
+		W->Add (s.second->Server.c_str ());
+	}
+	Parent->ToUI->PostMessage (CLASS_FOLDERLIST, NO_SUBCLASS, W);
+}
+
+// One change on the server; a and b are names as shown here, except for
+// "subscriptions", whose a is lines of "+server" or "-server". False (and
+// told) if the server refused.
+bool IMAP4Handler::FolderChange (int jid, const char *op, const std::string &a, const std::string &b)
+{
+	std::string inbox = "INBOX";
+	for (const Folder &f : Folders) if (f.Client == "Inbox") inbox = f.Server;
+	auto server_of = [this](const std::string &client, char &delim) -> std::string
+	{
+		for (const Folder &f : Folders)
+			if (f.Client == client) { delim = f.Delim; return f.Server; }
+		delim = NameDelim;
+		return ServerName (client, NameDelim, Prefix);
+	};
+	// The folder open in this session must not be one that goes away.
+	auto leave = [&](const std::string &server, char delim)
+	{
+		if (Selected.empty ()) return;
+		if (Selected == server || (delim && Selected.compare (0, server.size () + 1, server + delim) == 0))
+			Examine (inbox);
+	};
+	auto under = [](const std::string &name, const std::string &top, char delim)
+	{
+		return name == top || (delim && name.compare (0, top.size () + 1, top + delim) == 0);
+	};
+	SpecialCache.clear ();
+
+	if (strcmp (op, "create") == 0)
+	{
+		char delim;
+		std::string name = server_of (a, delim);
+		ShowStatus (jid, "Creating the folder " + a);
+		int r = mailimap_create (Imap, name.c_str ());
+		if (r != MAILIMAP_NO_ERROR)
+		{
+			// Often the folder is there, but not subscribed to.
+			std::vector<Listed> all;
+			if (r == MAILIMAP_ERROR_CREATE && !Broken && Net->IsOpen () && ListAll (all, NULL))
+				for (const Listed &l : all)
+					if (l.Server == name)
+					{
+						Report ("The folder \"" + a + "\" is already on " + Host +
+								", but not shown here. To show it, tick it in Folder \xe2\x86\x92 Subscriptions.");
+						return false;
+					}
+			return Failed (r, "Cannot create the folder \"" + a + "\" on " + Host);
+		}
+		r = mailimap_subscribe (Imap, name.c_str ());
+		if (r != MAILIMAP_NO_ERROR) return Failed (r, "The folder \"" + a + "\" was created, but cannot be subscribed to");
+		return true;
+	}
+	if (strcmp (op, "rename") == 0)
+	{
+		char delim;
+		std::string from = server_of (a, delim), to = ServerName (b, delim ? delim : NameDelim, Prefix);
+		std::set<std::string> subs;
+		std::vector<Listed> all;
+		if (!ListAll (all, &subs)) return false;
+		leave (from, delim);
+		ShowStatus (jid, "Renaming the folder " + a);
+		int r = mailimap_rename (Imap, from.c_str (), to.c_str ());
+		if (r != MAILIMAP_NO_ERROR) return Failed (r, "Cannot rename the folder \"" + a + "\" on " + Host);
+		// The server renames the subfolders too; the subscriptions follow
+		// (some servers move them, others leave the old names).
+		for (const std::string &s : subs)
+		{
+			if (!under (s, from, delim)) continue;
+			mailimap_unsubscribe (Imap, s.c_str ());
+			if (Broken || !Net->IsOpen ()) { Broken = true; return false; }
+			r = mailimap_subscribe (Imap, (to + s.substr (from.size ())).c_str ());
+			if (r != MAILIMAP_NO_ERROR) return Failed (r, "The folder was renamed, but cannot be subscribed to");
+		}
+		return true;
+	}
+	if (strcmp (op, "delete") == 0)
+	{
+		char delim;
+		std::string top = server_of (a, delim);
+		std::vector<Listed> all;
+		if (!ListAll (all, NULL)) return false;
+		std::vector<std::string> doomed;
+		for (const Listed &l : all) if (under (l.Server, top, delim)) doomed.push_back (l.Server);
+		if (doomed.empty ()) doomed.push_back (top);
+		// Subfolders first, deepest first.
+		std::sort (doomed.begin (), doomed.end (), [](const std::string &x, const std::string &y)
+				   { return x.size () != y.size () ? x.size () > y.size () : x > y; });
+		leave (top, delim);
+		ShowStatus (jid, "Deleting the folder " + a);
+		for (const std::string &d : doomed)
+		{
+			mailimap_unsubscribe (Imap, d.c_str ());
+			if (Broken || !Net->IsOpen ()) { Broken = true; return false; }
+			int r = mailimap_delete (Imap, d.c_str ());
+			if (r != MAILIMAP_NO_ERROR)
+				return Failed (r, "Cannot delete the folder \"" + ClientName (d, delim, Prefix) + "\" on " + Host);
+		}
+		return true;
+	}
+	if (strcmp (op, "subscriptions") == 0)
+	{
+		ShowStatus (jid, "Changing the subscriptions");
+		std::string refused;
+		size_t start = 0;
+		while (start < a.size ())
+		{
+			size_t end = a.find ('\n', start);
+			if (end == std::string::npos) end = a.size ();
+			std::string line = a.substr (start, end - start);
+			start = end + 1;
+			if (line.size () < 2 || (line[0] != '+' && line[0] != '-')) continue;
+			std::string name = line.substr (1);
+			int r = line[0] == '+' ? mailimap_subscribe (Imap, name.c_str ()) : mailimap_unsubscribe (Imap, name.c_str ());
+			if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ())
+				return Failed (r, "Cannot change the subscriptions on " + Host);
+			if (r != MAILIMAP_NO_ERROR)
+				refused += (refused.empty () ? "" : ", ") + ClientName (name, NameDelim, Prefix);
+		}
+		if (!refused.empty ())
+		{
+			Report ("The server " + Host + " refused to change the subscription of: " + refused + ".");
+			return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+// Folder management from the window (CLASS_FOLDEROP): "create", "rename",
+// "delete", "subscriptions", or "list" for the Subscriptions dialog.
+// Changes waiting to be sent go first; after a change everything is read
+// again, as at a check.
+void IMAP4Handler::FolderOp (const char *op, const char *a, const char *b)
+{
+	if (!StateLoaded) LoadState ();
+	int jid = JOBQ.NewJob (Parent->Name);
+	JOBQ.Progress (jid, 1);
+	bool up = Session (jid);
+	if (up && Folders.empty ()) up = ListFolders (jid);
+	if (up)
+	{
+		Dropped = false;
+		Tries = 0;
+		ToldDown = false;
+		if (strcmp (op, "list") == 0) SendFolderList (jid);
+		else
+		{
+			if (PushPending (jid) && PushOps (jid)) FlushSpool (jid);
+			if (!Broken) FolderChange (jid, op, a ? a : "", b ? b : "");
+			if (!Broken) Refresh (jid);
+		}
+	}
+	if (Broken) EndSession (false);
 	JOBQ.EndJob (jid);
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 }

@@ -21,11 +21,6 @@ Fl_Menu_Item menu_[] = {
  {"New Query", 0,  0, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Expire", 0,  (Fl_Callback*)cb_expire, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Check Mail", FL_ALT|'l',  (Fl_Callback*)cb_check_mail_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Folder", 0,  0, 0, 192, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"New folder...", 0,  (Fl_Callback*)cb_folder_new_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Rename folder...", 0,  (Fl_Callback*)cb_folder_rename_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Delete folder...", 0,  (Fl_Callback*)cb_folder_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0},
  {"Configure", 0,  (Fl_Callback*)cb_Configure, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Quit", FL_ALT|'q',  (Fl_Callback*)cb_quit_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
@@ -47,6 +42,12 @@ Fl_Menu_Item menu_[] = {
  {"Mark as unread", FL_ALT|'u',  (Fl_Callback*)cb_markunread_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Flag / unflag", FL_ALT|'g',  (Fl_Callback*)cb_mark_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Refilter", 0,  (Fl_Callback*)cb_refilter, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0},
+ {"Folder", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"New folder...", 0,  (Fl_Callback*)cb_folder_new_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Rename folder...", 0,  (Fl_Callback*)cb_folder_rename_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Delete folder...", 0,  (Fl_Callback*)cb_folder_delete_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Subscriptions...", 0,  (Fl_Callback*)cb_folder_subs_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"View", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Messages", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -662,58 +663,58 @@ Fl_Window* make_window() {
       { Fl_Menu_Item* o = &menu_[4];
         xloc(o, "check_mail");
       }
-      { Fl_Menu_Item* o = &menu_[10];
+      { Fl_Menu_Item* o = &menu_[5];
         xloc(o, "configure");
       }
-      { Fl_Menu_Item* o = &menu_[11];
+      { Fl_Menu_Item* o = &menu_[6];
         xloc(o, "quit");
       }
-      { Fl_Menu_Item* o = &menu_[13];
+      { Fl_Menu_Item* o = &menu_[8];
         xloc(o, "edit");
       }
-      { Fl_Menu_Item* o = &menu_[14];
+      { Fl_Menu_Item* o = &menu_[9];
         xloc(o, "cut");
       }
-      { Fl_Menu_Item* o = &menu_[15];
+      { Fl_Menu_Item* o = &menu_[10];
         xloc(o, "copy");
       }
-      { Fl_Menu_Item* o = &menu_[16];
+      { Fl_Menu_Item* o = &menu_[11];
         xloc(o, "paste");
       }
-      { Fl_Menu_Item* o = &menu_[19];
+      { Fl_Menu_Item* o = &menu_[14];
         xloc(o, "message");
       }
-      { Fl_Menu_Item* o = &menu_[20];
+      { Fl_Menu_Item* o = &menu_[15];
         xloc(o, "reply");
       }
-      { Fl_Menu_Item* o = &menu_[21];
+      { Fl_Menu_Item* o = &menu_[16];
         xloc(o, "forward");
       }
-      { Fl_Menu_Item* o = &menu_[23];
+      { Fl_Menu_Item* o = &menu_[18];
         xloc(o, "redirect");
       }
-      { Fl_Menu_Item* o = &menu_[25];
+      { Fl_Menu_Item* o = &menu_[20];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[32];
+      { Fl_Menu_Item* o = &menu_[33];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[34];
-        xloc(o, "all_messages");
-      }
       { Fl_Menu_Item* o = &menu_[35];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[38];
         xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[36];
+        xloc(o, "unread_messages");
       }
       { Fl_Menu_Item* o = &menu_[39];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[42];
         xloc(o, "all_messages");
       }
+      { Fl_Menu_Item* o = &menu_[40];
+        xloc(o, "unread_messages");
+      }
       { Fl_Menu_Item* o = &menu_[43];
+        xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[44];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);

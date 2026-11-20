@@ -401,6 +401,7 @@ void cb_markunread_m (Fl_Menu_ */*w*/, void */*d*/)
 	update_folder();
 }
 
+void folder_subscriptions_show (WordList *);
 void cb_delete (Fl_Button *, void *);
 void cb_mark (Fl_Button *, void *);
 
@@ -975,6 +976,11 @@ int main (int argc, char *argv[])
 						PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (B->Name)->Get_collection ("folders")->Delete (M->Message->Get(1));
 						break;
 					}
+					break;
+
+				case CLASS_FOLDERLIST:
+					// The server's folders, for the Subscriptions dialog (IMAP).
+					folder_subscriptions_show (M->Message);
 					break;
 
 				case CLASS_GONE:

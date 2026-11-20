@@ -58,6 +58,12 @@ public:
 	virtual std::string		 CheckFolderName (const std::string &) { return ""; }
 	// A folder that cannot be renamed or deleted (the inbox).
 	virtual bool			 IsFixedFolder (const char * /*name*/) { return false; }
+	// Deleting a folder deletes its messages for good (IMAP), rather than
+	// moving them to the Trash (Maildir, MH).
+	virtual bool			 FolderDeleteIsFinal (void) { return false; }
+	// Subscriptions (IMAP): FolderOp "list" answers with CLASS_FOLDERLIST,
+	// "subscriptions" takes "+name" / "-name" lines of server names.
+	virtual bool			 CanSubscribe (void) { return false; }
 
 	WordList				*GroupList (void);
 		
@@ -133,6 +139,13 @@ public:
 	// Push (step 5): IDLE on the Inbox while nothing else is going on.
 	void					 Idle (void);
 	bool					 KeepsConnection (void);
+	// Folder management (step 6): CREATE, RENAME, DELETE, subscriptions.
+	bool					 CanManageFolders (void) { return true; }
+	void					 FolderOp (const char *op, const char *a, const char *b);
+	std::string				 CheckFolderName (const std::string &);
+	bool					 IsFixedFolder (const char *name);
+	bool					 FolderDeleteIsFinal (void) { return true; }
+	bool					 CanSubscribe (void) { return true; }
 
 	// A server folder (one LSUB/LIST line) and its name in the client.
 	struct Folder
@@ -147,6 +160,9 @@ public:
 	// to UTF-8, and a server name to the client's.
 	static bool				 DecodeMUTF7 (const std::string &in, std::string &out);
 	static std::string		 ClientName (const std::string &server, char delim, const std::string &prefix);
+	// And back: UTF-8 to modified UTF-7, and a client name to the server's.
+	static std::string		 EncodeMUTF7 (const std::string &in);
+	static std::string		 ServerName (const std::string &client, char delim, const std::string &prefix);
 
 	// What is known of one server folder (imap.dat). Messages are filed
 	// under made-up Message-IDs "<imap.HASH.UIDVALIDITY.UID@imap>", HASH
@@ -173,6 +189,7 @@ private:
 	std::string				 Host;
 	std::string				 Prefix;		// personal namespace prefix ("INBOX." on some servers)
 	std::vector<Folder>		 Folders;		// subscribed, as of the last check
+	char					 NameDelim = '/';	// the server's delimiter, for CheckFolderName
 	std::string				 LastError;		// shown once
 	bool					 Quiet = false;
 	std::map<std::string, FolderState> State;	// by server folder name
@@ -227,6 +244,16 @@ private:
 	void					 StopIdle (void);
 	void					 Lost (const std::string &why = "");
 	void					 QuickSync (int jid);
+	bool					 Refresh (int jid);
+	bool					 FolderChange (int jid, const char *op, const std::string &a, const std::string &b);
+	struct Listed
+	{
+		std::string			 Server;
+		char				 Delim;
+		bool				 Selectable;
+	};
+	bool					 ListAll (std::vector<Listed> &all, std::set<std::string> *subscribed);
+	void					 SendFolderList (int jid);
 	bool					 QueueFlag (const char *msgid, char letter, bool on);
 	bool					 PushPending (int jid);
 	void					 PushQuietly (void);

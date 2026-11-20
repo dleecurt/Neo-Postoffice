@@ -84,8 +84,8 @@ for the other mailbox types.
 
 ## Managing folders
 
-Right-click a Maildir mailbox or folder in the folder tree, or use
-*File → Folder*:
+Right-click a Maildir mailbox or folder in the folder tree, or use the
+*Folder* menu:
 
 - **New folder...** creates a Maildir++ folder. Use `/` for subfolders
   (`Lists/2025` becomes `.Lists.2025`; a missing parent is created too).

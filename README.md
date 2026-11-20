@@ -15,8 +15,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 
 ## Features
 
-- POP3 over TLS or STARTTLS, IMAP4 (being built, with libetpan; see
-  below), NNTP (Usenet), or a fetch command (getmail, fetchmail, mbsync)
+- POP3 over TLS or STARTTLS, IMAP4 (with libetpan: push with IDLE,
+  flags, moves and folders on the server; see below), NNTP (Usenet), or a fetch command (getmail, fetchmail, mbsync)
   run before each check of a local mailbox; outgoing mail is queued in the
   outbox and handed to the system's MTA, to msmtp or to the built-in SMTP
   client
@@ -139,9 +139,9 @@ named after its SHA-256 fingerprint). Use it for a local or company CA:
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
 the library Claws Mail uses, in steps (see [docs/imap.md](docs/imap.md)).
-It is not finished: **steps 1 to 5 of 6** are done: mail is read and
-pushed; read state, flags, deletes and moves go to the server; folder
-management comes next.
+All **six steps** are done: mail is read and pushed; read state, flags,
+deletes and moves go to the server; folders are created, renamed,
+deleted and subscribed to here.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
@@ -200,7 +200,17 @@ a changed folder's removed messages come with its flag changes; on
 others the messages of a folder are listed in full only when its count
 shows that some were removed.
 
-Not yet (step 6): creating, renaming or deleting folders.
+Folders: right-click an IMAP mailbox or folder in the folder tree, or
+use the *Folder* menu. **New folder...** creates a folder on the server
+and subscribes to it (`/` makes a subfolder, as in `Lists/2025`).
+**Rename folder...** renames it and its subfolders, and their
+subscriptions move along; their messages are fetched again under the new
+name. **Delete folder...** says how many messages the folder and its
+subfolders hold and, once confirmed, deletes them on the server for
+good: they do not go to the Trash. The Inbox cannot be renamed or
+deleted. **Subscriptions...** lists every folder on the server with a
+tick box: ticked folders are shown here and checked; unticking one
+removes it and its messages here only, not on the server.
 
 The message list shows the newest 1024 messages of a folder, for every
 mailbox type; Config → Style → *Message list* changes that (0 shows them
@@ -217,8 +227,8 @@ An IMAP4 mailbox from PostOffice 0.7, which has no encryption setting,
 uses STARTTLS on its old port rather than sending the password in the
 clear.
 
-Until IMAP is finished, mbsync (isync) or OfflineIMAP can keep a local
-Maildir in step with an IMAP server in both directions: folders, read
+mbsync (isync) or OfflineIMAP can also keep a local Maildir in step
+with an IMAP server in both directions (for working offline, say): folders, read
 state, flags, deletions and moves. Set up a *Maildir* mailbox on that
 directory with `mbsync -a` (or `offlineimap -o -u quiet`) as its *Fetch
 command*: every check then brings new mail in and sends your changes
@@ -354,8 +364,8 @@ dragged onto another folder (Ctrl+drag copies) or moved or copied with
 the *Message* menu or a right-click, also from other mailboxes into a
 Maildir; they can be flagged with *Mark* and marked unread, and replies
 and forwards set the replied/passed flags. Folders can be created,
-renamed and deleted with a right-click in the folder tree or *File →
-Folder*. See [docs/maildir.md](docs/maildir.md).
+renamed and deleted with a right-click in the folder tree or the
+*Folder* menu. See [docs/maildir.md](docs/maildir.md).
 
 ## MH mailboxes (nmh)
 

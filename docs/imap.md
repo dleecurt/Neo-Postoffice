@@ -58,7 +58,7 @@ as `.`). Folders marked `\Noselect` or `\NonExistent` are not shown.
 4. **Done: changes on the server.** See *Deleting, moving and storing*
    below.
 5. **Done: push and speed.** See *Push* below.
-6. **Folder management:** `CREATE`, `RENAME`, `DELETE`, `SUBSCRIBE`.
+6. **Done: folder management.** See *Managing folders* below.
 
 ## Reading
 
@@ -237,6 +237,51 @@ left out). If the known UIDs, less the removed ones, plus the new ones
 make the folder's count, that is the list; otherwise (no QRESYNC and
 something removed, or the first check) all UIDs are listed as before.
 
+## Managing folders
+
+Decided with the project's owner: the commands are in the folder tree's
+right-click menu and in a *Folder* menu (which also holds the Maildir and
+MH folder commands, formerly under *File*); subscriptions are chosen in a
+list of every server folder with tick boxes; deleting a folder that holds
+messages says how many and deletes them on the server once confirmed;
+IMAP only (Maildir and MH keep their own folder commands).
+
+The window asks for the name and checks it as for Maildir (`/` only
+between levels, none of `= { } " ,`, a free name), plus IMAP's rules: no
+`*` or `%` (LIST wildcards), not *Inbox*, and no `/` on a server without
+subfolders. The mailbox thread then (`FolderOp`, `CLASS_FOLDEROP`):
+
+1. ends IDLE and sends the changes waiting here (flags, deletes, moves,
+   the spool), so none of them points at a folder about to change;
+2. makes the change. Names go back through the same mapping as shown
+   names (`/` to the server's delimiter, UTF-8 to modified UTF-7, the
+   namespace prefix in front; a folder already listed keeps its exact
+   server name):
+   - **create:** `CREATE`, then `SUBSCRIBE`. If the server says no and
+     LIST shows the folder exists, the message points to *Subscriptions*;
+   - **rename:** `RENAME` (the server takes the subfolders along). Each
+     subscribed folder under the old name is unsubscribed and the new name
+     subscribed, as servers differ in moving subscriptions;
+   - **delete:** every folder under the name (from LIST) is unsubscribed
+     and deleted, deepest first, then the folder itself. `DELETE` on IMAP
+     is final: the messages are not moved to the Trash;
+   - **subscriptions:** `SUBSCRIBE` / `UNSUBSCRIBE` per change; the names
+     the server refused are told in one message.
+   A folder open in the session that is about to go away is left first
+   (`EXAMINE` of the Inbox);
+3. reads everything again, as a check does (`Refresh`, shared with
+   `CheckGroup`): new folders appear, gone ones are removed here with
+   their messages. A renamed folder's messages are fetched again under
+   the new name, as its message IDs carry the server name (and servers
+   may give it a new `UIDVALIDITY`: mox does);
+4. goes back to IDLE.
+
+*Subscriptions...* sends `list`: the thread answers with LIST and LSUB
+(`CLASS_FOLDERLIST`: the folders that can hold messages, except the
+Inbox, with their shown and server names), and the dialog opens once the
+window's message loop has finished with that message. OK sends only what
+was changed.
+
 ## Not planned yet
 
 - `AUTHENTICATE` (SASL) and OAuth2 (`XOAUTH2`/`OAUTHBEARER`). libetpan
@@ -311,6 +356,21 @@ Step 5, against mox (IDLE, CONDSTORE, QRESYNC), with libetpan 1.10.1:
 | Server stopped during IDLE | No dialog; back by itself 25 seconds after the server returned, with the mail that came meanwhile |
 | Program started with the server down, left for 10 minutes | Quiet at the start; one message at 10 minutes; back by itself when the server returned, no second message |
 | 10 minutes in IDLE with no news | `DONE` and `IDLE` again |
+
+Step 6, against mox, with libetpan 1.10.1 (and built with 1.9.4 and
+without libetpan):
+
+| Case | Result |
+|---|---|
+| New folder `Projects/Alpha` | `DONE`, `CREATE`, `SUBSCRIBE`, every folder read again, `IDLE`; shown at once |
+| Rename `Projects` (1 message, subfolder `Alpha` with 3) to `Work/Clients` | `RENAME`; both subscriptions moved; `Work/Clients` and `Work/Clients/Alpha` shown with their 4 messages; nothing left under the old names in `imap.dat` |
+| Delete `Work/Clients` | Dialog: 4 messages deleted permanently on the server; `Alpha` unsubscribed and deleted, then `Work/Clients`; both gone here with their messages |
+| Delete an empty folder | Dialog: they contain no messages |
+| Subscriptions: tick an unsubscribed `Résumé & Co`, untick `Lists/2025` | List decoded from modified UTF-7; `SUBSCRIBE "R&AOk-sum&AOk- &- Co"` (the server's own name), `UNSUBSCRIBE Lists/2025`; tree updated, `Lists/2025` messages removed here only |
+| New folder with a name that exists on the server, unsubscribed | Message pointing to *Folder → Subscriptions* |
+| Name with `*` | Refused before anything is sent |
+| Right-click on the Inbox | Rename and Delete inactive |
+| Name encoding (RFC 3501's example, `&`, an emoji, `.` and `/` delimiters with the `INBOX.` prefix) | Encoded and decoded both ways |
 
 Not tested yet: Dovecot, Cyrus, Gmail and other providers. Reports are
 welcome.

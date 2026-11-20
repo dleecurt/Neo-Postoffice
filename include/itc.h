@@ -39,6 +39,7 @@
 #define CLASS_NEWFOLDER		0x2007 // [2] arg1 = mailbox     arg2 = "" (folders or counts changed: redraw the tree)
 #define CLASS_GONE			0x2008 // [2] arg1 = mailbox     arg2 = intmsgid (deleted on the server)
 #define CLASS_FOLDERGONE	0x2009 // [2] arg1 = mailbox     arg2 = foldername (removed at the source)
+#define CLASS_FOLDERLIST	0x200A // [1+3n] arg1 = mailbox, then per folder: "1"/"0" subscribed, name here, server name
 
 // defines for scheduler events
 

@@ -65,26 +65,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {20 20 100 20} shortcut 0x8006c labelsize 12 divider
           code0 {xloc(o, "check_mail");}
         }
-        Submenu {} {
-          label Folder open
-          xywh {0 0 100 20} labelsize 12 divider
-        } {
-          MenuItem {} {
-            label {New folder...}
-            callback cb_folder_new_m
-            tooltip {Create a folder in the selected Maildir mailbox} xywh {0 0 100 20} labelsize 12
-          }
-          MenuItem {} {
-            label {Rename folder...}
-            callback cb_folder_rename_m
-            tooltip {Rename the selected Maildir folder} xywh {0 0 100 20} labelsize 12
-          }
-          MenuItem {} {
-            label {Delete folder...}
-            callback cb_folder_delete_m
-            tooltip {Delete the selected Maildir folder; its messages go to the Trash} xywh {0 0 100 20} labelsize 12
-          }
-        }
         MenuItem {} {
           label Configure
           callback {cb_configure (NULL, NULL);}
@@ -186,6 +166,31 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           label Refilter
           callback cb_refilter
           xywh {0 0 100 20} labelsize 12 deactivate
+        }
+      }
+      Submenu {} {
+        label Folder open
+        xywh {0 0 100 20} labelsize 12
+      } {
+        MenuItem {} {
+          label {New folder...}
+          callback cb_folder_new_m
+          tooltip {Create a folder in the selected Maildir, MH or IMAP mailbox} xywh {0 0 100 20} labelsize 12
+        }
+        MenuItem {} {
+          label {Rename folder...}
+          callback cb_folder_rename_m
+          tooltip {Rename the selected folder (and its subfolders)} xywh {0 0 100 20} labelsize 12
+        }
+        MenuItem {} {
+          label {Delete folder...}
+          callback cb_folder_delete_m
+          tooltip {Delete the selected folder; Maildir and MH messages go to the Trash, IMAP messages are deleted on the server} xywh {0 0 100 20} labelsize 12 divider
+        }
+        MenuItem {} {
+          label {Subscriptions...}
+          callback cb_folder_subs_m
+          tooltip {Choose which folders of the selected IMAP mailbox are shown} xywh {0 0 100 20} labelsize 12
         }
       }
       Submenu {} {

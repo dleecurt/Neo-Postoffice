@@ -63,8 +63,8 @@ If nmh is not set up yet, `install-mh` creates the profile and
   stores it under the next free number of the target folder, byte for
   byte as it was, with its read state and flags. If `inc` takes that
   number at the same moment, the next one is used.
-- **Folder management.** A right-click in the folder tree (or *File →
-  Folder*) creates, renames and deletes folders. Renaming takes the
+- **Folder management.** A right-click in the folder tree (or the
+  *Folder* menu) creates, renames and deletes folders. Renaming takes the
   subfolders along. Deleting a folder moves its messages, and those of
   its subfolders, into the folder *Trash* (created when needed) and then
   removes the directories; deleting *Trash* itself deletes its

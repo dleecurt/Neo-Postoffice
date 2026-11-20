@@ -12,6 +12,11 @@
 #include <algorithm>
 #include <string>
 #include <FL/Fl_Menu_Item.H>
+#include <FL/Fl_Double_Window.H>
+#include <FL/Fl_Check_Browser.H>
+#include <FL/Fl_Return_Button.H>
+#include <FL/Fl_Box.H>
+#include <vector>
 #include "itc.h"
 #include "mailhandler.h"
 #include "checksum.h"
@@ -192,17 +197,106 @@ void folder_delete (MailBox *box, const char *folder)
 		if (name == V->Name || strncmp (V->Name, (name + "/").c_str(), name.size() + 1) == 0)
 			count += V->Count();
 	box->VLock->UnlockR();
-	bool trash = name == "Trash" || name.compare (0, 6, "Trash/") == 0;
-	char what[64];
+	// IMAP: gone from the server with the folder, not kept in a Trash.
+	bool final = box->Handler->FolderDeleteIsFinal();
+	bool trash = final || name == "Trash" || name.compare (0, 6, "Trash/") == 0;
+	char what[128];
 	if (count == 0) snprintf (what, sizeof (what), "They contain no messages.");
 	else if (count == 1) snprintf (what, sizeof (what), "The message in them will be %s.",
 								   trash ? "deleted permanently" : "moved to the Trash");
 	else snprintf (what, sizeof (what), "The %d messages in them will be %s.", count,
 				   trash ? "deleted permanently" : "moved to the Trash");
-	int r = fl_choice ("Delete the folder \"%s\" and its subfolders?\n%s",
-					   "Cancel", "Delete", NULL, name.c_str(), what);
+	int r = fl_choice ("Delete the folder \"%s\" and its subfolders%s?\n%s",
+					   "Cancel", "Delete", NULL, name.c_str(), final ? " on the server" : "", what);
 	if (r != 1) return;
 	post_folder_op (box, "delete", name.c_str(), "");
+}
+
+// Subscriptions (IMAP): the mailbox lists the server's folders and answers
+// with CLASS_FOLDERLIST, which opens the dialog (folder_subscriptions_show).
+void folder_subscriptions (MailBox *box)
+{
+	if (!box || !box->Handler || !box->Handler->CanSubscribe())
+	{
+		fl_alert ("Subscriptions are for IMAP mailboxes: select an IMAP mailbox or one of its folders.");
+		return;
+	}
+	post_folder_op (box, "list", "", "");
+}
+
+struct SubsDialog
+{
+	std::string box;
+	std::vector<std::string> names, servers;
+	std::vector<bool> was;
+};
+
+static void subs_dialog_open (void *data)
+{
+	SubsDialog *D = (SubsDialog *) data;
+	MailBox *box = NULL;
+	for (int k = 0; k < 16 && MailBoxList[k]; ++k)
+		if (D->box == MailBoxList[k]->Name) box = MailBoxList[k];
+	if (!box) { delete D; return; }		// made anew meanwhile (Config)
+
+	std::string title = "Subscriptions - " + D->box;
+	Fl_Double_Window win (440, 400, title.c_str());
+	Fl_Box note (10, 8, 420, 52, "Ticked folders are shown here and checked for mail. Unticking a "
+				 "folder removes its messages here only: they stay on the server.");
+	note.align (FL_ALIGN_LEFT | FL_ALIGN_INSIDE | FL_ALIGN_WRAP | FL_ALIGN_TOP);
+	note.labelsize (12);
+	Fl_Check_Browser list (10, 62, 420, 290);
+	list.textsize (12);
+	list.when (FL_WHEN_NEVER);
+	int answer = 0;
+	Fl_Return_Button ok (240, 362, 90, 26, "OK");
+	ok.labelsize (12);
+	ok.callback ([](Fl_Widget *, void *v) { *(int *) v = 1; }, &answer);
+	Fl_Button cancel (340, 362, 90, 26, "Cancel");
+	cancel.labelsize (12);
+	cancel.callback ([](Fl_Widget *, void *v) { *(int *) v = 2; }, &answer);
+	win.callback ([](Fl_Widget *, void *v) { *(int *) v = 2; }, &answer);
+	win.end();
+	for (size_t i = 0; i < D->names.size(); ++i) list.add (D->names[i].c_str(), D->was[i] ? 1 : 0);
+	if (D->names.empty()) list.add ("(the server has no other folders than the Inbox)");
+	win.set_modal();
+	win.show();
+	while (win.shown() && !answer) Fl::wait();
+	win.hide();
+
+	if (answer == 1)
+	{
+		std::string changes;
+		for (size_t i = 0; i < D->names.size(); ++i)
+		{
+			bool now = list.checked ((int) i + 1);
+			if (now != D->was[i]) changes += std::string (now ? "+" : "-") + D->servers[i] + "\n";
+		}
+		if (!changes.empty()) post_folder_op (box, "subscriptions", changes.c_str(), "");
+	}
+	delete D;
+}
+
+// CLASS_FOLDERLIST: [mailbox, then "1"/"0", name, server name per folder].
+// Shown after the message loop has finished with the message.
+void folder_subscriptions_show (WordList *W)
+{
+	if (!W || W->Count < 1) return;
+	SubsDialog *D = new SubsDialog;
+	D->box = W->Get (0);
+	for (int i = 1; i + 2 < W->Count; i += 3)
+	{
+		D->was.push_back (strcmp (W->Get (i), "1") == 0);
+		D->names.push_back (W->Get (i + 1));
+		D->servers.push_back (W->Get (i + 2));
+	}
+	Fl::add_timeout (0.0, subs_dialog_open, D);
+}
+
+void cb_folder_subs_m (Fl_Menu_ *, void *)
+{
+	if (!currentmailbox) { fl_alert ("Select an IMAP mailbox or folder first."); return; }
+	folder_subscriptions (currentmailbox);
 }
 
 void cb_folder_new_m (Fl_Menu_ *, void *)
@@ -233,11 +327,13 @@ static void tree_context_menu (Fl_Toggle_Node *n)
 	bool is_folder = B->foldername && box->GetView (B->foldername);
 	bool fixed = !is_folder || (box->Handler && box->Handler->IsFixedFolder (B->foldername));
 	bool manage = box->Handler && box->Handler->CanManageFolders();
+	bool subs = box->Handler && box->Handler->CanSubscribe();
 
 	Fl_Menu_Item items[] = {
 		{ "New folder...",    0, 0, 0, manage ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
 		{ "Rename folder...", 0, 0, 0, (manage && !fixed) ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
-		{ "Delete folder...", 0, 0, 0, (manage && !fixed) ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
+		{ "Delete folder...", 0, 0, 0, ((manage && !fixed) ? 0 : FL_MENU_INACTIVE) | (subs ? FL_MENU_DIVIDER : 0), 0, 0, 12, 0 },
+		{ "Subscriptions...", 0, 0, 0, subs ? 0 : FL_MENU_INVISIBLE, 0, 0, 12, 0 },
 		{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
 	const Fl_Menu_Item *m = items[0].popup (Fl::event_x(), Fl::event_y(), manage ? box->Name : "Folders are set in Config");
@@ -246,6 +342,7 @@ static void tree_context_menu (Fl_Toggle_Node *n)
 	if (m == &items[0]) folder_new (box, folder.c_str());
 	else if (m == &items[1]) folder_rename (box, folder.c_str());
 	else if (m == &items[2]) folder_delete (box, folder.c_str());
+	else if (m == &items[3]) folder_subscriptions (box);
 }
 
 BoxData::BoxData (MailBox *m, char *f)
