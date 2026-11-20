@@ -2290,34 +2290,34 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           }
           Fl_Group gr_prefs_id_smtp {
             label {Outgoing mail server (built-in SMTP client)} open
-            xywh {20 360 600 105} box ENGRAVED_BOX labelsize 12 align 5
+            xywh {20 335 600 135} box ENGRAVED_BOX labelsize 12 align 5
           } {
             Fl_Button {} {
               label Server
-              xywh {30 370 80 20} box NO_BOX labelsize 12 align 20
+              xywh {30 343 80 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtphost {
               callback cb_prefs_id_smtphost
-              tooltip {The mail server this identity sends through, for example smtp.example.org. Used when Config -> Network sends with the built-in SMTP client.} xywh {130 370 330 20} labelsize 12 when 1 textsize 12
+              tooltip {The mail server this identity sends through, for example smtp.example.org. Used when Config -> Network sends with the built-in SMTP client.} xywh {130 343 330 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Port
-              xywh {470 370 40 20} box NO_BOX labelsize 12 align 20
+              xywh {470 343 40 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtpport {
               callback cb_prefs_id_smtpport
-              tooltip {Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.} xywh {515 370 90 20} type Int labelsize 12 when 1 textsize 12
+              tooltip {Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.} xywh {515 343 90 20} type Int labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Encryption
-              xywh {30 400 80 20} box NO_BOX labelsize 12 align 20
+              xywh {30 368 80 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Group {} {open
-              xywh {130 400 330 20} box BORDER_FRAME color 0
+              xywh {130 368 330 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_id_smtpsec {
                 callback cb_prefs_id_smtpsec open
-                tooltip {TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrades the connection. Without encryption only for a server on your own network: the message and, later, the password would cross the network readable.} xywh {131 401 329 19} down_box BORDER_BOX labelsize 12 textsize 12
+                tooltip {TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrades the connection. Without encryption only for a server on your own network, and never with a login.} xywh {131 369 329 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
                 MenuItem {} {
                   label {TLS (port 465)}
@@ -2333,13 +2333,37 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 }
               }
             }
+            Fl_Button {} {
+              label Username
+              xywh {30 393 80 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Input in_prefs_id_smtpuser {
+              callback cb_prefs_id_smtpuser
+              tooltip {The login for the mail server. Empty: no login (for a server that takes your mail without one).} xywh {130 393 210 20} labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label Password
+              xywh {350 393 60 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Input in_prefs_id_smtppass {
+              callback cb_prefs_id_smtppass
+              tooltip {Kept in ~/.postoffice/resource.rc (readable only by you). A password command keeps it out of that file.} xywh {415 393 190 20} type Secret labelsize 12 when 1 textsize 12
+            }
+            Fl_Button {} {
+              label {Password cmd}
+              xywh {30 418 90 20} box NO_BOX labelsize 12 align 20
+            }
+            Fl_Input in_prefs_id_smtppasscmd {
+              callback cb_prefs_id_smtppasscmd
+              tooltip {A command whose first line of output is the password, for example: pass show mail/smtp. Used instead of the password when set.} xywh {130 418 475 20} labelsize 12 when 1 textsize 12
+            }
             Fl_Box {} {
-              label {Certificates are checked against the system's CAs and Config -> Certificates.}
-              xywh {30 430 580 25} labelsize 11 align 20
+              label {Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encryption. Certificates are checked against the system's CAs and Config -> Certificates.}
+              xywh {30 441 580 26} labelsize 11 align 149
             }
           }
           Fl_Input ed_prefs_edittexts {
-            xywh {20 245 600 90} type Multiline labelsize 12 align 5 textfont 4 textsize 12
+            xywh {20 245 600 70} type Multiline labelsize 12 align 5 textfont 4 textsize 12
             class Fl_Editor
           }
           Fl_Group {} {

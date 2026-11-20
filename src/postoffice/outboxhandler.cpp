@@ -24,6 +24,7 @@
 #include "style.h"
 #include "debug.h"
 
+#include <algorithm>
 #include <set>
 #include <string>
 #include "status.h"
@@ -93,6 +94,29 @@ static bool deliver_message (MailBox *Parent, const char *msgid, WordList *Heade
 			srv.Host = I->Get_char ("smtp_host");
 			srv.Port = atoi (I->Get_char ("smtp_port"));
 			srv.Security = I->Get_char ("smtp_security");
+			srv.User = I->Get_char ("smtp_user");
+			// The password: the identity's password command (its first line),
+			// or the stored password.
+			const char *passcmd = I->Get_char ("smtp_passcmd");
+			std::string perr;
+			bool have_password = true;
+			if (!srv.User.empty () && passcmd && *passcmd)
+			{
+				if (!run_password_command (passcmd, srv.Password, perr))
+				{
+					err = "cannot get the password for " + idname + ": " + perr;
+					have_password = false;
+				}
+			}
+			else srv.Password = I->Get_char ("smtp_pass");
+			if (have_password && !srv.User.empty () && srv.Password.empty ())
+			{
+				err = "the identity " + idname + " has a user name for its mail server but no password. Enter one,"
+					  " or a password command, in Config \xe2\x86\x92 Identities.";
+				have_password = false;
+			}
+			if (have_password)
+			{
 			std::vector<std::string> rcpts;
 			for (int i = 0; i < RCPT->Count; ++i) rcpts.push_back (RCPT->Get (i));
 			int jid = JOBQ.NewJob ("OutBox");
@@ -106,6 +130,8 @@ static bool deliver_message (MailBox *Parent, const char *msgid, WordList *Heade
 			JOBQ.EndJob (jid);
 			ok = res.Sent;
 			err = res.Error;
+			}
+			std::fill (srv.Password.begin (), srv.Password.end (), '\0');
 		}
 	}
 

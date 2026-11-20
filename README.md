@@ -176,9 +176,7 @@ Config → Network → *Send mail with* chooses how they are delivered:
 - **Built-in SMTP client (server per identity)**: Neo-PostOffice sends
   the message itself to the mail server of the identity whose *Email
   From* address is the sender (Config → Identities → *Outgoing mail
-  server*). See below. It is being built in steps: **logging in to the
-  server is not there yet** (step 3), so for now it works with servers
-  that take mail from you without a login, such as your own.
+  server*). See below.
 
 For the first two, *Program* is the program to run (another path, or
 `~/bin/...`, can be given). It is run as
@@ -199,7 +197,19 @@ Each identity has its own server: *Server*, *Port* (empty: 465 for TLS,
 - **STARTTLS (port 587)**: the connection is upgraded before anything
   else is sent; a server that does not offer STARTTLS is refused, and so
   is one that sends data along with its STARTTLS answer.
-- **None (port 25)**: only for a server on your own network.
+- **None (port 25)**: only for a server on your own network, and never
+  with a login.
+
+*Username* and *Password* (or *Password cmd*, a command whose first line
+of output is the password, such as `pass show mail/smtp`) log in to the
+server; leave the user name empty for a server that takes your mail
+without a login. The client uses the best method the server offers:
+**SCRAM-SHA-256** (or SCRAM-SHA-1), where the password itself is never
+sent and the server must prove that it knows it too, otherwise
+**PLAIN** or **LOGIN** inside the encrypted connection. A SCRAM server
+that asks for fewer than 4096 rounds or cannot prove itself is refused.
+OAuth2 (needed by Microsoft 365, and by Gmail without an app password)
+is not supported.
 
 Certificates are checked as for POP3 and IMAP: the system's CAs, the
 certificate store (Config → Certificates) and the host name, with no way
@@ -435,7 +445,8 @@ See the git history for details. In summary:
 - Settings that do not apply to a mailbox type (collection method,
   expiry on the server) are greyed out. Fixed-size `sprintf` calls were
   replaced by `snprintf`.
-- A new built-in SMTP client (TLS, STARTTLS, SIZE, 8BITMIME, SMTPUTF8,
+- A new built-in SMTP client (TLS, STARTTLS, login with SCRAM-SHA-256,
+  PLAIN or LOGIN, SIZE, 8BITMIME, SMTPUTF8,
   dot-escaping, every recipient checked) with a server per identity; the
   old one could cut a message short at a line holding a single dot and
   spoke only plain SMTP on port 25. Sending a message with an empty body
@@ -454,7 +465,7 @@ See the git history for details. In summary:
 Found while modernizing and left for later:
 
 - NNTP has no TLS support.
-- The built-in SMTP client cannot log in yet (step 3 of 5).
+- The built-in SMTP client and IMAP do not support OAuth2 logins.
 - HTML-only messages show only an attachment line; there is no HTML to
   text view.
 - SQL mailbox: messages cannot be moved between folders from the client.

@@ -1297,6 +1297,9 @@ void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 			in_prefs_id_org->value (PREFS_CURRENTIDENT->Get_char ("organization"));
 			in_prefs_id_smtphost->value (PREFS_CURRENTIDENT->Get_char ("smtp_host"));
 			in_prefs_id_smtpport->value (PREFS_CURRENTIDENT->Get_char ("smtp_port"));
+			in_prefs_id_smtpuser->value (PREFS_CURRENTIDENT->Get_char ("smtp_user"));
+			in_prefs_id_smtppass->value (PREFS_CURRENTIDENT->Get_char ("smtp_pass"));
+			in_prefs_id_smtppasscmd->value (PREFS_CURRENTIDENT->Get_char ("smtp_passcmd"));
 			{
 				const char *sec = PREFS_CURRENTIDENT->Get_char ("smtp_security");
 				ch_prefs_id_smtpsec->value (strcmp (sec, "starttls") == 0 ? 1 : strcmp (sec, "none") == 0 ? 2 : 0);
@@ -1398,11 +1401,17 @@ static void identity_smtp_changed (void)
 	PREFS_CURRENTIDENT->Set_char ("smtp_port", (char *) in_prefs_id_smtpport->value ());
 	int v = ch_prefs_id_smtpsec->value ();
 	PREFS_CURRENTIDENT->Set_char ("smtp_security", (char *) security[v >= 0 && v <= 2 ? v : 0]);
+	PREFS_CURRENTIDENT->Set_char ("smtp_user", (char *) in_prefs_id_smtpuser->value ());
+	PREFS_CURRENTIDENT->Set_char ("smtp_pass", (char *) in_prefs_id_smtppass->value ());
+	PREFS_CURRENTIDENT->Set_char ("smtp_passcmd", (char *) in_prefs_id_smtppasscmd->value ());
 }
 
 void cb_prefs_id_smtphost (Fl_Input *, void *) { identity_smtp_changed (); }
 void cb_prefs_id_smtpport (Fl_Int_Input *, void *) { identity_smtp_changed (); }
 void cb_prefs_id_smtpsec (Fl_Choice *, void *) { identity_smtp_changed (); }
+void cb_prefs_id_smtpuser (Fl_Input *, void *) { identity_smtp_changed (); }
+void cb_prefs_id_smtppass (Fl_Input *, void *) { identity_smtp_changed (); }
+void cb_prefs_id_smtppasscmd (Fl_Input *, void *) { identity_smtp_changed (); }
 
 void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 {
