@@ -254,7 +254,7 @@ with 1.9.4:
 | Copy from a Maildir to the IMAP Archive folder | `APPEND` with its flags; spool emptied; the copy shows in Archive |
 | Move from IMAP to a Maildir | Stored in the Maildir with its flags; the IMAP original removed for good, not put in Trash |
 | Server without MOVE: move, and Delete | `UID COPY` + `\Deleted` + `UID EXPUNGE` |
-| Message sent with *Save sent mail to* set | `APPEND Sent (\Seen)`, Bcc kept |
+| Message sent with *Save sent mail to* set | `APPEND Sent (\Seen)` with the headers as sent |
 | Message sent with the IMAP server down | Copy kept in the spool; stored at the next check |
 
 Not tested yet: Dovecot, Cyrus, Gmail and other providers. Reports are
