@@ -2,6 +2,14 @@
 #include <rcl/library/editor.hpp>
 #include <rcl/library/strings.hpp>
 
+// Neo-PostOffice: text is UTF-8. A byte 10xxxxxx continues a character;
+// the cursor never stops on one, so moving, deleting and inserting work on
+// whole characters.
+static inline bool utf8_cont (char c)
+{
+	return ((unsigned char) c & 0xC0) == 0x80;
+}
+
 void _export EditorEngine::ConstrainCursor()
 {
 	if (Cursor.Row > LineCount - 1)
@@ -15,6 +23,14 @@ void _export EditorEngine::ConstrainCursor()
 				if(Cursor.Column < 0)
 					Cursor.Column = 0;
 			}
+	// Not inside a character.
+	if (Cursor.Row >= 0 && Cursor.Row < LineCount)
+	{
+		const char *line = Lines[Cursor.Row]->Get();
+		long len = Lines[Cursor.Row]->Length();
+		while (Cursor.Column > 0 && Cursor.Column < len && utf8_cont (line[Cursor.Column]))
+			Cursor.Column--;
+	}
 }
 
 
@@ -40,6 +56,9 @@ rclError _export EditorEngine::MoveCursor(EditorCommandTypes command, long argum
 							}
 						else
 							LastResult = RANGE_ERROR;
+						// back to the start of the character
+						while (Cursor.Column > 0 && utf8_cont (Lines[Cursor.Row]->Get()[Cursor.Column]))
+							Cursor.Column--;
 					}
 				break;
 			case MOVE_RIGHT:
@@ -55,7 +74,12 @@ rclError _export EditorEngine::MoveCursor(EditorCommandTypes command, long argum
 								Cursor.Column = 0;
 							}
 						else if (Cursor.Column < Lines[Cursor.Row]->Length()-1)
+						{
+							// past the whole character
 							Cursor.Column++;
+							while (Cursor.Column < Lines[Cursor.Row]->Length() && utf8_cont (Lines[Cursor.Row]->Get()[Cursor.Column]))
+								Cursor.Column++;
+						}
 						else if (Cursor.Row < (LineCount-1))
 							{
 								Cursor.Row++;

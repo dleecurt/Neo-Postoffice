@@ -473,6 +473,22 @@ See the git history for details. In summary:
 - Encoded words in headers (`=?UTF-8?B?...?=`) are decoded in the
   message list, the message view and the window tabs; 8-bit headers
   without a character set are read as ISO-8859-1.
+- Sent mail says it is UTF-8 (`MIME-Version`, `Content-Type: text/plain;
+  charset=UTF-8`, `7bit`/`8bit`), and a subject, organization or display
+  name with non-ASCII text is sent as encoded words. Before, other mail
+  programs had to guess the character set of text such as an ASCII-art
+  signature with box-drawing characters.
+- The text editor (message composer and signature) works on whole UTF-8
+  characters: the cursor, Delete, Backspace and line wrapping split
+  them before, which could leave broken bytes in the text.
+- Config → Identities: the signature editor is taller (about six lines),
+  is greyed out with the other fields until an identity is chosen, and
+  keeps a change to the signature alone (it was saved only when another
+  field changed). The unfinished *Primary Box* and *Message Header*
+  controls from 0.7.3 were removed. Deleting the selected identity no
+  longer leaves its fields editable (they wrote into the deleted
+  entry). The Config window is a little taller so the outgoing server's
+  notes fit with larger fonts.
 - The window handles up to 500 waiting notices per pass instead of one,
   so thousands of new messages arrive in seconds instead of minutes.
 - The shared string table of message envelopes counted references from

@@ -25,6 +25,7 @@
 #include "mailstorage.h"
 #include "debug.h"
 #include "version.h"
+#include "mailheaders.h"
 
 #include <FL/Fl_Pixmap.H>
 #include <FL/x.H>
@@ -598,20 +599,24 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	M->Envelope->Set (ENVELOPE_GROUPS, "Queue");
 	M->Flags = MMFL_ORIGINAL | MMFL_HAVEBODY | MMFL_INRAM;
 	
-	snprintf (buf, sizeof (buf), "%s <%s>", pers_from, pers_email);
-	HdrNames->Add ((char *) "From");
-	HdrValues->Add (buf);
+	// Header values with non-ASCII text are written as RFC 2047 encoded
+	// words; the addresses themselves are left alone (Neo-PostOffice).
+	{
+		std::string from = mailheaders::EncodeWords (pers_from) + " <" + pers_email + ">";
+		HdrNames->Add ((char *) "From");
+		HdrValues->Add ((char *) from.c_str());
+	}
 	if (strlen (W->in_to->value()))
 	{
 		HdrNames->Add ((char *) "To");
-		HdrValues->Add ((char *) W->in_to->value());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_to->value()).c_str());
 	}
 
 	
 	if (strlen (W->in_cc->value()) > 0)
 	{
 		HdrNames->Add ((char *) "CC");
-		HdrValues->Add ((char *) W->in_cc->value());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_cc->value()).c_str());
 	}
 
 	// BCC is just added as a regular header. It should be stripped when delivering.
@@ -619,29 +624,37 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	if (strlen (W->in_bcc->value()) > 0)
 	{
 		HdrNames->Add ((char *) "BCC");
-		HdrValues->Add ((char *) W->in_bcc->value());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_bcc->value()).c_str());
 	}
 	
 	HdrNames->Add ((char *) "Subject");
-	HdrValues->Add ((char *) W->in_subject->value());
+	HdrValues->Add ((char *) mailheaders::EncodeWords (W->in_subject->value()).c_str());
 	M->Envelope->Set (ENVELOPE_SUBJECT, (char *) W->in_subject->value());
 	
 	if (pers_replyto && strlen (pers_replyto) > 0)
 	{
 		HdrNames->Add ((char *) "Reply-To");
-		HdrValues->Add ((char *) pers_replyto);
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (pers_replyto).c_str());
 	}
 	
 	if (pers_org && *pers_org)
 	{
 		HdrNames->Add ("Organization");
-		HdrValues->Add ((char *) pers_org);
+		HdrValues->Add ((char *) mailheaders::EncodeWords (pers_org).c_str());
 	}
 
 	HdrNames->Add ("X-Mailer");
 	HdrValues->Add ( __VERSIONSTRING " (by " __BUILDINFO ")" );
 
-	// This should become a lot more niffty. Right now I just add one text/plain part.
+	// The text is UTF-8; it says so, and whether it has 8-bit bytes
+	// (without these headers, other programs had to guess the charset).
+	HdrNames->Add ("MIME-Version");
+	HdrValues->Add ("1.0");
+	HdrNames->Add ("Content-Type");
+	HdrValues->Add ("text/plain; charset=UTF-8");
+	HdrNames->Add ("Content-Transfer-Encoding");
+	HdrValues->Add (mailheaders::IsASCII (body) ? "7bit" : "8bit");
+
 
 	M->AddPart ((char *) "text/plain", "", "", (char *) body);
 
@@ -896,10 +909,10 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 
 	Composer_Window *W = create_composer_window ();
 	snprintf (W->draftid, sizeof (W->draftid), "%s", M->MsgID);
-	W->in_to->value (M->Header ("To"));
-	W->in_cc->value (M->Header ("CC"));
-	W->in_bcc->value (M->Header ("BCC"));
-	W->in_subject->value (M->Header ("Subject"));
+	W->in_to->value (mailheaders::Decode (M->Header ("To")).c_str ());
+	W->in_cc->value (mailheaders::Decode (M->Header ("CC")).c_str ());
+	W->in_bcc->value (mailheaders::Decode (M->Header ("BCC")).c_str ());
+	W->in_subject->value (mailheaders::Decode (M->Header ("Subject")).c_str ());
 
 	// The identity whose address sent it.
 	char *from = eaddr2addr (M->Header ("From"));

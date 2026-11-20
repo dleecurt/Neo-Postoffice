@@ -58,6 +58,13 @@ rclError _export EditorEngine::DeleteCharacter()
       }
     Lines[Cursor.Row]->DeleteAt((int)Cursor.Column);
     CharCount--;
+    // the rest of a UTF-8 character goes too (Neo-PostOffice)
+    while (Cursor.Column < Lines[Cursor.Row]->Length() &&
+           ((unsigned char) Lines[Cursor.Row]->Get()[Cursor.Column] & 0xC0) == 0x80)
+    {
+      Lines[Cursor.Row]->DeleteAt((int)Cursor.Column);
+      CharCount--;
+    }
     CheckLineFit();
     LastResult = ReformatParagraph();
   }

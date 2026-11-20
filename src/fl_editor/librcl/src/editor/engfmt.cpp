@@ -41,6 +41,9 @@ rclError _export EditorEngine::ReformatParagraph(bool fromfirst,bool all)
                         }
 						while(isspace(temp[word]))  // if breaking on a space, adjust to next word
 							word++;
+						// never inside a UTF-8 character (Neo-PostOffice)
+						while (word > 0 && ((unsigned char) temp[word] & 0xC0) == 0x80)
+							word--;
 						if(Flags & EF_NOWRAP)
 							Lines[row]->ChopAt(word, &s);	// split line
 						else

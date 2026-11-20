@@ -308,7 +308,8 @@ FL_EXPORT void Fl_Editor::draw()
 			draw_child(**a);
 	}
 	ShowCursor(CURSOR_UNHIDE);
-	draw_child(*Cursor);
+	// No cursor in an editor that cannot be used (Neo-PostOffice).
+	if (active_r()) draw_child(*Cursor);
 }
 
 
@@ -1086,7 +1087,7 @@ FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int startto
         int W = (editbox->w() - (X - editbox->x())) + 2; 
 		setfont();
 		// if line in selection, draw in selection color.  
-		fl_color(textcolor());
+		fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 		int selpos = engine->FindSelectPos(editorlineno, &start, &end);
 		if ( (current.LastCharacter() == HARD_RETURN) || (current.LastCharacter() == SOFT_RETURN) )
 			current.LastCharacter() = '\0';	// don't print the carriage returns
@@ -1103,9 +1104,9 @@ FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int startto
 				fulldraw = true;
 			if ( fulldraw )
 			{		// if there is anything *not* selected, draw with normal background
-				fl_color(color());
+				fl_color(active_r() ? color() : fl_inactive(color()));
 				fl_rectf(myleft, boxtop, W, engine->MeasureTextHeight(current));
-				fl_color(textcolor());
+				fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 				// draw unselected part
 				fl_draw(sleft.Get(), myleft, Y);
 				// draw selected part
@@ -1115,11 +1116,11 @@ FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int startto
 					fl_rectf(myleft, boxtop, W - (int)fl_width(sleft.Get()), engine->MeasureTextHeight(current));
 				else
 					fl_rectf(myleft, boxtop, (int)fl_width(scenter.Get()), engine->MeasureTextHeight(current));
-				fl_color(textcolor());
+				fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 				fl_draw(scenter.Get(), myleft, Y);
 				// draw remainder of unselected part
 				myleft += (short)fl_width(scenter.Get());
-				fl_color(textcolor());
+				fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 				fl_draw(sright.Get(), myleft, Y);
 			}
 			else
@@ -1127,18 +1128,18 @@ FL_EXPORT void Fl_Editor::DrawLine(long editorlineno, int startleft, int startto
 				// (including blank space) in selection color
 				fl_color(selection_color());
 				fl_rectf(myleft, boxtop, W - myleft, engine->MeasureTextHeight(current));
-				fl_color(textcolor());
+				fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 				fl_draw(scenter.Get(), myleft, Y);
 			}
 		}
 		else
 		{	// none of line is selected
-			fl_color(color());
+			fl_color(active_r() ? color() : fl_inactive(color()));
 			fl_rectf(X, boxtop, W, engine->MeasureTextHeight(current));
-			fl_color(textcolor());
+			fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 			fl_draw(current.Get(), X, Y);
 		}
-		fl_color(textcolor());
+		fl_color(active_r() ? textcolor() : fl_inactive(textcolor()));
 }
 
 FL_EXPORT void Fl_Editor::PushState(const fleditor_DrawState& state)

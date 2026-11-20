@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <iconv.h>
+#include <algorithm>
 #include <map>
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,6 +240,98 @@ std::string Param (const std::string &value, const char *name)
 		return ToUTF8 (out, charset);
 	}
 	return Decode (simple);
+}
+
+bool IsASCII (const std::string &text)
+{
+	for (unsigned char c : text) if (c >= 0x80) return false;
+	return true;
+}
+
+std::string EncodeWords (const std::string &text)
+{
+	if (IsASCII (text)) return text;
+	static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	auto encode = [](const std::string &bytes)
+	{
+		std::string out;
+		size_t i = 0;
+		for (; i + 2 < bytes.size (); i += 3)
+		{
+			unsigned v = ((unsigned char) bytes[i] << 16) | ((unsigned char) bytes[i + 1] << 8) | (unsigned char) bytes[i + 2];
+			out += b64[v >> 18]; out += b64[(v >> 12) & 63]; out += b64[(v >> 6) & 63]; out += b64[v & 63];
+		}
+		if (i + 1 == bytes.size ())
+		{
+			unsigned v = (unsigned char) bytes[i] << 16;
+			out += b64[v >> 18]; out += b64[(v >> 12) & 63]; out += "==";
+		}
+		else if (i + 2 == bytes.size ())
+		{
+			unsigned v = ((unsigned char) bytes[i] << 16) | ((unsigned char) bytes[i + 1] << 8);
+			out += b64[v >> 18]; out += b64[(v >> 12) & 63]; out += b64[(v >> 6) & 63]; out += '=';
+		}
+		return out;
+	};
+	// "=?UTF-8?B?" + base64 + "?=" in 75 characters: 45 bytes of text at
+	// most, cut only between characters.
+	std::string out;
+	size_t pos = 0;
+	while (pos < text.size ())
+	{
+		size_t end = std::min (text.size (), pos + 45);
+		while (end < text.size () && end > pos + 1 && ((unsigned char) text[end] & 0xC0) == 0x80) --end;
+		if (!out.empty ()) out += ' ';
+		out += "=?UTF-8?B?" + encode (text.substr (pos, end - pos)) + "?=";
+		pos = end;
+	}
+	return out;
+}
+
+std::string EncodeAddresses (const std::string &list)
+{
+	if (IsASCII (list)) return list;
+	// Split at commas outside quotes and angle brackets.
+	std::vector<std::string> items;
+	std::string cur;
+	bool quoted = false;
+	int angle = 0;
+	for (size_t i = 0; i < list.size (); ++i)
+	{
+		char c = list[i];
+		if (c == '\\' && quoted && i + 1 < list.size ()) { cur += c; cur += list[++i]; continue; }
+		if (c == '"') quoted = !quoted;
+		else if (!quoted && c == '<') ++angle;
+		else if (!quoted && c == '>' && angle) --angle;
+		if (c == ',' && !quoted && !angle) { items.push_back (cur); cur.clear (); continue; }
+		cur += c;
+	}
+	items.push_back (cur);
+
+	std::string out;
+	for (const std::string &raw : items)
+	{
+		std::string item = trim (raw);
+		size_t lt = item.rfind ('<');
+		if (!IsASCII (item) && lt != std::string::npos && lt > 0)
+		{
+			std::string name = trim (item.substr (0, lt));
+			if (name.size () >= 2 && name.front () == '"' && name.back () == '"')
+			{
+				std::string unq;
+				for (size_t k = 1; k + 1 < name.size (); ++k)
+				{
+					if (name[k] == '\\' && k + 2 < name.size ()) ++k;
+					unq += name[k];
+				}
+				name = unq;
+			}
+			item = EncodeWords (name) + " " + item.substr (lt);
+		}
+		if (!out.empty ()) out += ", ";
+		out += item;
+	}
+	return out;
 }
 
 std::string Decode (const std::string &in)

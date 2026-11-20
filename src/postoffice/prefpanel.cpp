@@ -451,6 +451,9 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		snprintf (n, sizeof (n), "%d", list_limit (&LPREFERENCES));
 		in_prefs_listlimit->value (n);
 	}
+	// The settings were copied anew: nothing from before is selected.
+	PREFS_CURRENTIDENT = (Var *) NULL;
+	ed_prefs_edittexts->Clear();
 	gr_identities_set->deactivate();
 	gr_mailboxes_set->deactivate();
 	gr_prefs_filters->deactivate();
@@ -1278,8 +1281,36 @@ void cb_prefs_window (Fl_Window */*w*/, void */*v*/)
 	win_prefs->hide();
 }
 
+// The signature editor holds the selected identity's signature: stored
+// when another identity is chosen and at Apply / Save (Neo-PostOffice;
+// before, it was only stored when another field of the identity changed).
+static void store_signature (void)
+{
+	if (!PREFS_CURRENTIDENT) return;
+	char *decsignature = new char [ed_prefs_edittexts->SaveSize() + 1];
+	ed_prefs_edittexts->SaveTo (decsignature);
+	// Line breaks the editor made to fit its width (SOFT_RETURN, "\r")
+	// are not part of the text: spaces again, none at the end.
+	size_t n = strlen (decsignature);
+	while (n && decsignature[n - 1] == '\r') decsignature[--n] = 0;
+	for (char *c = decsignature; *c; ++c) if (*c == '\r') *c = ' ';
+	char *signature = encode_mysql (decsignature);
+	PREFS_CURRENTIDENT->Set_char ("signature", signature);
+	delete[] decsignature;
+	delete[] signature;
+}
+
+// No identity selected: nothing to edit.
+static void no_identity (void)
+{
+	PREFS_CURRENTIDENT = (Var *) NULL;
+	ed_prefs_edittexts->Clear();
+	gr_identities_set->deactivate();
+}
+
 void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 {
+	store_signature ();
 	WordList	*X;
 	int		  val, i;
 	char		*nam;
@@ -1324,9 +1355,9 @@ void cb_prefs_identities (Fl_Iconbrowser */*b*/, void */*v*/)
 			ed_prefs_edittexts->LoadFrom (decsignature);
 			delete[] decsignature;
 		}
-		else gr_identities_set->deactivate();
+		else no_identity ();
 	}
-	else gr_identities_set->deactivate();
+	else no_identity ();
 }
 
 void cb_prefs_identity_add (Fl_Button */*b*/, void */*v*/)
@@ -1394,6 +1425,9 @@ void cb_prefs_identity_del (Fl_Button */*b*/, void */*v*/)
 		{
 			if (strcmp (val, LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (X->Get(i))->Get_char ("shortname")) == 0)
 			{
+				// Not edited any more once gone.
+				if (PREFS_CURRENTIDENT == LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (X->Get(i)))
+					no_identity ();
 				LPREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Delete (X->Get(i)); i = X->Count;
 			}
 		}
@@ -1468,12 +1502,6 @@ void cb_prefs_identity_fields (Fl_Input */*b*/, void */*v*/)
 		PREFS_CURRENTIDENT->Set_char ("mailfrom", (char *) in_prefs_id_email->value());
 		PREFS_CURRENTIDENT->Set_char ("replyto", (char *) in_prefs_id_replyto->value());
 		PREFS_CURRENTIDENT->Set_char ("organization", (char *) in_prefs_id_org->value());
-		char *decsignature = new char [ed_prefs_edittexts->SaveSize()];
-		ed_prefs_edittexts->SaveTo (decsignature);
-		char *signature = encode_mysql (decsignature);
-		PREFS_CURRENTIDENT->Set_char ("signature", signature);
-		delete[] decsignature;
-		delete[] signature;
 	}
 }
 
@@ -1533,6 +1561,7 @@ void cb_prefs_cancel (Fl_Button */*b*/, void */*v*/)
 
 void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 {
+	store_signature ();
 	char buf[256];
 	int i;
 

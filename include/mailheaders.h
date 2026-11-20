@@ -42,6 +42,18 @@ namespace mailheaders
 	// ISO-8859-1.
 	std::string			ToUTF8 (const std::string &text, const std::string &charset);
 
+	// For writing (Neo-PostOffice): text with non-ASCII characters as RFC
+	// 2047 encoded words (=?UTF-8?B?...?=, each at most 75 characters,
+	// never splitting a character); ASCII text is returned as it is.
+	std::string			EncodeWords (const std::string &text);
+
+	// An address list ("Name <a@b>, c@d"): each display name with
+	// non-ASCII characters encoded as above; addresses are left alone.
+	std::string			EncodeAddresses (const std::string &list);
+
+	// True if the text is plain 7-bit ASCII.
+	bool				IsASCII (const std::string &text);
+
 	// Reads an RFC 5322 date ("Mon, 10 Nov 2025 10:00:00 +0100", obsolete
 	// zone names and comments tolerated). Returns 0 if it cannot be read.
 	time_t				ParseDate (const std::string &value);

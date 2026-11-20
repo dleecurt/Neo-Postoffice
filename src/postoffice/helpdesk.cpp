@@ -5282,26 +5282,6 @@ Fl_Input *in_prefs_id_replyto=(Fl_Input *)0;
 
 Fl_Input *in_prefs_id_org=(Fl_Input *)0;
 
-Fl_Choice *ch_prefs_id_box=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_prefs_id_box[] = {
- {"Common", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Personal", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"(none)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"(default)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Choice *ch_prefs_id_box2=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_prefs_id_box2[] = {
- {"Common", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Personal", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"(none)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"(default)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
 Fl_Group *gr_prefs_id_smtp=(Fl_Group *)0;
 
 Fl_Input *in_prefs_id_smtphost=(Fl_Input *)0;
@@ -5326,27 +5306,6 @@ Fl_Input *in_prefs_id_smtppasscmd=(Fl_Input *)0;
 Fl_Choice *ch_prefs_id_sentbox=(Fl_Choice *)0;
 
 Fl_Editor *ed_prefs_edittexts=(Fl_Editor *)0;
-
-Fl_Choice *ch_prefs_edittext=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_prefs_edittext[] = {
- {"Signature", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Message Header", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Choice *ch_prefs_inserttext=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_prefs_inserttext[] = {
- {"Date of Original Message", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Name of Original Sender", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Email of Original Sender", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Original Mailfolder", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Message-ID", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Button *bt_prefs_inserttext=(Fl_Button *)0;
 
 Fl_Group *gr_prefs_network=(Fl_Group *)0;
 
@@ -5522,12 +5481,12 @@ Fl_Window* make_prefs_window() {
   int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
   char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
   Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");
-  { Fl_Window* o = win_prefs = new Fl_Window(650, 516, "Post Office Preferences Panel");
+  { Fl_Window* o = win_prefs = new Fl_Window(650, 556, "Post Office Preferences Panel");
     win_prefs->callback((Fl_Callback*)cb_prefs_window);
-    { tb_prefs = new Fl_Tabs(5, 5, 635, 470);
+    { tb_prefs = new Fl_Tabs(5, 5, 635, 510);
       tb_prefs->box(FL_UP_BOX);
       tb_prefs->callback((Fl_Callback*)cb_prefs_tab);
-      { Fl_Group* o = gr_prefs_mailboxes = new Fl_Group(5, 25, 635, 450, "Mailboxes");
+      { Fl_Group* o = gr_prefs_mailboxes = new Fl_Group(5, 25, 635, 490, "Mailboxes");
         gr_prefs_mailboxes->color((Fl_Color)51);
         gr_prefs_mailboxes->labelfont(1);
         gr_prefs_mailboxes->labelsize(12);
@@ -6102,7 +6061,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "mailboxes");
         gr_prefs_mailboxes->end();
       } // Fl_Group* gr_prefs_mailboxes
-      { Fl_Group* o = gr_prefs_mailfolders = new Fl_Group(5, 25, 635, 450, "Mailfolders");
+      { Fl_Group* o = gr_prefs_mailfolders = new Fl_Group(5, 25, 635, 490, "Mailfolders");
         gr_prefs_mailfolders->color((Fl_Color)51);
         gr_prefs_mailfolders->labelfont(1);
         gr_prefs_mailfolders->labelsize(12);
@@ -6387,7 +6346,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "mailfolders");
         gr_prefs_mailfolders->end();
       } // Fl_Group* gr_prefs_mailfolders
-      { Fl_Group* o = gr_prefs_identities = new Fl_Group(5, 25, 635, 450, "Identities");
+      { Fl_Group* o = gr_prefs_identities = new Fl_Group(5, 25, 635, 490, "Identities");
         gr_prefs_identities->color((Fl_Color)51);
         gr_prefs_identities->labelfont(1);
         gr_prefs_identities->labelsize(12);
@@ -6410,7 +6369,7 @@ Fl_Window* make_prefs_window() {
           bt_prefs_identityadd->labelsize(12);
           bt_prefs_identityadd->callback((Fl_Callback*)cb_prefs_identity_add);
         } // Fl_Button* bt_prefs_identityadd
-        { gr_identities_set = new Fl_Group(20, 45, 600, 355);
+        { gr_identities_set = new Fl_Group(20, 45, 600, 465);
           gr_identities_set->selection_color((Fl_Color)246);
           { in_prefs_identityname = new Fl_Input(20, 185, 135, 20);
             in_prefs_identityname->labelsize(12);
@@ -6423,7 +6382,7 @@ Fl_Window* make_prefs_window() {
             bt_prefs_identitydel->labelsize(12);
             bt_prefs_identitydel->callback((Fl_Callback*)cb_prefs_identity_del);
           } // Fl_Button* bt_prefs_identitydel
-          { Fl_Group* o = new Fl_Group(205, 45, 415, 160);
+          { Fl_Group* o = new Fl_Group(205, 45, 415, 130);
             o->box(FL_ENGRAVED_BOX);
             o->color((Fl_Color)51);
             o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
@@ -6488,49 +6447,18 @@ Fl_Window* make_prefs_window() {
               } // Fl_Button* o
               o->end();
             } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(215, 175, 390, 20);
-              { Fl_Button* o = new Fl_Button(215, 175, 80, 20, "Primary Box");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "primary_box");
-              } // Fl_Button* o
-              { Fl_Group* o = new Fl_Group(325, 175, 135, 20);
-                o->box(FL_BORDER_FRAME);
-                o->color(FL_FOREGROUND_COLOR);
-                { ch_prefs_id_box = new Fl_Choice(326, 176, 134, 19);
-                  ch_prefs_id_box->down_box(FL_BORDER_BOX);
-                  ch_prefs_id_box->labelsize(12);
-                  ch_prefs_id_box->textsize(12);
-                  ch_prefs_id_box->menu(menu_ch_prefs_id_box);
-                } // Fl_Choice* ch_prefs_id_box
-                o->end();
-              } // Fl_Group* o
-              { Fl_Group* o = new Fl_Group(470, 175, 135, 20);
-                o->box(FL_BORDER_FRAME);
-                o->color(FL_FOREGROUND_COLOR);
-                { ch_prefs_id_box2 = new Fl_Choice(471, 176, 134, 19);
-                  ch_prefs_id_box2->down_box(FL_BORDER_BOX);
-                  ch_prefs_id_box2->labelsize(12);
-                  ch_prefs_id_box2->textsize(12);
-                  ch_prefs_id_box2->menu(menu_ch_prefs_id_box2);
-                } // Fl_Choice* ch_prefs_id_box2
-                o->end();
-              } // Fl_Group* o
-              o->end();
-            } // Fl_Group* o
             o->end();
           } // Fl_Group* o
-          { gr_prefs_id_smtp = new Fl_Group(20, 310, 600, 135, "Outgoing mail server (built-in SMTP client)");
+          { gr_prefs_id_smtp = new Fl_Group(20, 335, 600, 145, "Outgoing mail server (built-in SMTP client)");
             gr_prefs_id_smtp->box(FL_ENGRAVED_BOX);
             gr_prefs_id_smtp->labelsize(12);
             gr_prefs_id_smtp->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-            { Fl_Button* o = new Fl_Button(30, 318, 80, 20, "Server");
+            { Fl_Button* o = new Fl_Button(30, 343, 80, 20, "Server");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtphost = new Fl_Input(130, 318, 330, 20);
+            { in_prefs_id_smtphost = new Fl_Input(130, 343, 330, 20);
               in_prefs_id_smtphost->tooltip("The mail server this identity sends through, for example smtp.example.org. Us"
 "ed when Config -> Network sends with the built-in SMTP client.");
               in_prefs_id_smtphost->labelsize(12);
@@ -6538,12 +6466,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtphost->callback((Fl_Callback*)cb_prefs_id_smtphost);
               in_prefs_id_smtphost->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtphost
-            { Fl_Button* o = new Fl_Button(470, 318, 40, 20, "Port");
+            { Fl_Button* o = new Fl_Button(470, 343, 40, 20, "Port");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtpport = new Fl_Int_Input(515, 318, 90, 20);
+            { in_prefs_id_smtpport = new Fl_Int_Input(515, 343, 90, 20);
               in_prefs_id_smtpport->tooltip("Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.");
               in_prefs_id_smtpport->type(2);
               in_prefs_id_smtpport->labelsize(12);
@@ -6551,15 +6479,15 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtpport->callback((Fl_Callback*)cb_prefs_id_smtpport);
               in_prefs_id_smtpport->when(FL_WHEN_CHANGED);
             } // Fl_Int_Input* in_prefs_id_smtpport
-            { Fl_Button* o = new Fl_Button(30, 343, 80, 20, "Encryption");
+            { Fl_Button* o = new Fl_Button(30, 368, 80, 20, "Encryption");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(130, 343, 330, 20);
+            { Fl_Group* o = new Fl_Group(130, 368, 330, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_id_smtpsec = new Fl_Choice(131, 344, 329, 19);
+              { ch_prefs_id_smtpsec = new Fl_Choice(131, 369, 329, 19);
                 ch_prefs_id_smtpsec->tooltip("TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrade"
 "s the connection. Without encryption only for a server on your own network, an"
 "d never with a login.");
@@ -6571,12 +6499,12 @@ Fl_Window* make_prefs_window() {
               } // Fl_Choice* ch_prefs_id_smtpsec
               o->end();
             } // Fl_Group* o
-            { Fl_Button* o = new Fl_Button(30, 368, 80, 20, "Username");
+            { Fl_Button* o = new Fl_Button(30, 393, 80, 20, "Username");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtpuser = new Fl_Input(130, 368, 210, 20);
+            { in_prefs_id_smtpuser = new Fl_Input(130, 393, 210, 20);
               in_prefs_id_smtpuser->tooltip("The login for the mail server. Empty: no login (for a server that takes your "
 "mail without one).");
               in_prefs_id_smtpuser->labelsize(12);
@@ -6584,12 +6512,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtpuser->callback((Fl_Callback*)cb_prefs_id_smtpuser);
               in_prefs_id_smtpuser->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtpuser
-            { Fl_Button* o = new Fl_Button(350, 368, 60, 20, "Password");
+            { Fl_Button* o = new Fl_Button(350, 393, 60, 20, "Password");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtppass = new Fl_Input(415, 368, 190, 20);
+            { in_prefs_id_smtppass = new Fl_Input(415, 393, 190, 20);
               in_prefs_id_smtppass->tooltip("Kept in ~/.postoffice/resource.rc (readable only by you). A password command "
 "keeps it out of that file.");
               in_prefs_id_smtppass->type(5);
@@ -6598,12 +6526,12 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtppass->callback((Fl_Callback*)cb_prefs_id_smtppass);
               in_prefs_id_smtppass->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtppass
-            { Fl_Button* o = new Fl_Button(30, 393, 90, 20, "Password cmd");
+            { Fl_Button* o = new Fl_Button(30, 418, 90, 20, "Password cmd");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { in_prefs_id_smtppasscmd = new Fl_Input(130, 393, 475, 20);
+            { in_prefs_id_smtppasscmd = new Fl_Input(130, 418, 475, 20);
               in_prefs_id_smtppasscmd->tooltip("A command whose first line of output is the password, for example: pass show "
 "mail/smtp. Used instead of the password when set.");
               in_prefs_id_smtppasscmd->labelsize(12);
@@ -6611,7 +6539,7 @@ Fl_Window* make_prefs_window() {
               in_prefs_id_smtppasscmd->callback((Fl_Callback*)cb_prefs_id_smtppasscmd);
               in_prefs_id_smtppasscmd->when(FL_WHEN_CHANGED);
             } // Fl_Input* in_prefs_id_smtppasscmd
-            { Fl_Box* o = new Fl_Box(30, 416, 580, 26, "Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encrypti"
+            { Fl_Box* o = new Fl_Box(30, 441, 580, 34, "Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encrypti"
 "on. Certificates are checked against the system\'s CAs and Config -> Certifica"
 "tes.");
               o->labelsize(11);
@@ -6619,16 +6547,16 @@ Fl_Window* make_prefs_window() {
             } // Fl_Box* o
             gr_prefs_id_smtp->end();
           } // Fl_Group* gr_prefs_id_smtp
-          { Fl_Group* o = new Fl_Group(20, 450, 600, 20);
-            { Fl_Button* o = new Fl_Button(30, 450, 115, 20, "Save sent mail to");
+          { Fl_Group* o = new Fl_Group(20, 488, 600, 20);
+            { Fl_Button* o = new Fl_Button(30, 488, 115, 20, "Save sent mail to");
               o->box(FL_NO_BOX);
               o->labelsize(12);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Button* o
-            { Fl_Group* o = new Fl_Group(150, 450, 200, 20);
+            { Fl_Group* o = new Fl_Group(150, 488, 200, 20);
               o->box(FL_BORDER_FRAME);
               o->color(FL_FOREGROUND_COLOR);
-              { ch_prefs_id_sentbox = new Fl_Choice(151, 451, 199, 19);
+              { ch_prefs_id_sentbox = new Fl_Choice(151, 489, 199, 19);
                 ch_prefs_id_sentbox->tooltip("A copy of every message sent with this identity goes to the Sent folder of th"
 "is IMAP mailbox (found by the server, or made). Off for servers that keep sent"
 " mail themselves, such as Gmail.");
@@ -6639,13 +6567,13 @@ Fl_Window* make_prefs_window() {
               } // Fl_Choice* ch_prefs_id_sentbox
               o->end();
             } // Fl_Group* o
-            { Fl_Box* o = new Fl_Box(355, 450, 260, 20, "(its Sent folder; also kept in OutBox)");
+            { Fl_Box* o = new Fl_Box(355, 488, 260, 20, "(its Sent folder; also kept in OutBox)");
               o->labelsize(11);
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { ed_prefs_edittexts = new Fl_Editor(20, 245, 600, 45);
+          { ed_prefs_edittexts = new Fl_Editor(20, 230, 600, 85, "Signature");
             ed_prefs_edittexts->type(4);
             ed_prefs_edittexts->box(FL_DOWN_BOX);
             ed_prefs_edittexts->color(FL_BACKGROUND2_COLOR);
@@ -6659,57 +6587,12 @@ Fl_Window* make_prefs_window() {
             ed_prefs_edittexts->align(Fl_Align(FL_ALIGN_TOP_LEFT));
             ed_prefs_edittexts->when(FL_WHEN_RELEASE);
           } // Fl_Editor* ed_prefs_edittexts
-          { Fl_Group* o = new Fl_Group(20, 220, 175, 20);
-            o->box(FL_BORDER_FRAME);
-            o->color(FL_FOREGROUND_COLOR);
-            { ch_prefs_edittext = new Fl_Choice(21, 221, 174, 19);
-              ch_prefs_edittext->down_box(FL_BORDER_BOX);
-              ch_prefs_edittext->labelsize(12);
-              ch_prefs_edittext->textsize(12);
-              { Fl_Menu_Item* o = &menu_ch_prefs_edittext[0];
-                xloc(o, "signature");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_edittext[1];
-                xloc(o, "msgheader");
-              }
-              ch_prefs_edittext->menu(menu_ch_prefs_edittext);
-            } // Fl_Choice* ch_prefs_edittext
-            o->end();
-          } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(420, 220, 200, 20);
-            o->box(FL_BORDER_FRAME);
-            o->color(FL_FOREGROUND_COLOR);
-            { ch_prefs_inserttext = new Fl_Choice(440, 221, 180, 19);
-              ch_prefs_inserttext->down_box(FL_BORDER_BOX);
-              ch_prefs_inserttext->labelsize(12);
-              ch_prefs_inserttext->textsize(12);
-              { Fl_Menu_Item* o = &menu_ch_prefs_inserttext[0];
-                xloc(o, "date_original");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_inserttext[1];
-                xloc(o, "name_original");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_inserttext[2];
-                xloc(o, "email_original");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_inserttext[3];
-                xloc(o, "folder_original");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_inserttext[4];
-                xloc(o, "message_id");
-              }
-              ch_prefs_inserttext->menu(menu_ch_prefs_inserttext);
-            } // Fl_Choice* ch_prefs_inserttext
-            { bt_prefs_inserttext = new Fl_Button(421, 221, 19, 19, "@-12>");
-            } // Fl_Button* bt_prefs_inserttext
-            o->end();
-          } // Fl_Group* o
           gr_identities_set->end();
         } // Fl_Group* gr_identities_set
         xloc(o, "identities");
         gr_prefs_identities->end();
       } // Fl_Group* gr_prefs_identities
-      { Fl_Group* o = gr_prefs_network = new Fl_Group(5, 25, 635, 450, "Network");
+      { Fl_Group* o = gr_prefs_network = new Fl_Group(5, 25, 635, 490, "Network");
         gr_prefs_network->color((Fl_Color)51);
         gr_prefs_network->labelfont(1);
         gr_prefs_network->labelsize(12);
@@ -6820,7 +6703,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "network");
         gr_prefs_network->end();
       } // Fl_Group* gr_prefs_network
-      { gr_prefs_certs = new Fl_Group(5, 25, 635, 450, "Certificates");
+      { gr_prefs_certs = new Fl_Group(5, 25, 635, 490, "Certificates");
         gr_prefs_certs->color((Fl_Color)51);
         gr_prefs_certs->labelfont(1);
         gr_prefs_certs->labelsize(12);
@@ -6857,7 +6740,7 @@ Fl_Window* make_prefs_window() {
         } // Fl_Button* bt_prefs_certremove
         gr_prefs_certs->end();
       } // Fl_Group* gr_prefs_certs
-      { Fl_Group* o = gr_prefs_language = new Fl_Group(5, 25, 635, 450, "Language");
+      { Fl_Group* o = gr_prefs_language = new Fl_Group(5, 25, 635, 490, "Language");
         gr_prefs_language->color((Fl_Color)51);
         gr_prefs_language->labelfont(1);
         gr_prefs_language->labelsize(12);
@@ -6955,7 +6838,7 @@ Fl_Window* make_prefs_window() {
         xloc(o, "language");
         gr_prefs_language->end();
       } // Fl_Group* gr_prefs_language
-      { Fl_Group* o = gr_prefs_style = new Fl_Group(5, 25, 635, 450, "Style");
+      { Fl_Group* o = gr_prefs_style = new Fl_Group(5, 25, 635, 490, "Style");
         gr_prefs_style->color((Fl_Color)51);
         gr_prefs_style->labelfont(1);
         gr_prefs_style->labelsize(12);
@@ -7216,12 +7099,12 @@ Fl_Window* make_prefs_window() {
       } // Fl_Group* gr_prefs_style
       tb_prefs->end();
     } // Fl_Tabs* tb_prefs
-    { Fl_Group* o = new Fl_Group(8, 483, 95, 24);
+    { Fl_Group* o = new Fl_Group(8, 523, 95, 24);
       o->box(FL_BORDER_FRAME);
       o->color((Fl_Color)35);
-      { Fl_Group* o = new Fl_Group(11, 486, 89, 18);
+      { Fl_Group* o = new Fl_Group(11, 526, 89, 18);
         o->box(FL_BORDER_BOX);
-        { Fl_Button* o = bt_prefs_save = new Fl_Button(12, 487, 88, 17, "Save");
+        { Fl_Button* o = bt_prefs_save = new Fl_Button(12, 527, 88, 17, "Save");
           bt_prefs_save->down_box(FL_DOWN_BOX);
           bt_prefs_save->color((Fl_Color)51);
           bt_prefs_save->labelsize(12);
@@ -7232,9 +7115,9 @@ Fl_Window* make_prefs_window() {
       } // Fl_Group* o
       o->end();
     } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(115, 485, 90, 20);
+    { Fl_Group* o = new Fl_Group(115, 525, 90, 20);
       o->box(FL_BORDER_BOX);
-      { Fl_Button* o = bt_prefs_apply = new Fl_Button(116, 486, 89, 19, "Apply");
+      { Fl_Button* o = bt_prefs_apply = new Fl_Button(116, 526, 89, 19, "Apply");
         bt_prefs_apply->down_box(FL_DOWN_BOX);
         bt_prefs_apply->color((Fl_Color)51);
         bt_prefs_apply->labelsize(12);
@@ -7243,9 +7126,9 @@ Fl_Window* make_prefs_window() {
       } // Fl_Button* bt_prefs_apply
       o->end();
     } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(545, 485, 90, 20);
+    { Fl_Group* o = new Fl_Group(545, 525, 90, 20);
       o->box(FL_BORDER_BOX);
-      { Fl_Button* o = bt_prefs_cancel = new Fl_Button(546, 486, 89, 19, "Cancel");
+      { Fl_Button* o = bt_prefs_cancel = new Fl_Button(546, 526, 89, 19, "Cancel");
         bt_prefs_cancel->down_box(FL_DOWN_BOX);
         bt_prefs_cancel->color((Fl_Color)51);
         bt_prefs_cancel->labelsize(12);

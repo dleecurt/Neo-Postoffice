@@ -1337,16 +1337,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
   Fl_Window win_prefs {
     label {Post Office Preferences Panel}
     callback cb_prefs_window
-    xywh {44 41 650 516} type Single hide
+    xywh {44 41 650 556} type Single hide
     code0 {xloc(o, "win_prefs");}
   } {
     Fl_Tabs tb_prefs {
       callback cb_prefs_tab open
-      xywh {5 5 635 470} box UP_BOX
+      xywh {5 5 635 510} box UP_BOX
     } {
       Fl_Group gr_prefs_mailboxes {
         label Mailboxes
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12
         code0 {xloc(o, "mailboxes");}
       } {
         Fl_Browser br_prefs_mailboxes {
@@ -1830,7 +1830,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_mailfolders {
         label Mailfolders
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "mailfolders");}
       } {
         Fl_Browser br_prefs_mailfolders_mailboxes {
@@ -2095,7 +2095,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_identities {
         label Identities open
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "identities");}
       } {
         Fl_Browser br_prefs_identities {
@@ -2108,7 +2108,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           image {icons/filenew2.xpm} compress_image 1 xywh {155 185 20 20} labelsize 12
         }
         Fl_Group gr_identities_set {
-          xywh {20 45 600 355} selection_color 246
+          xywh {20 45 600 465} selection_color 246
         } {
           Fl_Input in_prefs_identityname {
             callback cb_prefs_identityname
@@ -2119,7 +2119,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/eraser.xpm} compress_image 1 xywh {175 185 20 20} labelsize 12
           }
           Fl_Group {} {
-            xywh {205 45 415 160} box ENGRAVED_BOX color 51 align 5
+            xywh {205 45 415 130} box ENGRAVED_BOX color 51 align 5
           } {
             Fl_Group {} {open
               xywh {215 55 390 20}
@@ -2173,222 +2173,111 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 code0 {xloc(o, "organization");}
               }
             }
-            Fl_Group {} {open
-              xywh {215 175 390 20}
-            } {
-              Fl_Button {} {
-                label {Primary Box}
-                xywh {215 175 80 20} box NO_BOX labelsize 12 align 20
-                code0 {xloc(o, "primary_box");}
-              }
-              Fl_Group {} {
-                xywh {325 175 135 20} box BORDER_FRAME color 0
-              } {
-                Fl_Choice ch_prefs_id_box {open
-                  xywh {326 176 134 19} down_box BORDER_BOX labelsize 12 textsize 12
-                } {
-                  MenuItem {} {
-                    label Common
-                    xywh {0 0 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label Personal
-                    xywh {10 10 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label {(none)}
-                    xywh {20 20 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label {(default)}
-                    xywh {30 30 100 20} labelsize 12
-                  }
-                }
-              }
-              Fl_Group {} {open
-                xywh {470 175 135 20} box BORDER_FRAME color 0
-              } {
-                Fl_Choice ch_prefs_id_box2 {open
-                  xywh {471 176 134 19} down_box BORDER_BOX labelsize 12 textsize 12
-                } {
-                  MenuItem {} {
-                    label Common
-                    xywh {10 10 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label Personal
-                    xywh {20 20 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label {(none)}
-                    xywh {30 30 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label {(default)}
-                    xywh {40 40 100 20} labelsize 12
-                  }
-                }
-              }
-            }
           }
           Fl_Group gr_prefs_id_smtp {
             label {Outgoing mail server (built-in SMTP client)} open
-            xywh {20 310 600 135} box ENGRAVED_BOX labelsize 12 align 5
+            xywh {20 335 600 145} box ENGRAVED_BOX labelsize 12 align 5
           } {
             Fl_Button {} {
               label Server
-              xywh {30 318 80 20} box NO_BOX labelsize 12 align 20
+              xywh {30 343 80 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtphost {
               callback cb_prefs_id_smtphost
-              tooltip {The mail server this identity sends through, for example smtp.example.org. Used when Config -> Network sends with the built-in SMTP client.} xywh {130 318 330 20} labelsize 12 when 1 textsize 12
+              tooltip {The mail server this identity sends through, for example smtp.example.org. Used when Config -> Network sends with the built-in SMTP client.} xywh {130 343 330 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Port
-              xywh {470 318 40 20} box NO_BOX labelsize 12 align 20
+              xywh {470 343 40 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtpport {
               callback cb_prefs_id_smtpport
-              tooltip {Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.} xywh {515 318 90 20} type Int labelsize 12 when 1 textsize 12
+              tooltip {Empty: 465 for TLS, 587 for STARTTLS, 25 without encryption.} xywh {515 343 90 20} type Int labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Encryption
-              xywh {30 343 80 20} box NO_BOX labelsize 12 align 20
+              xywh {30 368 80 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Group {} {open
-              xywh {130 343 330 20} box BORDER_FRAME color 0
+              xywh {130 368 330 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_id_smtpsec {
                 callback cb_prefs_id_smtpsec open
-                tooltip {TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrades the connection. Without encryption only for a server on your own network, and never with a login.} xywh {131 344 329 19} down_box BORDER_BOX labelsize 12 textsize 12
+                tooltip {TLS from the first byte (port 465) is the safest. STARTTLS (port 587) upgrades the connection. Without encryption only for a server on your own network, and never with a login.} xywh {131 369 329 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {
                 MenuItem {} {
                   label {TLS (port 465)}
-                  xywh {0 -25 100 20} labelsize 12
+                  xywh {0 0 100 20} labelsize 12
                 }
                 MenuItem {} {
                   label {STARTTLS (port 587)}
-                  xywh {0 -25 100 20} labelsize 12
+                  xywh {0 0 100 20} labelsize 12
                 }
                 MenuItem {} {
                   label {None (port 25, own network only)}
-                  xywh {0 -25 100 20} labelsize 12
+                  xywh {0 0 100 20} labelsize 12
                 }
               }
             }
             Fl_Button {} {
               label Username
-              xywh {30 368 80 20} box NO_BOX labelsize 12 align 20
+              xywh {30 393 80 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtpuser {
               callback cb_prefs_id_smtpuser
-              tooltip {The login for the mail server. Empty: no login (for a server that takes your mail without one).} xywh {130 368 210 20} labelsize 12 when 1 textsize 12
+              tooltip {The login for the mail server. Empty: no login (for a server that takes your mail without one).} xywh {130 393 210 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label Password
-              xywh {350 368 60 20} box NO_BOX labelsize 12 align 20
+              xywh {350 393 60 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtppass {
               callback cb_prefs_id_smtppass
-              tooltip {Kept in ~/.postoffice/resource.rc (readable only by you). A password command keeps it out of that file.} xywh {415 368 190 20} type Secret labelsize 12 when 1 textsize 12
+              tooltip {Kept in ~/.postoffice/resource.rc (readable only by you). A password command keeps it out of that file.} xywh {415 393 190 20} type Secret labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
               label {Password cmd}
-              xywh {30 393 90 20} box NO_BOX labelsize 12 align 20
+              xywh {30 418 90 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Input in_prefs_id_smtppasscmd {
               callback cb_prefs_id_smtppasscmd
-              tooltip {A command whose first line of output is the password, for example: pass show mail/smtp. Used instead of the password when set.} xywh {130 393 475 20} labelsize 12 when 1 textsize 12
+              tooltip {A command whose first line of output is the password, for example: pass show mail/smtp. Used instead of the password when set.} xywh {130 418 475 20} labelsize 12 when 1 textsize 12
             }
             Fl_Box {} {
               label {Login: SCRAM-SHA-256 when offered, else PLAIN or LOGIN, always after encryption. Certificates are checked against the system's CAs and Config -> Certificates.}
-              xywh {30 416 580 26} labelsize 11 align 149
+              xywh {30 441 580 34} labelsize 11 align 149
             }
           }
           Fl_Group {} {open
-            xywh {20 450 600 20}
+            xywh {20 488 600 20}
           } {
             Fl_Button {} {
               label {Save sent mail to}
-              xywh {30 450 115 20} box NO_BOX labelsize 12 align 20
+              xywh {30 488 115 20} box NO_BOX labelsize 12 align 20
             }
             Fl_Group {} {open
-              xywh {150 450 200 20} box BORDER_FRAME color 0
+              xywh {150 488 200 20} box BORDER_FRAME color 0
             } {
               Fl_Choice ch_prefs_id_sentbox {
                 callback cb_prefs_id_sentbox open
-                tooltip {A copy of every message sent with this identity goes to the Sent folder of this IMAP mailbox (found by the server, or made). Off for servers that keep sent mail themselves, such as Gmail.} xywh {151 451 199 19} down_box BORDER_BOX labelsize 12 textsize 12
+                tooltip {A copy of every message sent with this identity goes to the Sent folder of this IMAP mailbox (found by the server, or made). Off for servers that keep sent mail themselves, such as Gmail.} xywh {151 489 199 19} down_box BORDER_BOX labelsize 12 textsize 12
               } {}
             }
             Fl_Box {} {
               label {(its Sent folder; also kept in OutBox)}
-              xywh {355 450 260 20} labelsize 11 align 20
+              xywh {355 488 260 20} labelsize 11 align 20
             }
           }
           Fl_Input ed_prefs_edittexts {
-            xywh {20 245 600 45} type Multiline labelsize 12 align 5 textfont 4 textsize 12
+            label Signature
+            xywh {20 230 600 85} type Multiline labelsize 12 align 5 textfont 4 textsize 12
             class Fl_Editor
-          }
-          Fl_Group {} {
-            xywh {20 220 175 20} box BORDER_FRAME color 0
-          } {
-            Fl_Choice ch_prefs_edittext {
-              xywh {21 221 174 19} down_box BORDER_BOX labelsize 12 textsize 12
-            } {
-              MenuItem {} {
-                label Signature
-                xywh {15 15 100 20} labelsize 12
-                code0 {xloc(o, "signature");}
-              }
-              MenuItem {} {
-                label {Message Header}
-                xywh {25 25 100 20} labelsize 12
-                code0 {xloc(o, "msgheader");}
-              }
-            }
-          }
-          Fl_Group {} {
-            xywh {420 220 200 20} box BORDER_FRAME color 0
-          } {
-            Fl_Choice ch_prefs_inserttext {open
-              xywh {440 221 180 19} down_box BORDER_BOX labelsize 12 textsize 12
-            } {
-              MenuItem {} {
-                label {Date of Original Message}
-                xywh {25 25 100 20} labelsize 12
-                code0 {xloc(o, "date_original");}
-              }
-              MenuItem {} {
-                label {Name of Original Sender}
-                xywh {35 35 100 20} labelsize 12
-                code0 {xloc(o, "name_original");}
-              }
-              MenuItem {} {
-                label {Email of Original Sender}
-                xywh {45 45 100 20} labelsize 12
-                code0 {xloc(o, "email_original");}
-              }
-              MenuItem {} {
-                label {Original Mailfolder}
-                xywh {55 55 100 20} labelsize 12
-                code0 {xloc(o, "folder_original");}
-              }
-              MenuItem {} {
-                label {Message-ID}
-                xywh {65 65 100 20} labelsize 12
-                code0 {xloc(o, "message_id");}
-              }
-            }
-            Fl_Button bt_prefs_inserttext {
-              label {@-12>}
-              xywh {421 221 19 19}
-            }
           }
         }
       }
       Fl_Group gr_prefs_network {
         label Network
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "network");}
       } {
         Fl_Group {} {open
@@ -2488,7 +2377,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_certs {
         label Certificates
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
       } {
         Fl_Box {} {
           label {Certificate authorities trusted for POP3, IMAP and SMTP connections, in addition to the system's. Add the CA certificate (a PEM or DER file) of a local or private CA here. A server whose certificate does not check out against these or the system's CAs is always refused.}
@@ -2514,7 +2403,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_language {
         label Language
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
@@ -2594,7 +2483,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
       Fl_Group gr_prefs_style {
         label Style open
-        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+        xywh {5 25 635 490} color 51 labelfont 1 labelsize 12 hide
         code0 {xloc(o, "language");}
       } {
         Fl_Group {} {open
@@ -2845,36 +2734,36 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
       }
     }
     Fl_Group {} {
-      xywh {8 483 95 24} box BORDER_FRAME color 35
+      xywh {8 523 95 24} box BORDER_FRAME color 35
     } {
       Fl_Group {} {open
-        xywh {11 486 89 18} box BORDER_BOX
+        xywh {11 526 89 18} box BORDER_BOX
       } {
         Fl_Button bt_prefs_save {
           label Save
           callback cb_prefs_save
-          xywh {12 487 88 17} down_box DOWN_BOX color 51 labelsize 12
+          xywh {12 527 88 17} down_box DOWN_BOX color 51 labelsize 12
           code0 {xloc(o, "save");}
         }
       }
     }
     Fl_Group {} {
-      xywh {115 485 90 20} box BORDER_BOX
+      xywh {115 525 90 20} box BORDER_BOX
     } {
       Fl_Button bt_prefs_apply {
         label Apply
         callback cb_prefs_apply
-        xywh {116 486 89 19} down_box DOWN_BOX color 51 labelsize 12
+        xywh {116 526 89 19} down_box DOWN_BOX color 51 labelsize 12
         code0 {xloc(o, "apply");}
       }
     }
     Fl_Group {} {
-      xywh {545 485 90 20} box BORDER_BOX
+      xywh {545 525 90 20} box BORDER_BOX
     } {
       Fl_Button bt_prefs_cancel {
         label Cancel
         callback cb_prefs_cancel
-        xywh {546 486 89 19} down_box DOWN_BOX color 51 labelsize 12
+        xywh {546 526 89 19} down_box DOWN_BOX color 51 labelsize 12
         code0 {xloc(o, "cancel");}
       }
     }
