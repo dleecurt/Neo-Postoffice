@@ -221,6 +221,10 @@ escapes lines starting with a dot. The message is sent only if the
 server accepts every recipient; otherwise nothing is sent and the
 refused addresses are listed with the server's answer.
 
+How the client was tested (a scripted server and a real Postfix with
+Cyrus SASL), notes for common providers and a list of error messages
+with what to do about them are in [docs/smtp.md](docs/smtp.md).
+
 ### When a message cannot be sent
 
 A message is sent as soon as you press Send, and the OutBox (folders
@@ -232,7 +236,7 @@ What happens when sending fails depends on why:
 |---|---|
 | Passing: the server cannot be reached, or answers "try later" (4xx) | Stays in Queue; tried again after 1, 5, 15 and 30 minutes, then every hour. After three days it moves to Drafts |
 | The message: a refused recipient or sender, too large, 8-bit text or non-ASCII addresses the server does not take | Moves to OutBox → Drafts |
-| The settings or server: login refused, certificate, no encryption offered, no server or identity set, the password command failed | Stays in Queue, held until you fix it and use Check Mail |
+| The settings or server: login refused, certificate, no encryption offered, no server or identity set, the password command failed, or the server refuses for policy (5.7.x: relaying denied, a login needed, a sender the login may not use) | Stays in Queue, held until you fix it and use Check Mail |
 | You pressed **Stop** | The connection is cut at once; the message stays in Queue, held until Check Mail |
 
 Each reason is shown once per message. **Message → Edit Draft** opens a
@@ -467,7 +471,8 @@ See the git history for details. In summary:
   dot-escaping, every recipient checked) with a server per identity; the
   old one could cut a message short at a line holding a single dot and
   spoke only plain SMTP on port 25. Sending a message with an empty body
-  no longer reads past the end of a buffer.
+  no longer reads past the end of a buffer. Tested against Postfix 3.11
+  with Cyrus SASL (every login method, TLS and STARTTLS, refusals).
 - Sending: temporary failures are retried at growing intervals for three
   days, refused messages go to OutBox → Drafts (Message → Edit Draft),
   Stop cuts a send off, and Check Mail also sends the queue. A message

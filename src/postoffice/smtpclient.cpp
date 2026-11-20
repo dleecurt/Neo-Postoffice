@@ -41,6 +41,14 @@ namespace
 		std::vector<std::string> Lines;
 
 		bool Positive (void) const { return Code >= 200 && Code < 400; }
+		// RFC 3463: 5.7.x is about security or policy (no login, relaying
+		// refused, a sender the login may not use): the settings, not the
+		// message.
+		bool Policy (void) const
+		{
+			return !Lines.empty () && Lines[0].size () >= 4 && Lines[0][1] == '.' && Lines[0][2] == '7' &&
+				   Lines[0][3] == '.' && (Lines[0][0] == '5' || Lines[0][0] == '4');
+		}
 		bool Transient (void) const { return Code >= 400 && Code < 500; }
 		// "550 5.1.1 User unknown"; several lines joined with " / ".
 		std::string Text (void) const
@@ -620,21 +628,28 @@ static SmtpResult send_once (const SmtpServer &server, const std::string &mailfr
 	if (r.Code == 530 && server.User.empty ())
 		return refused ("the mail server " + host + " wants a login: set the user name and password in"
 						" Config \xe2\x86\x92 Identities. It said", true);
-	if (!r.Positive ()) return refused ("the mail server " + host + " refused the sender " + mailfrom);
+	if (!r.Positive ()) return refused ("the mail server " + host + " refused the sender " + mailfrom, r.Policy ());
 
 	std::string rejected;
-	bool all_transient = true;
+	bool all_transient = true, all_policy = true;
 	for (const std::string &a : recipients)
 	{
 		if (!S.Command ("RCPT TO:<" + a + ">", r)) return lost ("the connection to " + host + " was lost");
 		if (r.Positive ()) continue;
 		rejected += (rejected.empty () ? "" : "; ") + a + " (" + r.Text () + ")";
 		if (!r.Transient ()) all_transient = false;
+		if (!r.Policy ()) all_policy = false;
 	}
 	if (!rejected.empty ())
 	{
 		R.Error = "the mail server " + host + " refused " + rejected + ". Nothing was sent.";
+		// Refused for policy (Postfix: "Client host rejected", "Relay access
+		// denied"): the server wants a login, or another one.
+		if (all_policy && server.User.empty () && S.Has ("AUTH"))
+			R.Error += " The server probably wants a login: set the user name and password in Config \xe2\x86\x92"
+					   " Identities.";
 		R.Temporary = all_transient;
+		R.Setup = all_policy && !all_transient;
 		Reply q;
 		S.Command ("RSET", q);
 		S.Command ("QUIT", q);
