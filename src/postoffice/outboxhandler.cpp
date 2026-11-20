@@ -26,6 +26,10 @@
 
 #include <algorithm>
 #include <set>
+#include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <map>
 #include <string>
 #include "status.h"
 
@@ -56,11 +60,14 @@ static Var *identity_for (const char *mailfrom, std::string &name)
 	return NULL;
 }
 
+// How a try to send one message went.
+enum SendOutcome { SEND_OK, SEND_LATER, SEND_SETUP, SEND_MESSAGE, SEND_STOPPED };
+
 // Sends one message the way Config -> Network says: the built-in SMTP
 // client (also when nothing is set) to the sender identity's mail server,
-// the system MTA, or msmtp. Returns true when it was handed over.
-static bool deliver_message (MailBox *Parent, const char *msgid, WordList *HeaderNames, WordList *HeaderValues,
-							 char *mailfrom, WordList *RCPT, char *body)
+// the system MTA, or msmtp. err says why it was not sent.
+static SendOutcome deliver_message (MailBox *Parent, WordList *HeaderNames, WordList *HeaderValues,
+									char *mailfrom, WordList *RCPT, char *body, std::string &err)
 {
 	const char *method = PREFERENCES.Get_char_tree ("postoffice/network/delivery");
 	const char *program = NULL;
@@ -75,80 +82,178 @@ static bool deliver_message (MailBox *Parent, const char *msgid, WordList *Heade
 		if (!*program) program = "msmtp";
 	}
 
-	std::string err;
-	bool ok = false;
-	if (program) ok = send_message_pipe (program, HeaderNames, HeaderValues, mailfrom, RCPT, body, err);
-	else
+	// The system MTA and msmtp: a failure is taken as passing (a local MTA
+	// rarely refuses for good, and their exit codes are not reliable).
+	if (program)
+		return send_message_pipe (program, HeaderNames, HeaderValues, mailfrom, RCPT, body, err) ? SEND_OK : SEND_LATER;
+
+	std::string idname;
+	Var *I = identity_for (mailfrom, idname);
+	if (!I)
 	{
-		std::string idname;
-		Var *I = identity_for (mailfrom, idname);
-		if (!I)
-			err = std::string ("no identity has the sender address ") + mailfrom + ", so there is no mail server"
-				  " to send it to. Set one up in Config \xe2\x86\x92 Identities.";
-		else if (!*I->Get_char ("smtp_host"))
-			err = "the identity " + idname + " has no outgoing mail server. Set one in Config \xe2\x86\x92"
-				  " Identities \xe2\x86\x92 Outgoing mail server.";
-		else
-		{
-			SmtpServer srv;
-			srv.Host = I->Get_char ("smtp_host");
-			srv.Port = atoi (I->Get_char ("smtp_port"));
-			srv.Security = I->Get_char ("smtp_security");
-			srv.User = I->Get_char ("smtp_user");
-			// The password: the identity's password command (its first line),
-			// or the stored password.
-			const char *passcmd = I->Get_char ("smtp_passcmd");
-			std::string perr;
-			bool have_password = true;
-			if (!srv.User.empty () && passcmd && *passcmd)
-			{
-				if (!run_password_command (passcmd, srv.Password, perr))
-				{
-					err = "cannot get the password for " + idname + ": " + perr;
-					have_password = false;
-				}
-			}
-			else srv.Password = I->Get_char ("smtp_pass");
-			if (have_password && !srv.User.empty () && srv.Password.empty ())
-			{
-				err = "the identity " + idname + " has a user name for its mail server but no password. Enter one,"
-					  " or a password command, in Config \xe2\x86\x92 Identities.";
-				have_password = false;
-			}
-			if (have_password)
-			{
-			std::vector<std::string> rcpts;
-			for (int i = 0; i < RCPT->Count; ++i) rcpts.push_back (RCPT->Get (i));
-			int jid = JOBQ.NewJob ("OutBox");
-			SmtpResult res = smtp_send (srv, mailfrom, rcpts, build_message (HeaderNames, HeaderValues, body),
-				[&](const std::string &s)
-				{
-					JOBQ.Stat (jid, (char *) s.c_str ());
-					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-				},
-				[Parent]() { return Parent->ToCollector->UrgentPending != 0; });
-			JOBQ.EndJob (jid);
-			ok = res.Sent;
-			err = res.Error;
-			}
-			std::fill (srv.Password.begin (), srv.Password.end (), '\0');
-		}
+		err = std::string ("no identity has the sender address ") + mailfrom + ", so there is no mail server"
+			  " to send it to. Set one up in Config \xe2\x86\x92 Identities.";
+		return SEND_SETUP;
+	}
+	if (!*I->Get_char ("smtp_host"))
+	{
+		err = "the identity " + idname + " has no outgoing mail server. Set one in Config \xe2\x86\x92"
+			  " Identities \xe2\x86\x92 Outgoing mail server.";
+		return SEND_SETUP;
 	}
 
-	// The message stays in the outbox when it fails; the reason is shown
-	// once per message and reason, not at every check.
-	static std::set<std::string> reported;
-	if (ok)
+	SmtpServer srv;
+	srv.Host = I->Get_char ("smtp_host");
+	srv.Port = atoi (I->Get_char ("smtp_port"));
+	srv.Security = I->Get_char ("smtp_security");
+	srv.User = I->Get_char ("smtp_user");
+	// The password: the identity's password command (its first line), or
+	// the stored password.
+	const char *passcmd = I->Get_char ("smtp_passcmd");
+	if (!srv.User.empty () && passcmd && *passcmd)
 	{
-		for (auto it = reported.begin (); it != reported.end ();)
-			it = it->compare (0, strlen (msgid) + 1, std::string (msgid) + "\n") == 0 ? reported.erase (it) : std::next (it);
-		return true;
+		std::string perr;
+		if (!run_password_command (passcmd, srv.Password, perr))
+		{
+			err = "cannot get the password for " + idname + ": " + perr;
+			return SEND_SETUP;
+		}
 	}
-	std::string key = std::string (msgid) + "\n" + err;
-	if (reported.insert (key).second)
-		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
-								   ("The message stays in the outbox: " + err).c_str());
-	return false;
+	else srv.Password = I->Get_char ("smtp_pass");
+	if (!srv.User.empty () && srv.Password.empty ())
+	{
+		err = "the identity " + idname + " has a user name for its mail server but no password. Enter one,"
+			  " or a password command, in Config \xe2\x86\x92 Identities.";
+		return SEND_SETUP;
+	}
+
+	std::vector<std::string> rcpts;
+	for (int i = 0; i < RCPT->Count; ++i) rcpts.push_back (RCPT->Get (i));
+	int jid = JOBQ.NewJob ("OutBox");
+	SmtpResult res = smtp_send (srv, mailfrom, rcpts, build_message (HeaderNames, HeaderValues, body),
+		[&](const std::string &st)
+		{
+			JOBQ.Stat (jid, (char *) st.c_str ());
+			Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+		},
+		[Parent]() { return Parent->ToCollector->UrgentPending != 0; });
+	JOBQ.EndJob (jid);
+	std::fill (srv.Password.begin (), srv.Password.end (), '\0');
+	err = res.Error;
+	if (res.Sent) return SEND_OK;
+	if (res.Cancelled) return SEND_STOPPED;
+	if (res.Temporary) return SEND_LATER;
+	if (res.Setup) return SEND_SETUP;
+	return SEND_MESSAGE;
+}
+
+//-------------------------------------------------------------------------------
+// When to try a message again (Neo-PostOffice). Kept in retry.dat in the
+// outbox's directory, one line per message: Message ID, time of the first
+// failure, tries so far, time of the next try, and "held" (1: wait for a
+// check the user starts). A message is retried after 1, 5, 15 and 30
+// minutes and then every hour, and moved to Drafts after 3 days.
+//-------------------------------------------------------------------------------
+
+namespace
+{
+	struct RetryState
+	{
+		time_t		 First = 0;
+		int			 Tries = 0;
+		time_t		 Next = 0;
+		bool		 Held = false;
+	};
+
+	const time_t GIVE_UP = 3 * 24 * 3600;
+
+	time_t retry_delay (int tries)
+	{
+		static const time_t steps[] = { 60, 5 * 60, 15 * 60, 30 * 60 };
+		return tries >= 1 && tries <= 4 ? steps[tries - 1] : 3600;
+	}
+
+	std::string when_text (time_t delay)
+	{
+		if (delay < 3600) return std::to_string (delay / 60) + (delay < 120 ? " minute" : " minutes");
+		return std::to_string (delay / 3600) + (delay < 7200 ? " hour" : " hours");
+	}
+
+	std::string retry_file (MailBox *B)
+	{
+		return std::string (B->DirectoryPrefix) + "/retry.dat";
+	}
+
+	std::map<std::string, RetryState> load_retries (MailBox *B)
+	{
+		std::map<std::string, RetryState> m;
+		FILE *f = fopen (retry_file (B).c_str (), "r");
+		if (!f) return m;
+		char line[1024];
+		while (fgets (line, sizeof (line), f))
+		{
+			char id[768];
+			long first, next;
+			int tries, held;
+			if (sscanf (line, "%767s %ld %d %ld %d", id, &first, &tries, &next, &held) == 5)
+			{
+				RetryState &r = m[id];
+				r.First = first; r.Tries = tries; r.Next = next; r.Held = held != 0;
+			}
+		}
+		fclose (f);
+		return m;
+	}
+
+	void save_retries (MailBox *B, const std::map<std::string, RetryState> &m)
+	{
+		std::string path = retry_file (B), tmp = path + ".tmp";
+		if (m.empty ()) { unlink (path.c_str ()); return; }
+		int fd = open (tmp.c_str (), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+		FILE *f = fd >= 0 ? fdopen (fd, "w") : NULL;
+		if (!f) { if (fd >= 0) close (fd); return; }
+		for (const auto &e : m)
+			fprintf (f, "%s %ld %d %ld %d\n", e.first.c_str (), (long) e.second.First, e.second.Tries,
+					 (long) e.second.Next, e.second.Held ? 1 : 0);
+		if (fclose (f) == 0) rename (tmp.c_str (), path.c_str ());
+		else unlink (tmp.c_str ());
+	}
+
+	// The reason for a message is shown once per message and reason, not at
+	// every round.
+	std::set<std::string> reported;
+
+	void report (MailBox *Parent, const char *msgid, const std::string &key, const std::string &text)
+	{
+		if (!reported.insert (std::string (msgid) + "\n" + key).second) return;
+		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox", text.c_str ());
+	}
+
+	void forget_reports (const char *msgid)
+	{
+		std::string prefix = std::string (msgid) + "\n";
+		for (auto it = reported.begin (); it != reported.end ();)
+			it = it->compare (0, prefix.size (), prefix) == 0 ? reported.erase (it) : std::next (it);
+	}
+
+	MailView *view_named (MailBox *B, const char *name)
+	{
+		for (MailView *V = B->VFirst; V; V = V->Next)
+			if (strcmp (V->Name, name) == 0) return V;
+		return NULL;
+	}
+
+	// Moves M from the queue Q to another of the outbox's folders.
+	void move_message (MailBox *Parent, MailView *Q, MailView *To, MailMessage *M)
+	{
+		Parent->UnTie (M);
+		Parent->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, Q->Name, M->MsgID);
+		if (To)
+		{
+			To->Associate (M);
+			Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, To->Name, M->MsgID);
+		}
+	}
 }
 
 OutBoxHandler::OutBoxHandler (MailBox *_Parent, class Var *_Parameters)
@@ -184,6 +289,10 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 	int			 pos;
 	MailView 	*Q = Parent->VFirst;
 	bool		 sent = false;
+	bool		 moved = false;
+	bool		 stopped = false;
+	MailView	*drafts = view_named (Parent, "Drafts");
+	std::map<std::string, RetryState> retries = load_retries (Parent);
 	
 	if (Q)
 	{
@@ -232,28 +341,85 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 
 			if (P && RCPT->Count)
 			{
-				dprintf ("count=%i\n", RCPT->Count);
-				for (j=0;j<RCPT->Count;++j) dprintf ("    RCPT: %s\n", RCPT->Get(j));
-				
-				JOBQ.Stat (jid, "Sending message from queue...");
-                Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
-
-				//Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "Sending message from queue...");
-				
-				if (deliver_message (Parent, M->MsgID, HeaderNames, HeaderValues, mailfrom, RCPT, P->Contents))
+				time_t now = time (NULL);
+				auto rit = retries.find (M->MsgID);
+				bool waiting = rit != retries.end () && (rit->second.Held || now < rit->second.Next);
+				if (stopped || (waiting && !UserCheck))
 				{
-					sent = true;
+					Q->DoneWithMessage();		// not now
+				}
+				else
+				{
+					JOBQ.Stat (jid, "Sending message from queue...");
+					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
+					std::string err;
+					SendOutcome how = deliver_message (Parent, HeaderNames, HeaderValues, mailfrom, RCPT, P->Contents, err);
+					std::string subject = M->Header ("Subject") ? M->Header ("Subject") : "";
+					std::string what = "\"" + subject + "\"";
 					Q->DoneWithMessage();
-					Parent->UnTie (M);
-					Parent->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, Q->Name, M->MsgID);
-					--i;
-					if (Q->Next)
+					switch (how)
 					{
-						Q->Next->Associate (M);
-						Parent->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, Q->Next->Name, M->MsgID);
+						case SEND_OK:
+							sent = true;
+							retries.erase (M->MsgID);
+							forget_reports (M->MsgID);
+							move_message (Parent, Q, Q->Next, M);
+							--i;
+							break;
+
+						case SEND_STOPPED:
+							// Stop: nothing more this round, and this message
+							// waits for a check the user starts.
+							stopped = true;
+							retries[M->MsgID].Held = true;
+							break;
+
+						case SEND_LATER:
+						{
+							RetryState &st = retries[M->MsgID];
+							if (!st.First) st.First = now;
+							++st.Tries;
+							st.Held = false;
+							if (now - st.First >= GIVE_UP)
+							{
+								retries.erase (M->MsgID);
+								forget_reports (M->MsgID);
+								moved = true;
+								move_message (Parent, Q, drafts, M);
+								--i;
+								Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+									("The message " + what + " could not be sent for three days and was moved to"
+									 " OutBox \xe2\x86\x92 Drafts. The last try failed: " + err).c_str ());
+								break;
+							}
+							time_t delay = retry_delay (st.Tries);
+							st.Next = now + delay;
+							report (Parent, M->MsgID, err, "The message " + what + " stays in the outbox and is"
+									" tried again in " + when_text (delay) + " (or at Check Mail): " + err);
+							break;
+						}
+
+						case SEND_SETUP:
+							// Trying again will not help until the settings or
+							// the server change: wait for a check the user starts.
+							retries[M->MsgID].Held = true;
+							report (Parent, M->MsgID, err, "The message " + what + " stays in the outbox until"
+									" this is fixed; then use File \xe2\x86\x92 Check Mail: " + err);
+							break;
+
+						case SEND_MESSAGE:
+							retries.erase (M->MsgID);
+							forget_reports (M->MsgID);
+							moved = true;
+							move_message (Parent, Q, drafts, M);
+							--i;
+							Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+								("The message " + what + " was not sent and was moved to OutBox \xe2\x86\x92"
+								 " Drafts, where Message \xe2\x86\x92 Edit Draft opens it to correct and send"
+								 " again: " + err).c_str ());
+							break;
 					}
 				}
-				else Q->DoneWithMessage();
 				JOBQ.Stat (jid, "Emptying Queue");
 				Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
 			}
@@ -323,9 +489,25 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 		JOBQ.EndJob (jid);
 		Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 	}
+	// Retry times of messages no longer in the queue are dropped.
+	if (Q)
+		for (auto it = retries.begin (); it != retries.end ();)
+		{
+			bool queued = false;
+			for (int k = 0; k < Q->Count () && !queued; ++k)
+			{
+				MailMessage *X = Q->GetMessage (k);
+				Q->DoneWithMessage ();
+				if (X && it->first == X->MsgID) queued = true;
+			}
+			it = queued ? std::next (it) : retries.erase (it);
+		}
+	save_retries (Parent, retries);
 	// Record at once that these are sent (the regular save is every two
 	// minutes): after a crash they would otherwise be sent again.
-	if (sent) Parent->SaveMailBox ();
+	// A message queued since the last save is recorded too: the index is
+	// otherwise saved only every two minutes, and a crash lost the message.
+	if (sent || moved || (Q && Q->Count () > 0)) Parent->SaveMailBox ();
 }
 
 void OutBoxHandler::DeleteMessage (char */*msgid*/)

@@ -1785,7 +1785,7 @@ void cb_prefs_certadd (Fl_Button */*b*/, void */*v*/)
 		msg += "Not added: " + I.Name + " is a server certificate issued by " + I.Issuer +
 			   ", not a CA. Add the CA that issued it instead.\n";
 	if (!ok) msg += "Cannot add " + std::string (path) + ": " + err + "\n";
-	if (!msg.empty ()) fl_message ("%s", wrap_text (msg.c_str (), 90).c_str ());
+	if (!msg.empty ()) fl_message ("%s", wrap_text (msg.c_str (), 75).c_str ());
 }
 
 void cb_prefs_certremove (Fl_Button */*b*/, void */*v*/)

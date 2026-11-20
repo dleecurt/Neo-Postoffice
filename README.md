@@ -221,8 +221,25 @@ escapes lines starting with a dot. The message is sent only if the
 server accepts every recipient; otherwise nothing is sent and the
 refused addresses are listed with the server's answer.
 
-A message whose sender matches no identity, or whose identity has no
-server, stays in the outbox with an explanation.
+### When a message cannot be sent
+
+A message is sent as soon as you press Send, and the OutBox (folders
+*Queue*, *Sent* and *Drafts*) is also emptied every 15 seconds and at
+**File → Check Mail**, which always tries every queued message at once.
+What happens when sending fails depends on why:
+
+| Why | What happens |
+|---|---|
+| Passing: the server cannot be reached, or answers "try later" (4xx) | Stays in Queue; tried again after 1, 5, 15 and 30 minutes, then every hour. After three days it moves to Drafts |
+| The message: a refused recipient or sender, too large, 8-bit text or non-ASCII addresses the server does not take | Moves to OutBox → Drafts |
+| The settings or server: login refused, certificate, no encryption offered, no server or identity set, the password command failed | Stays in Queue, held until you fix it and use Check Mail |
+| You pressed **Stop** | The connection is cut at once; the message stays in Queue, held until Check Mail |
+
+Each reason is shown once per message. **Message → Edit Draft** opens a
+message from Drafts in the composer, with its recipients, subject,
+identity and text (the signature is added again when sent); sending it
+queues the corrected message and removes the draft. Retry times are
+kept in `~/.postoffice/OutBox.box/retry.dat`, so they survive a restart.
 
 Clicking a link runs the command in the preference
 `postoffice/gui/action/http`, with `$` replaced by the URL. The default
@@ -451,6 +468,11 @@ See the git history for details. In summary:
   old one could cut a message short at a line holding a single dot and
   spoke only plain SMTP on port 25. Sending a message with an empty body
   no longer reads past the end of a buffer.
+- Sending: temporary failures are retried at growing intervals for three
+  days, refused messages go to OutBox → Drafts (Message → Edit Draft),
+  Stop cuts a send off, and Check Mail also sends the queue. A message
+  queued less than two minutes before a crash is no longer lost. Error
+  dialogs show e-mail addresses whole (FLTK read the "@" as a symbol).
 - A certificate store for local CAs (Config → Certificates), trusted by
   every TLS connection on top of the system's CAs. The file requester
   takes a full path typed as the file name.

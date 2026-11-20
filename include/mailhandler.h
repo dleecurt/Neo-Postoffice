@@ -23,6 +23,7 @@ public:
 	virtual void			 GetBody (char *);
 	virtual void			 CheckGroup (const char *);
 	virtual void			 DeleteMessage (char *);
+	bool					 UserCheck = false;	// this check was asked for (not scheduled)
 	virtual void			 Expire (void);
 	virtual int				 PostMessage (WordList *, MailMessage *);
 //	virtual WordList		*ServerGrouplist (void);

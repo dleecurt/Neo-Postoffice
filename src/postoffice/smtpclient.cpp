@@ -320,10 +320,10 @@ std::string smtp_data_block (const std::string &message)
 	return out;
 }
 
-SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
-					  const std::vector<std::string> &recipients, const std::string &message,
-					  std::function<void (const std::string &)> status,
-					  std::function<bool ()> cancelled)
+static SmtpResult send_once (const SmtpServer &server, const std::string &mailfrom,
+							 const std::vector<std::string> &recipients, const std::string &message,
+							 std::function<void (const std::string &)> status,
+							 std::function<bool ()> cancelled)
 {
 	SmtpResult R;
 	Session S;
@@ -337,10 +337,11 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 		S.Net.Close ();
 		return R;
 	};
-	auto refused = [&](const std::string &what) -> SmtpResult
+	auto refused = [&](const std::string &what, bool setup = false) -> SmtpResult
 	{
 		R.Error = what + ": " + r.Text () + ".";
 		R.Temporary = r.Transient ();
+		R.Setup = setup && !R.Temporary;
 		Reply q;
 		S.Command ("QUIT", q);
 		S.Net.Close ();
@@ -355,6 +356,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 	if (host.empty ())
 	{
 		R.Error = "no mail server is set.";
+		R.Setup = true;
 		return R;
 	}
 	if (recipients.empty ())
@@ -379,6 +381,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 	{
 		R.Error = "the identity has a login for " + host + " but no encryption, and a password is never sent"
 				  " unencrypted. Choose TLS or STARTTLS.";
+		R.Setup = true;
 		return R;
 	}
 
@@ -397,21 +400,22 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 	{
 		// A certificate that does not check out stays that way.
 		R.Error = "cannot start TLS with the mail server " + host + ": " + S.Net.Error () + ".";
+		R.Setup = true;
 		S.Net.Close ();
 		return R;
 	}
 
 	if (!S.Read (r)) return lost ("the mail server " + host + " did not greet");
-	if (r.Code != 220) return refused ("the mail server " + host + " does not accept mail now");
+	if (r.Code != 220) return refused ("the mail server " + host + " does not accept mail now", true);
 
 	std::string domain = ehlo_domain (S.Net.Fd ());
 	if (!S.Ehlo (domain, r)) return lost ("the mail server " + host + " did not answer EHLO");
 	if (r.Code != 250)
 	{
 		// HELO only where no extension is needed: no encryption asked for.
-		if (security != "none") return refused ("the mail server " + host + " refused EHLO");
+		if (security != "none") return refused ("the mail server " + host + " refused EHLO", true);
 		if (!S.Command ("HELO " + domain, r)) return lost ("the mail server " + host + " did not answer HELO");
-		if (r.Code != 250) return refused ("the mail server " + host + " refused HELO");
+		if (r.Code != 250) return refused ("the mail server " + host + " refused HELO", true);
 	}
 
 	if (security == "starttls")
@@ -420,22 +424,24 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 		{
 			R.Error = "the mail server " + host + " does not offer STARTTLS, and mail is not sent without"
 					  " encryption. Choose TLS (port 465), or check the server.";
+			R.Setup = true;
 			Reply q;
 			S.Command ("QUIT", q);
 			return R;
 		}
 		if (!S.Command ("STARTTLS", r)) return lost ("the mail server " + host + " did not answer STARTTLS");
-		if (r.Code != 220) return refused ("the mail server " + host + " refused STARTTLS");
+		if (r.Code != 220) return refused ("the mail server " + host + " refused STARTTLS", true);
 		// NetStream refuses anything sent along with the reply (injection).
 		if (!S.Net.StartTLS (""))
 		{
 			R.Error = "cannot start TLS with " + host + ": " + S.Net.Error () + ".";
+			R.Setup = true;
 			S.Net.Close ();
 			return R;
 		}
 		// What was said before encryption counts for nothing (RFC 3207 4.2).
 		if (!S.Ehlo (domain, r)) return lost ("the mail server " + host + " did not answer EHLO");
-		if (r.Code != 250) return refused ("the mail server " + host + " refused EHLO after STARTTLS");
+		if (r.Code != 250) return refused ("the mail server " + host + " refused EHLO after STARTTLS", true);
 	}
 
 	// Logging in (RFC 4954), if the identity has a user name.
@@ -445,6 +451,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 		{
 			R.Error = "the mail server " + host + " offers no login (no AUTH). If it takes your mail without"
 					  " one, leave the user name empty.";
+			R.Setup = true;
 			Reply q;
 			S.Command ("QUIT", q);
 			return R;
@@ -471,6 +478,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 		{
 			R.Error = "the mail server " + host + " offers no login method Neo-PostOffice knows (it offers: " +
 					  S.Ext["AUTH"] + ").";
+			R.Setup = true;
 			Reply q;
 			S.Command ("QUIT", q);
 			return R;
@@ -490,6 +498,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 				R.Error = "logging in to " + host + " with " + mech + " failed" + (how.empty () ? "" : " (" + how + ")") +
 						  (r.Code ? ": " + r.Text () : "") + ".";
 			R.Temporary = r.Transient ();
+			R.Setup = !R.Temporary;
 			Reply q;
 			S.Command ("QUIT", q);
 			S.Net.Close ();
@@ -610,7 +619,7 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 	if (!S.Command (from, r)) return lost ("the connection to " + host + " was lost");
 	if (r.Code == 530 && server.User.empty ())
 		return refused ("the mail server " + host + " wants a login: set the user name and password in"
-						" Config \xe2\x86\x92 Identities. It said");
+						" Config \xe2\x86\x92 Identities. It said", true);
 	if (!r.Positive ()) return refused ("the mail server " + host + " refused the sender " + mailfrom);
 
 	std::string rejected;
@@ -650,5 +659,21 @@ SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
 	Reply q;
 	S.Command ("QUIT", q);
 	S.Net.Close ();
+	return R;
+}
+
+SmtpResult smtp_send (const SmtpServer &server, const std::string &mailfrom,
+					  const std::vector<std::string> &recipients, const std::string &message,
+					  std::function<void (const std::string &)> status,
+					  std::function<bool ()> cancelled)
+{
+	SmtpResult R = send_once (server, mailfrom, recipients, message, status, cancelled);
+	// Stopped by the user: whatever broke on the way is not the reason.
+	if (!R.Sent && cancelled && cancelled ())
+	{
+		R.Cancelled = true;
+		R.Temporary = R.Setup = false;
+		R.Error = "sending was stopped.";
+	}
 	return R;
 }

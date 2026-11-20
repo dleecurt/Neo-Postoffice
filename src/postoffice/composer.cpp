@@ -18,6 +18,8 @@
 #include "reg.h"
 #include "substr.h"
 #include "strdupp.h"
+#include <FL/fl_ask.H>
+#include "eaddr.h"
 #include "chop.h"
 #include "base64.h"
 #include "mailstorage.h"
@@ -40,6 +42,8 @@ extern class MailBox 	*OUTBOX;
 extern class MailBox 	*MailBoxList[16];
 extern char				 currentfolder[64];
 extern MailBox			*currentmailbox;
+void update_folder (void);
+void update_tree_counts (void);
 
 extern int			 mdi_current;
 
@@ -105,6 +109,10 @@ struct Composer_Window
 		char				 origbox[64];
 		char				 origid[256];
 		char				 origflag;
+
+		// Neo-PostOffice: the OutBox draft this window edits; it is removed
+		// once the corrected message is queued.
+		char				 draftid[256];
 };
 
 // The composer windows that are open (Neo-PostOffice): the Message menu's
@@ -151,6 +159,8 @@ Composer_Window *create_composer_window (void)
 	W->origbox[0]		= 0;
 	W->origid[0]		= 0;
 	W->origflag			= 0;
+	W->draftid[0]		= 0;
+	W->references		= NULL;		// set by each caller
 	W->bt_address 		= compose_bt_address;
 	W->bt_address2		= compose_bt_address2;
 	W->bt_menu_expand	= bt_compose_menu_expand;
@@ -652,6 +662,21 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	// Announce the world the birth of a new message
 
 	OUTBOX->ToUI->PostMessage (CLASS_NEWARTICLE, NO_SUBCLASS, OUTBOX->VFirst->Name, M->MsgID);
+	// Send it now (the outbox's own round is every 15 seconds); this also
+	// saves the outbox's index, so a crash cannot lose the message.
+	OUTBOX->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "");
+
+	// A corrected draft replaces the draft.
+	if (W->draftid[0] && OUTBOX->Find (W->draftid))
+	{
+		OUTBOX->ToUI->PostMessage (CLASS_REMARTICLE, NO_SUBCLASS, "Drafts", W->draftid);
+		OUTBOX->RemoveMessage (W->draftid);
+		OUTBOX->SaveMailBox ();
+		W->draftid[0] = 0;
+		// As Delete does: show the folder without it.
+		if (currentmailbox == OUTBOX) update_folder ();
+		update_tree_counts ();
+	}
 
 	// Flag the original message as replied to / forwarded (Maildir).
 	if (W->origflag && W->origbox[0])
@@ -852,3 +877,76 @@ void cb_pasteaddress (Fl_Button */*b*/, void *d)
 	address->hide();
 }
 
+
+//===============================================================================
+// CALLBACK		cb_edit_draft_m (Neo-PostOffice)
+// SENDER		Message -> Edit Draft
+// SYNOPSIS		opens a message from OutBox -> Drafts (one that could not be
+//				sent) in a composer, to correct it and send it again. The
+//				draft is removed when the new message is queued.
+//===============================================================================
+
+void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
+{
+	if (currentmailbox != OUTBOX || strcmp (currentfolder, "Drafts") != 0 || !currentmsgid[mdi_current][0])
+	{
+		fl_message ("Select a message in OutBox \xe2\x86\x92 Drafts first: messages that could not be sent"
+					" are kept there.");
+		return;
+	}
+	MailMessage *M = OUTBOX->Find (currentmsgid[mdi_current]);
+	if (!M) return;
+	if (!M->HeaderNames->Count) M->LoadHeaders ();
+	if (!(M->Flags & MMFL_INRAM)) M->LoadBody ();
+
+	Composer_Window *W = create_composer_window ();
+	snprintf (W->draftid, sizeof (W->draftid), "%s", M->MsgID);
+	W->in_to->value (M->Header ("To"));
+	W->in_cc->value (M->Header ("CC"));
+	W->in_bcc->value (M->Header ("BCC"));
+	W->in_groups->value (M->Header ("Newsgroups"));
+	W->in_subject->value (M->Header ("Subject"));
+	snprintf (W->outbox, sizeof (W->outbox), "%s", M->Header ("X-Post-To"));
+
+	// The identity whose address sent it.
+	char *from = eaddr2addr (M->Header ("From"));
+	WordList *X = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("identities");
+	for (int i = 0; from && i < X->Count; ++i)
+	{
+		Var *I = PREFERENCES.Get_collection ("postoffice")->Get_collection ("identities")->Get_collection (X->Get (i));
+		char *addr = eaddr2addr (I->Get_char ("mailfrom"));
+		bool match = addr && strcasecmp (addr, from) == 0;
+		delete[] addr;
+		if (match)
+		{
+			int k = W->ch_personality->find_index (I->Get_char ("shortname"));
+			if (k >= 0) W->ch_personality->value (k);
+			break;
+		}
+	}
+	delete[] from;
+
+	// A reply stays a reply: In-Reply-To, and References without it (the
+	// send adds it again).
+	snprintf (W->msgid, sizeof (W->msgid), "%s", M->Header ("In-Reply-To"));
+	std::string refs = M->Header ("References");
+	if (W->msgid[0])
+	{
+		size_t at = refs.rfind (W->msgid);
+		if (at != std::string::npos) refs.erase (at);
+		while (!refs.empty () && isspace ((unsigned char) refs.back ())) refs.pop_back ();
+	}
+	delete[] W->references;
+	W->references = strdupp (refs.c_str ());
+
+	// The text, without the signature (the send adds the identity's).
+	MailPart *P = M->GetPart (0);
+	std::string body = P && P->Contents ? P->Contents : "";
+	size_t sig = body.rfind ("\n-- \n");
+	if (sig != std::string::npos) body.erase (sig + 1);
+	else if (body.compare (0, 4, "-- \n") == 0) body.clear ();
+	W->in_message->LoadFrom ((char *) body.c_str ());
+
+	if (*M->Header ("CC") || *M->Header ("BCC") || *M->Header ("Newsgroups"))
+		cb_compose_header_expand (NULL, W);
+}

@@ -144,7 +144,15 @@ std::string wrap_text (const char *text, size_t width)
 			last_space = std::string::npos;
 		}
 	}
-	return out;
+	// For a dialog: FLTK reads "@" in a label as the start of a symbol, so
+	// "test@example.com" was cut off at the "@". "@@" shows one "@".
+	std::string escaped;
+	for (char c : out)
+	{
+		escaped += c;
+		if (c == '@') escaped += '@';
+	}
+	return escaped;
 }
 void new_folderitem (MailMessage *);
 
@@ -986,7 +994,7 @@ int main (int argc, char *argv[])
 				case CLASS_ERROR :
 					errorstring = new char [strlen (M->Message->Get(0)) + strlen (M->Message->Get(1)) + 64];
 					sprintf (errorstring, "Error in [%s]\n%s", M->Message->Get(0), M->Message->Get(1));
-					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ("%s", wrap_text (errorstring, 90).c_str());
+					if (M->Subclass == SUB_ERROR_CRITICAL) fl_alert ("%s", wrap_text (errorstring, 75).c_str());
 					eprintf ("\n*** ERROR ***\n%s\n", errorstring);
 
 					delete[] errorstring;
@@ -1036,7 +1044,9 @@ void cb_check_mail (Fl_Button */*m*/, void */*blah*/)
 		currentmailbox->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, currentfolder);
 		tree_clear_newmessages (currentmailbox);
 	}
-	//if (currentmailbox) currentmailbox->Handler->CheckGroup ("inbox");
+	// Check Mail also sends the queue now, including messages that wait
+	// (after Stop or a settings problem) for a check the user starts.
+	if (OUTBOX && OUTBOX != currentmailbox) OUTBOX->ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "");
 }
 
 //===============================================================================

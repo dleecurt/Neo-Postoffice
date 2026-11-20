@@ -271,6 +271,7 @@ MailBox::MailBox (ITCPipe *ui)
     Handler = new OutBoxHandler (this, PREFERENCES.Get_collection ("postoffice")->Get_collection ("network"));
     CreateMailView ("Queue");
     CreateMailView ("Sent");
+    CreateMailView ("Drafts");		// messages that could not be sent
 
     LoadMailBox();
     Collector->Run((void *) this);

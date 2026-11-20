@@ -23,7 +23,12 @@ struct SmtpResult
 {
 	bool			 Sent = false;
 	bool			 Temporary = false;	// a 4xx reply or a lost connection: worth trying again
+	bool			 Setup = false;		// the server or its settings (login, certificate,
+										// encryption): fixed in Config, not in the message
+	bool			 Cancelled = false;	// stopped by the user (Stop)
 	std::string		 Error;				// why it was not sent, for the user
+	// Otherwise (not Sent, Temporary, Setup or Cancelled) the message
+	// itself was refused: a recipient, its size, its 8-bit text.
 };
 
 // Sends one message (headers, empty line, body; \n or \r\n line ends) from

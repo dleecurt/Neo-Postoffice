@@ -112,7 +112,9 @@ void *MailerThread::MailerMain (void *_box)
 					Box->Handler->Lock.LockOnce();
 					Box->Handler->CloseConnection();
 					Box->Handler->OpenConnection();
+					Box->Handler->UserCheck = M->Class == CLASS_CHECKGROUP;
 					Box->Handler->CheckGroup (M->Message->Get(0));
+					Box->Handler->UserCheck = false;
 					Box->Handler->Lock.UnlockOnce();
 					Box->ToUI->PostMessage (CLASS_CHECKEDGROUP, NO_SUBCLASS, M->Message->Get(0));
 					break;

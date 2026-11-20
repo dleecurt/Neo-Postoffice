@@ -39,7 +39,8 @@ Fl_Menu_Item menu_[] = {
  {"Reply", FL_ALT|'r',  (Fl_Callback*)cb_reply_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward", FL_ALT|'f',  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Redirect", 0,  0, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Redirect", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Edit Draft", 0,  (Fl_Callback*)cb_edit_draft_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0xffff,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Move to folder...", FL_ALT|'m',  (Fl_Callback*)cb_move_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Copy to folder...", FL_ALT|'k',  (Fl_Callback*)cb_copy_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -691,28 +692,28 @@ Fl_Window* make_window() {
       { Fl_Menu_Item* o = &menu_[23];
         xloc(o, "redirect");
       }
-      { Fl_Menu_Item* o = &menu_[24];
+      { Fl_Menu_Item* o = &menu_[25];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[31];
+      { Fl_Menu_Item* o = &menu_[32];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[33];
-        xloc(o, "all_messages");
-      }
       { Fl_Menu_Item* o = &menu_[34];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[37];
         xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[35];
+        xloc(o, "unread_messages");
       }
       { Fl_Menu_Item* o = &menu_[38];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[41];
         xloc(o, "all_messages");
       }
+      { Fl_Menu_Item* o = &menu_[39];
+        xloc(o, "unread_messages");
+      }
       { Fl_Menu_Item* o = &menu_[42];
+        xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[43];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);
