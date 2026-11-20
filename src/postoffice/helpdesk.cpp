@@ -5422,6 +5422,16 @@ Fl_Menu_Item menu_ch_prefs_directoryservice[] = {
  {0,0,0,0,0,0,0,0,0}
 };
 
+Fl_Group *gr_prefs_certs=(Fl_Group *)0;
+
+Fl_Browser *br_prefs_certs=(Fl_Browser *)0;
+
+Fl_Box *bx_prefs_certinfo=(Fl_Box *)0;
+
+Fl_Button *bt_prefs_certadd=(Fl_Button *)0;
+
+Fl_Button *bt_prefs_certremove=(Fl_Button *)0;
+
 Fl_Group *gr_prefs_language=(Fl_Group *)0;
 
 Fl_Button *rd_prefs_locale_off=(Fl_Button *)0;
@@ -6792,6 +6802,43 @@ Fl_Window* make_prefs_window() {
         xloc(o, "network");
         gr_prefs_network->end();
       } // Fl_Group* gr_prefs_network
+      { gr_prefs_certs = new Fl_Group(5, 25, 635, 450, "Certificates");
+        gr_prefs_certs->color((Fl_Color)51);
+        gr_prefs_certs->labelfont(1);
+        gr_prefs_certs->labelsize(12);
+        gr_prefs_certs->hide();
+        { Fl_Box* o = new Fl_Box(20, 40, 600, 50, "Certificate authorities trusted for POP3, IMAP and SMTP connections, in addit"
+"ion to the system\'s. Add the CA certificate (a PEM or DER file) of a local or"
+" private CA here. A server whose certificate does not check out against these "
+"or the system\'s CAs is always refused.");
+          o->labelsize(12);
+          o->align(Fl_Align(197|FL_ALIGN_INSIDE));
+        } // Fl_Box* o
+        { br_prefs_certs = new Fl_Browser(20, 95, 600, 230);
+          br_prefs_certs->type(2);
+          br_prefs_certs->box(FL_DOWN_BOX);
+          br_prefs_certs->labelsize(12);
+          br_prefs_certs->textsize(12);
+          br_prefs_certs->callback((Fl_Callback*)cb_prefs_certs_select);
+        } // Fl_Browser* br_prefs_certs
+        { bx_prefs_certinfo = new Fl_Box(20, 335, 600, 95);
+          bx_prefs_certinfo->box(FL_THIN_DOWN_BOX);
+          bx_prefs_certinfo->labelsize(12);
+          bx_prefs_certinfo->align(Fl_Align(197|FL_ALIGN_INSIDE));
+        } // Fl_Box* bx_prefs_certinfo
+        { bt_prefs_certadd = new Fl_Button(20, 440, 100, 25, "Add...");
+          bt_prefs_certadd->tooltip("Add the certificates in a PEM or DER file to the store.");
+          bt_prefs_certadd->labelsize(12);
+          bt_prefs_certadd->callback((Fl_Callback*)cb_prefs_certadd);
+        } // Fl_Button* bt_prefs_certadd
+        { bt_prefs_certremove = new Fl_Button(130, 440, 100, 25, "Remove");
+          bt_prefs_certremove->tooltip("Remove the selected certificate from the store.");
+          bt_prefs_certremove->labelsize(12);
+          bt_prefs_certremove->callback((Fl_Callback*)cb_prefs_certremove);
+          bt_prefs_certremove->deactivate();
+        } // Fl_Button* bt_prefs_certremove
+        gr_prefs_certs->end();
+      } // Fl_Group* gr_prefs_certs
       { Fl_Group* o = gr_prefs_language = new Fl_Group(5, 25, 635, 450, "Language");
         gr_prefs_language->color((Fl_Color)51);
         gr_prefs_language->labelfont(1);

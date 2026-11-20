@@ -1,6 +1,7 @@
 #include "iconbrowser.h"
 #include "filereq.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -131,6 +132,7 @@ const char *single_file_request (void)
 	}
 	
 	in_freq_dir->value (buf);
+	in_freq_filename->value ("");		// not the name chosen last time
 	freq_update();
 
 	while (FREQ_OPEN)
@@ -270,7 +272,14 @@ void cb_freq_ok (Fl_Button */*b*/, void */*v*/)
 {
 	if (strlen (in_freq_filename->value()))
 	{
-		snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s/%s", in_freq_dir->value(), in_freq_filename->value());
+		// A name typed as a full path (or ~/...) is taken as it is.
+		const char *name = in_freq_filename->value();
+		if (name[0] == '/')
+			snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s", name);
+		else if (name[0] == '~' && name[1] == '/' && getenv ("HOME"))
+			snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s%s", getenv ("HOME"), name + 1);
+		else
+			snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s/%s", in_freq_dir->value(), name);
 	}
 	else FREQ_FILENAME[0] = 0;
 	FREQ->hide();

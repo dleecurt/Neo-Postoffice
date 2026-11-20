@@ -2462,6 +2462,32 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           }
         }
       }
+      Fl_Group gr_prefs_certs {
+        label Certificates
+        xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide
+      } {
+        Fl_Box {} {
+          label {Certificate authorities trusted for POP3, IMAP and SMTP connections, in addition to the system's. Add the CA certificate (a PEM or DER file) of a local or private CA here. A server whose certificate does not check out against these or the system's CAs is always refused.}
+          xywh {20 40 600 50} labelsize 12 align 213
+        }
+        Fl_Browser br_prefs_certs {
+          callback cb_prefs_certs_select
+          xywh {20 95 600 230} type Hold box DOWN_BOX labelsize 12 textsize 12
+        }
+        Fl_Box bx_prefs_certinfo {
+          xywh {20 335 600 95} box THIN_DOWN_BOX labelsize 12 align 213
+        }
+        Fl_Button bt_prefs_certadd {
+          label {Add...}
+          callback cb_prefs_certadd
+          tooltip {Add the certificates in a PEM or DER file to the store.} xywh {20 440 100 25} labelsize 12
+        }
+        Fl_Button bt_prefs_certremove {
+          label Remove
+          callback cb_prefs_certremove
+          tooltip {Remove the selected certificate from the store.} xywh {130 440 100 25} labelsize 12 deactivate
+        }
+      }
       Fl_Group gr_prefs_language {
         label Language
         xywh {5 25 635 450} color 51 labelfont 1 labelsize 12 hide

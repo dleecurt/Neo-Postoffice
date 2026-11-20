@@ -128,7 +128,7 @@ void update_tree_counts (void);
 
 // Breaks lines longer than width at spaces, so that a long error message
 // fits in its dialog (Neo-PostOffice).
-static std::string wrap_text (const char *text, size_t width)
+std::string wrap_text (const char *text, size_t width)
 {
 	std::string out;
 	size_t col = 0, last_space = std::string::npos;

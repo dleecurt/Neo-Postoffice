@@ -14,7 +14,8 @@ step is tested and committed on its own.
   their settings and show a note.
 - **One TLS implementation.** libetpan reads and writes through a
   `NetStream` (a libetpan stream driver in `imap4handler.cpp`), so TLS,
-  STARTTLS, the certificate checks (system CAs plus an optional CA file,
+  STARTTLS, the certificate checks (system CAs, the certificate store in
+  `~/.postoffice/certs` and an optional CA file,
   host name, TLS 1.2 or newer, no way to turn them off), timeouts and
   cancelling are the same as for POP3.
 - **Storage:** headers are fetched for the message list, a body when the

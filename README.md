@@ -92,9 +92,9 @@ Config → Mailboxes → *POP3 Account* collects mail from a POP3 server:
   or network. *Port* overrides the usual port. Mailboxes set up before
   this option existed keep working unencrypted until it is changed.
 - **Certificates** are always checked against the system's certificate
-  authorities and the host name. *CA file* adds a PEM file with your own
-  CA, for a server whose certificate comes from a local CA. There is no
-  way to accept an unchecked certificate.
+  authorities, Neo-PostOffice's own store (see *Certificates* below) and
+  the host name. *CA file* adds a PEM file with a CA for this mailbox
+  only. There is no way to accept an unchecked certificate.
 - **Password**: the *Password* field, or a *Password command* whose
   first line of output is the password, for example
   `pass show mail/pop` or `secret-tool lookup service pop3 user me`;
@@ -114,6 +114,27 @@ message is fetched once: `uidl.dat` in the mailbox directory remembers
 which ones were. Errors (server down, refused login, untrusted
 certificate) are shown once, not at every automatic check.
 
+## Certificates
+
+Every TLS connection (POP3, IMAP, and SMTP once the new client is in)
+trusts the system's certificate authorities plus Neo-PostOffice's own
+store, kept in `~/.postoffice/certs` (one PEM file per certificate,
+named after its SHA-256 fingerprint). Use it for a local or company CA:
+
+- **Config → Certificates → Add...** takes a PEM file (one or more
+  certificates) or a DER file. Each certificate is listed with its name,
+  expiry date and type; selecting one shows its subject, issuer,
+  validity and SHA-256 fingerprint. Compare the fingerprint with the
+  one your CA's administrator gives you before relying on it.
+- Only CA certificates (and a server's own self-signed certificate) are
+  taken. A server certificate issued by a CA is refused: add the CA
+  instead.
+- **Remove** takes a certificate out. Changes apply from the next
+  connection, without Save.
+- A server whose certificate does not check out is always refused; the
+  error says when adding a CA would help. There is no "trust this
+  server anyway" button.
+
 ## IMAP4
 
 A new IMAP4 client is being built on [libetpan](https://github.com/dinhvh/libetpan),
@@ -123,7 +144,8 @@ It is not finished: **step 1 of 6** is done.
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
 over TLS (port 993), STARTTLS (port 143) or, for a server on your own
 network, without encryption; certificates are checked as for POP3
-(system CAs plus an optional CA file, and the host name), with no way to
+(system CAs, the certificate store and an optional CA file, and the host
+name), with no way to
 turn that off. It logs in with the password or the first line printed
 by the password command, and shows the folders you subscribe to on the
 server (and always the inbox) as its folders. Messages are not read yet.
@@ -385,6 +407,9 @@ See the git history for details. In summary:
 - Settings that do not apply to a mailbox type (collection method,
   expiry on the server) are greyed out. Fixed-size `sprintf` calls were
   replaced by `snprintf`.
+- A certificate store for local CAs (Config → Certificates), trusted by
+  every TLS connection on top of the system's CAs. The file requester
+  takes a full path typed as the file name.
 - Keyboard navigation in the message list (after clicking it): Up/Down,
   Page Up/Down and Home/End move the selection and keep it in view; Right
   opens a thread and Left closes it (on a reply, Left goes to the message

@@ -4,6 +4,7 @@
 //===============================================================================
 
 #include "netstream.h"
+#include "certstore.h"
 
 #include <algorithm>
 #include <arpa/inet.h>
@@ -157,6 +158,8 @@ bool NetStream::StartTLS (const std::string &cafile)
 	SSL_CTX_set_mode (ctx, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
 	if (SSL_CTX_set_default_verify_paths (ctx) != 1)
 		return Fail ("cannot load the system's certificate authorities: " + ssl_errors ());
+	// Neo-PostOffice's own store (Config -> Certificates).
+	certstore::AddTo (SSL_CTX_get_cert_store (ctx));
 	if (!cafile.empty() && SSL_CTX_load_verify_locations (ctx, cafile.c_str(), NULL) != 1)
 		return Fail ("cannot load the CA file " + cafile + ": " + ssl_errors ());
 
@@ -188,7 +191,14 @@ bool NetStream::StartTLS (const std::string &cafile)
 		}
 		long v = SSL_get_verify_result (ssl);
 		if (v != X509_V_OK)
-			return Fail ("the certificate of " + host + " is not trusted: " + X509_verify_cert_error_string (v));
+		{
+			std::string why = std::string ("the certificate of ") + host + " is not trusted: " + X509_verify_cert_error_string (v);
+			// Issued by a CA that is not known here: the user may have one.
+			if (v == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || v == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
+				v == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN || v == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT)
+				why += ". If your own or your organisation's CA issued it, add that CA in Config \xe2\x86\x92 Certificates";
+			return Fail (why);
+		}
 		if (e == SSL_ERROR_SYSCALL && ERR_peek_error () == 0)
 			return Fail ("the server closed the connection during the TLS handshake");
 		return Fail ("TLS handshake with " + host + " failed: " + ssl_errors ());

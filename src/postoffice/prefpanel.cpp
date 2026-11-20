@@ -11,6 +11,7 @@
 #include <FL/Fl_Multi_Browser.H>
 #include "podb.h"
 #include <FL/fl_ask.H>
+#include "certstore.h"
 
 
 #define FL_SCREEN_BOLD_ITALIC FL_SCREEN_BOLD
@@ -137,6 +138,7 @@ extern MailBox		*currentmailbox;
 extern char			 currentfolder[64];
 
 void show_delivery (void);
+void certs_refresh (void);
 
 // POP3 and IMAP share the server fields (host, port, encryption, login,
 // CA file); only the labels and default ports differ.
@@ -378,6 +380,7 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		menu_ch_prefs_protocol[4].deactivate();
 #endif
 	}
+	certs_refresh ();
 	
 	// Display Mailboxes
 	
@@ -1672,3 +1675,102 @@ void cb_prefs_style_update (Fl_Button */*b*/, void */*d*/)
 	}
 }
 
+
+//-------------------------------------------------------------------------------
+// Config -> Certificates (Neo-PostOffice): the CA certificate store. Changes
+// take effect at once (the next connection), not with OK.
+//-------------------------------------------------------------------------------
+
+static std::vector<certstore::Info> cert_list;
+std::string wrap_text (const char *text, size_t width);	// helpdesk-main.cpp
+
+static std::string cert_kind (const certstore::Info &I)
+{
+	if (I.IsCA) return I.SelfSigned ? "Root CA" : "Intermediate CA";
+	return "Self-signed server";
+}
+
+// Browser lines are taken as format text; "@." ends the formatting codes.
+static std::string browser_text (const std::string &s)
+{
+	std::string out;
+	for (char c : s) out += (c == '\t') ? ' ' : c;
+	return out;
+}
+
+void certs_refresh (void)
+{
+	static const int widths[] = { 300, 140, 150, 0 };
+	cert_list = certstore::List ();
+	br_prefs_certs->column_widths (widths);
+	br_prefs_certs->column_char ('\t');
+	br_prefs_certs->clear ();
+	br_prefs_certs->add ("@bName\t@bExpires\t@bType");
+	for (const certstore::Info &I : cert_list)
+	{
+		std::string line = "@." + browser_text (I.Name) + "\t@." + I.NotAfter +
+						   (I.Expired ? " (expired)" : "") + "\t@." + cert_kind (I);
+		br_prefs_certs->add (line.c_str ());
+	}
+	bt_prefs_certremove->deactivate ();
+	bx_prefs_certinfo->copy_label (cert_list.empty () ? "The store is empty: only the system's CAs are trusted."
+													  : "Select a certificate to see its details.");
+	br_prefs_certs->redraw ();
+}
+
+void cb_prefs_certs_select (Fl_Browser *b, void */*v*/)
+{
+	int i = b->value () - 2;		// line 1 is the heading
+	if (i < 0 || i >= (int) cert_list.size ())
+	{
+		if (b->value () == 1) b->deselect ();
+		bt_prefs_certremove->deactivate ();
+		return;
+	}
+	const certstore::Info &I = cert_list[i];
+	std::string valid = I.NotBefore + " to " + I.NotAfter;
+	if (I.Expired) valid += "  (EXPIRED: no longer trusted)";
+	else if (I.NotYetValid) valid += "  (not valid yet)";
+	std::string text = "Subject:  " + I.Subject + "\nIssuer:  " + I.Issuer + "\nValid:  " + valid +
+					   "\nType:  " + cert_kind (I) + "\nSHA-256:  " + I.Fingerprint;
+	bx_prefs_certinfo->copy_label (text.c_str ());
+	bt_prefs_certremove->activate ();
+}
+
+void cb_prefs_certadd (Fl_Button */*b*/, void */*v*/)
+{
+	const char *path = single_file_request ();
+	if (!path || !*path) return;
+	std::vector<certstore::Info> added, already, skipped;
+	std::string err;
+	bool ok = certstore::Import (path, added, already, skipped, err);
+	certs_refresh ();
+
+	std::string msg;
+	for (const certstore::Info &I : added)
+	{
+		msg += "Added: " + I.Name + " (" + cert_kind (I) + ", SHA-256 " + I.Fingerprint.substr (0, 23) + "...)";
+		if (I.Expired) msg += "\n    It has expired (" + I.NotAfter + "), so it does not make any server trusted.";
+		msg += "\n";
+	}
+	for (const certstore::Info &I : already)
+		msg += "Already in the store: " + I.Name + "\n";
+	for (const certstore::Info &I : skipped)
+		msg += "Not added: " + I.Name + " is a server certificate issued by " + I.Issuer +
+			   ", not a CA. Add the CA that issued it instead.\n";
+	if (!ok) msg += "Cannot add " + std::string (path) + ": " + err + "\n";
+	if (!msg.empty ()) fl_message ("%s", wrap_text (msg.c_str (), 90).c_str ());
+}
+
+void cb_prefs_certremove (Fl_Button */*b*/, void */*v*/)
+{
+	int i = br_prefs_certs->value () - 2;
+	if (i < 0 || i >= (int) cert_list.size ()) return;
+	certstore::Info I = cert_list[i];
+	if (fl_choice ("Remove %s from the certificate store?\nServers whose certificates were issued by it"
+				   " will be refused from the next connection.", "Cancel", "Remove", NULL, I.Name.c_str ()) != 1)
+		return;
+	std::string err;
+	if (!certstore::Remove (I.File, err)) fl_alert ("Cannot remove %s: %s", I.Name.c_str (), err.c_str ());
+	certs_refresh ();
+}
