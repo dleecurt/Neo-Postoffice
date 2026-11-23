@@ -1,3 +1,4 @@
+#include <FL/Fl_Input_.H>
 #include <pthread.h>
 #include <signal.h>
 #include "mailheaders.h"
@@ -518,21 +519,28 @@ void cb_refilter (Fl_Menu_ */*w*/, void */*d*/)
 
 //===============================================================================
 // CALLBACK		cb_select_all
-// SENDER		n/a
-// SYNOPSIS		stub (FIXME)
+// SENDER		Edit -> Select All (Alt+A), Ctrl+A in the main window
+// SYNOPSIS		Selects every message in the message list, also those in
+//				closed threads, for Move, Delete or Mark (Neo-PostOffice;
+//				an empty stub in 0.7.3).
 //===============================================================================
 
 void cb_select_all (Fl_Menu_ */*w*/, void */*d*/)
 {
-	/*
-	int i;
-	Fl_Multi_Browser *xbr = (Fl_Multi_Browser *) br_folderindex;
-	
-	for (i=0;i<br_folderindex->size();++i)
-	{
-		xbr->select (i+1);
-	}
-	br_folderindex->redraw(); */
+	if (!br_folderindex || !br_folderindex->traverse_start()) return;
+	br_folderindex->select_all();
+}
+
+// Ctrl+A in the main window selects all messages too, unless a text field
+// has the focus (where it keeps its own meaning).
+static int select_all_shortcut (int event)
+{
+	if (event != FL_SHORTCUT || !(Fl::event_state() & FL_CTRL) || (Fl::event_state() & (FL_ALT | FL_SHIFT))) return 0;
+	if (Fl::event_key() != 'a') return 0;
+	if (!win_main || Fl::first_window() != win_main) return 0;
+	if (Fl::focus() && dynamic_cast<Fl_Input_ *> (Fl::focus())) return 0;
+	cb_select_all (NULL, NULL);
+	return 1;
 }
 
 //===============================================================================
@@ -885,6 +893,7 @@ int main (int argc, char *argv[])
 	br_folderindex_->type (Fl_Scroll::VERTICAL);
 	
 	W->show (argc, argv);
+	Fl::add_handler (select_all_shortcut);
 
 	o = br_folderindex;
     	o->column_widths (xwidths);

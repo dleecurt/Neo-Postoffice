@@ -467,6 +467,9 @@ See the git history for details. In summary:
 - Replies use the original's Message-ID header for In-Reply-To and
   References (they used the internal id, which is not a Message-ID for
   Maildir and SQL messages).
+- Edit → Select All (Alt+A, or Ctrl+A in the main window when no text
+  field has the focus) selects every message in the list, also those in
+  closed threads, for Move, Copy, Delete or Mark. It was an empty stub.
 - Ctrl-click in the message list adds to the selection (it cleared it:
   the Ctrl bit was passed where 1 was expected). Clearing an empty list
   no longer crashes.

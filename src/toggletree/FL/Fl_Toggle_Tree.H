@@ -336,6 +336,24 @@ public:
     select_range(0, 0, 0);
   }
 
+  /** Neo-PostOffice: selects every line, also those inside closed
+      threads; none is the single selected() one. */
+  void select_all(void) {
+    Fl_Toggle_Node *t = (Fl_Toggle_Node *) first_;
+    selection_current_ = 0;
+    selection_count_ = 0;
+    traverse_start(t);
+    while (t) {
+      if (!t->selected_) {
+        t->selected_ = 1;
+        t->changed_ = 1;
+      }
+      t = traverse_forward();
+    }
+    current_ = 0;
+    redraw();
+  }
+
   /* Remove an item from the tree but also select the previous line
      if possible. */
 
