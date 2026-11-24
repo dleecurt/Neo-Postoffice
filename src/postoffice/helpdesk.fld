@@ -83,25 +83,28 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         xywh {0 0 100 20} labelsize 12
         code0 {xloc(o, "edit");}
       } {
-        MenuItem {} {
+        MenuItem mi_edit_cut {
           label Cut
-          xywh {0 0 100 20} shortcut 0x80078 labelsize 12 deactivate
+          callback cb_edit_cut_m
+          tooltip {Cut the selected text of the text field you are typing in} xywh {0 0 100 20} shortcut 0x40078 labelsize 12
           code0 {xloc(o, "cut");}
         }
-        MenuItem {} {
+        MenuItem mi_edit_copy {
           label Copy
-          xywh {0 0 100 20} shortcut 0x80063 labelsize 12 deactivate
+          callback cb_edit_copy_m
+          tooltip {Copy the selected text to the clipboard} xywh {0 0 100 20} shortcut 0x40063 labelsize 12
           code0 {xloc(o, "copy");}
         }
-        MenuItem {} {
+        MenuItem mi_edit_paste {
           label Paste
-          xywh {10 10 100 20} shortcut 0x80076 labelsize 12 deactivate divider
+          callback cb_edit_paste_m
+          tooltip {Paste the clipboard into the text field you are typing in} xywh {10 10 100 20} shortcut 0x40076 labelsize 12 divider
           code0 {xloc(o, "paste");}
         }
         MenuItem {} {
           label {Select All}
           callback cb_select_all
-          xywh {0 0 100 20} shortcut 0x80061 labelsize 12
+          xywh {0 0 100 20} shortcut 0x40061 labelsize 12
         }
       }
       Submenu {} {
@@ -662,6 +665,12 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   xywh {0 0 100 20} labelsize 12
                   code0 {xloc(o, "forward");}
                 }
+                MenuItem mi_popup_copy {
+                  label Copy
+                  callback cb_edit_copy_m
+                  xywh {0 0 100 20} labelsize 12 divider
+                  code0 {xloc(o, "copy");}
+                }
                 MenuItem {} {
                   label Delete
                   callback cb_delete_m
@@ -918,6 +927,35 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           }
         }
         Submenu {} {
+          label Edit open
+          xywh {0 0 100 20} labelsize 12
+          code0 {xloc(o, "edit");}
+        } {
+          MenuItem {} {
+            label Cut
+            callback cb_compose_cut
+            xywh {0 0 100 20} shortcut 0x40078 labelsize 12
+            code0 {xloc(o, "cut");}
+          }
+          MenuItem {} {
+            label Copy
+            callback cb_compose_copy
+            xywh {0 0 100 20} shortcut 0x40063 labelsize 12
+            code0 {xloc(o, "copy");}
+          }
+          MenuItem {} {
+            label Paste
+            callback cb_compose_paste
+            xywh {0 0 100 20} shortcut 0x40076 labelsize 12 divider
+            code0 {xloc(o, "paste");}
+          }
+          MenuItem {} {
+            label {Select All}
+            callback cb_compose_select_all
+            xywh {0 0 100 20} shortcut 0x40061 labelsize 12
+          }
+        }
+        Submenu {} {
           label Template open
           xywh {0 0 100 20} labelsize 12
           code0 {xloc(o, "template");}
@@ -973,13 +1011,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           tooltip {Attach a file (you can also drag files onto the message)} image {icons/attach2.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          image {icons/editcut.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
+          callback cb_compose_cut_b
+          tooltip {Cut the selected text} image {icons/editcut.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          image {icons/editcopy.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
+          callback cb_compose_copy_b
+          tooltip {Copy the selected text} image {icons/editcopy.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
-          image {icons/editpaste.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
+          callback cb_compose_paste_b
+          tooltip {Paste the clipboard} image {icons/editpaste.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
           image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
@@ -1085,13 +1126,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           tooltip {Attach a file (you can also drag files onto the message)} image {icons/attach2.xpm} compress_image 1 xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          image {icons/editcut.xpm} compress_image 1 xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
+          callback cb_compose_cut_b
+          tooltip {Cut the selected text} image {icons/editcut.xpm} compress_image 1 xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          image {icons/editcopy.xpm} compress_image 1 xywh {370 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
+          callback cb_compose_copy_b
+          tooltip {Copy the selected text} image {icons/editcopy.xpm} compress_image 1 xywh {370 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
-          image {icons/editpaste.xpm} compress_image 1 xywh {460 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
+          callback cb_compose_paste_b
+          tooltip {Paste the clipboard} image {icons/editpaste.xpm} compress_image 1 xywh {460 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
           image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX

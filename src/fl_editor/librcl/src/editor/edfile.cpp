@@ -128,11 +128,15 @@ rclError EditorEngine::LoadFrom(const char *buffer)
 	if((Cursor.Row >= LineCount-1) || (!CharCount))	// inserting at EOF
 		aslast = TRUE;
 	left.ChopAt((int)Cursor.Column,&right);	// split current line, insert text
+	// Neo-PostOffice: the pasted lines go in order from the cursor's line
+	// (each new line at the next index; this put them one line too far
+	// down), and the rest of the split line is joined to the last pasted
+	// line unless that ends with a line break.
+	bool first = TRUE;
 	while(!endofbuffer)
 		{
-			short ThisCount = 0;
 			s = "";
-			if(row == Cursor.Row)			// first row?  Add left side of split
+			if(first)			// first row?  Add left side of split
 				s = left;
 			while(!endofbuffer)
 				{
@@ -145,21 +149,26 @@ rclError EditorEngine::LoadFrom(const char *buffer)
 					if(c == SOFT_RETURN)
 						c = ' ';
 					s += c;
-					ThisCount++;
 					if(c == HARD_RETURN)
 						{
 							break;		// end of line, so add it.
 						}
 				}
-			if((row == Cursor.Row) && CharCount) // if first row, copy back to same line
-			{
-				*Lines[Cursor.Row] = s;
-				row++;
-			}
+			if(endofbuffer && right.Length() && s.LastCharacter() != HARD_RETURN)
+				{
+					s += right;		// the rest of the split line
+					right = "";
+				}
+			if(first && CharCount)	// first row: copy back to the same line
+				*Lines[row] = s;
+			else if(s.Length() || first)
+				InsertLine(s,row,aslast);
 			else
-				InsertLine(s,++row,aslast);		// otherwise insert new line
-			if(endofbuffer && right.Length())	// if last line, include other side of
-				InsertLine(right,++row,aslast);	// original line split
+				row--;			// nothing after the last line break
+			row++;
+			first = FALSE;
+			if(endofbuffer && right.Length())	// pasted text ended with a line break
+				InsertLine(right,row,aslast);
 		}
 	ReformatParagraph(FALSE,TRUE);
 	HasChanged = reallychanged;

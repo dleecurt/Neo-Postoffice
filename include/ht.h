@@ -1,6 +1,7 @@
 #ifndef _HT_H
 #define _HT_H 1
 
+#include <string>
 #define FL_DAMAGE_SELECTION 0x10
 
 #include "var.h"
@@ -143,6 +144,14 @@ class Fl_View : public Fl_Group
 	HTGroup			*Pane;
 	
 	HTElement		*BSel, *ESel;
+
+	// The text last selected with the mouse (empty when nothing is
+	// selected), and copying it to the clipboard (Neo-PostOffice).
+	const std::string &selected_text () const { return SelText; }
+	void			 copy_selection () const;
+
+	private:
+	std::string		 SelText;
 };
 
 

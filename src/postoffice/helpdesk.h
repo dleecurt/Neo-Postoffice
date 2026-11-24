@@ -12,6 +12,9 @@ extern void cb_compose(Fl_Menu_*, void*);
 extern void cb_expire(Fl_Menu_*, void*);
 extern void cb_check_mail_m(Fl_Menu_*, void*);
 extern void cb_quit_m(Fl_Menu_*, void*);
+extern void cb_edit_cut_m(Fl_Menu_*, void*);
+extern void cb_edit_copy_m(Fl_Menu_*, void*);
+extern void cb_edit_paste_m(Fl_Menu_*, void*);
 extern void cb_select_all(Fl_Menu_*, void*);
 extern void cb_reply_m(Fl_Menu_*, void*);
 extern void cb_reply_all_m(Fl_Menu_*, void*);
@@ -108,16 +111,27 @@ extern void cb_sortby_date(Fl_Button*, void*);
 extern Fl_Button *bt_date;
 Fl_Window* make_window();
 extern Fl_Menu_Item menu_[];
+#define mi_edit_cut (menu_+9)
+#define mi_edit_copy (menu_+10)
+#define mi_edit_paste (menu_+11)
 #define rad_viewall (menu_+37)
 #define rad_viewunread (menu_+38)
 extern Fl_Menu_Item menu_popup_msgwin[];
+#define mi_popup_copy (menu_popup_msgwin+3)
 extern Fl_Window *win_menu;
 Fl_Window* make_menuwindow();
 extern void cb_compose_menu_send(Fl_Menu_*, void*);
 extern void cb_compose_menu_discard(Fl_Menu_*, void*);
+extern void cb_compose_cut(Fl_Menu_*, void*);
+extern void cb_compose_copy(Fl_Menu_*, void*);
+extern void cb_compose_paste(Fl_Menu_*, void*);
+extern void cb_compose_select_all(Fl_Menu_*, void*);
 extern Fl_Group *gr_compose_mini_buttons;
 extern Fl_Button *compose_mbt_send;
 extern Fl_Button *compose_bt_attach_mini;
+extern void cb_compose_cut_b(Fl_Button*, void*);
+extern void cb_compose_copy_b(Fl_Button*, void*);
+extern void cb_compose_paste_b(Fl_Button*, void*);
 extern void cb_compose_menu_expand(Fl_Button*, void*);
 extern Fl_Button *bt_compose_menu_expand;
 extern Fl_Group *gr_compose_attachments;

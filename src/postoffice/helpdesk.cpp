@@ -25,10 +25,10 @@ Fl_Menu_Item menu_[] = {
  {"Quit", FL_ALT|'q',  (Fl_Callback*)cb_quit_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"Edit", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Cut", FL_ALT|'x',  0, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Copy", FL_ALT|'c',  0, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Paste", FL_ALT|'v',  0, 0, 129, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Select All", FL_ALT|'a',  (Fl_Callback*)cb_select_all, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Cut", FL_CTRL|'x',  (Fl_Callback*)cb_edit_cut_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Copy", FL_CTRL|'c',  (Fl_Callback*)cb_edit_copy_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Paste", FL_CTRL|'v',  (Fl_Callback*)cb_edit_paste_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Select All", FL_CTRL|'a',  (Fl_Callback*)cb_select_all, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"Message", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Reply", FL_ALT|'r',  (Fl_Callback*)cb_reply_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -653,6 +653,7 @@ Fl_Menu_Item menu_popup_msgwin[] = {
  {"Reply", 0,  (Fl_Callback*)cb_reply_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Reply All", 0,  (Fl_Callback*)cb_reply_all_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward", 0,  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Copy", 0,  (Fl_Callback*)cb_edit_copy_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
@@ -1212,6 +1213,9 @@ Fl_Window* make_window() {
                   xloc(o, "forward");
                 }
                 { Fl_Menu_Item* o = &menu_popup_msgwin[3];
+                  xloc(o, "copy");
+                }
+                { Fl_Menu_Item* o = &menu_popup_msgwin[4];
                   xloc(o, "delete");
                 }
                 popup_msgwin->menu(menu_popup_msgwin);
@@ -1542,6 +1546,12 @@ Fl_Menu_Item menu_1[] = {
  {"Message", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Send", 0,  (Fl_Callback*)cb_compose_menu_send, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Discard", 0,  (Fl_Callback*)cb_compose_menu_discard, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {0,0,0,0,0,0,0,0,0},
+ {"Edit", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Cut", FL_CTRL|'x',  (Fl_Callback*)cb_compose_cut, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Copy", FL_CTRL|'c',  (Fl_Callback*)cb_compose_copy, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Paste", FL_CTRL|'v',  (Fl_Callback*)cb_compose_paste, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Select All", FL_CTRL|'a',  (Fl_Callback*)cb_compose_select_all, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"Template", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"New Template", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -2097,12 +2107,24 @@ Fl_Window* make_compose_window() {
           xloc(o, "discard");
         }
         { Fl_Menu_Item* o = &menu_1[4];
-          xloc(o, "template");
+          xloc(o, "edit");
         }
         { Fl_Menu_Item* o = &menu_1[5];
-          xloc(o, "new_template");
+          xloc(o, "cut");
         }
         { Fl_Menu_Item* o = &menu_1[6];
+          xloc(o, "copy");
+        }
+        { Fl_Menu_Item* o = &menu_1[7];
+          xloc(o, "paste");
+        }
+        { Fl_Menu_Item* o = &menu_1[10];
+          xloc(o, "template");
+        }
+        { Fl_Menu_Item* o = &menu_1[11];
+          xloc(o, "new_template");
+        }
+        { Fl_Menu_Item* o = &menu_1[12];
           xloc(o, "use_template");
         }
         o->menu(menu_1);
@@ -2137,21 +2159,27 @@ Fl_Window* make_compose_window() {
           compose_bt_attach_mini->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
         } // Fl_Button* compose_bt_attach_mini
         { Fl_Button* o = new Fl_Button(100, 20, 30, 20);
+          o->tooltip("Cut the selected text");
           o->box(FL_THIN_UP_BOX);
           o->down_box(FL_THIN_DOWN_BOX);
           o->image( image_editcut() );
+          o->callback((Fl_Callback*)cb_compose_cut_b);
           o->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(130, 20, 30, 20);
+          o->tooltip("Copy the selected text");
           o->box(FL_THIN_UP_BOX);
           o->down_box(FL_THIN_DOWN_BOX);
           o->image( image_editcopy() );
+          o->callback((Fl_Callback*)cb_compose_copy_b);
           o->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(160, 20, 30, 20);
+          o->tooltip("Paste the clipboard");
           o->box(FL_THIN_UP_BOX);
           o->down_box(FL_THIN_DOWN_BOX);
           o->image( image_editpaste() );
+          o->callback((Fl_Callback*)cb_compose_paste_b);
           o->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(0, 20, 10, 20);
@@ -2284,21 +2312,27 @@ Fl_Window* make_compose_window() {
           compose_bt_attach->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* compose_bt_attach
         { Fl_Button* o = new Fl_Button(280, 20, 90, 20);
+          o->tooltip("Cut the selected text");
           o->box(FL_THIN_UP_FRAME);
           o->down_box(FL_THIN_DOWN_FRAME);
           o->image( image_editcut() );
+          o->callback((Fl_Callback*)cb_compose_cut_b);
           o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(370, 20, 90, 20);
+          o->tooltip("Copy the selected text");
           o->box(FL_THIN_UP_FRAME);
           o->down_box(FL_THIN_DOWN_FRAME);
           o->image( image_editcopy() );
+          o->callback((Fl_Callback*)cb_compose_copy_b);
           o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(460, 20, 90, 20);
+          o->tooltip("Paste the clipboard");
           o->box(FL_THIN_UP_FRAME);
           o->down_box(FL_THIN_DOWN_FRAME);
           o->image( image_editpaste() );
+          o->callback((Fl_Callback*)cb_compose_paste_b);
           o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
         { Fl_Button* o = new Fl_Button(0, 20, 10, 20);

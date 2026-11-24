@@ -146,7 +146,9 @@ protected:
 	virtual FL_EXPORT int HandleKey(int keyevent, const char *keytext, int textlen, int state);
 	virtual FL_EXPORT int HandleCursorKey(int key, const char *text, int len, int state);
 	FL_EXPORT void ShowCursor(CursorStyles show);
-	FL_EXPORT void CopySelection(bool clearmarks);
+	// Copies the marked text to the primary selection, and also to the
+	// clipboard when clipboard is true (Neo-PostOffice).
+	FL_EXPORT void CopySelection(bool clearmarks, bool clipboard = false);
 	FL_EXPORT void draw();
 	virtual FL_EXPORT void DrawLine(long editorlineno, int left, int top, wString& line, fleditor_DrawState& state);
 	FL_EXPORT void PushState(const fleditor_DrawState& state);
@@ -182,8 +184,11 @@ public:
 	FL_EXPORT void browse(bool setit);
 	// everything below this is inline.
 	void FindCursor(short screenX, short screenY)	{ if(FindRow(screenY) < 0) engine->Command(MOVE_BOF); else FindColumn(screenX); }
-	void Copy() { CopySelection(true);  damage(FL_DAMAGE_ALL); };
-	void Paste() { Fl::paste(*this);     damage(FL_DAMAGE_ALL); };
+	// Copy and Cut go to the clipboard (and the selection); Paste takes
+	// the clipboard. Middle-click still pastes the selection.
+	void Copy() { CopySelection(true, true);  damage(FL_DAMAGE_ALL); };
+	void Paste() { Fl::paste(*this, 1);     damage(FL_DAMAGE_ALL); };
+	FL_EXPORT void SelectAll();
 	Fl_Color textcolor() const { return(Fl_Color)textcolor_; }
 	void textcolor(uchar n) { textcolor_ = n; }
 	void LoadFrom(FILE *file) { engine->LoadFrom(file); ShowCursor(CURSOR_UNHIDE); SyncDisplay(); }

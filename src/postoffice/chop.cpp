@@ -86,7 +86,7 @@ char *escape_html (char *str)
 void choplf (char *str)
 {
 	int ln = strlen (str);
-	while ( (ln>0) && (str[ln-1] < 32) ) str[--ln] = 0;
+	while ( (ln>0) && ((unsigned char) str[ln-1] < 32) ) str[--ln] = 0;	// unsigned: keeps UTF-8
 }
 
 //===============================================================================
@@ -101,7 +101,7 @@ void choplf (char *str)
 void chopwhitespace (char *str)
 {
 	int ln = strlen (str);
-	while ( (ln>0) && ( (str[ln-1]<32) || (str[ln]==' ') ) ) str[--ln] = 0;
+	while ( (ln>0) && ( ((unsigned char) str[ln-1]<32) || (str[ln]==' ') ) ) str[--ln] = 0;
 	while ((str[0] == ' ')||(str[0] == '\t'))
 	{
 		memmove (str,str+1,(size_t) strlen(str));
@@ -131,7 +131,7 @@ char *chopwincrap (char *org)
 	{
 		if (org[src_crsr]=='=')
 		{
-			if (org[src_crsr+1] < 32) ++src_crsr;
+			if ((unsigned char) org[src_crsr+1] < 32) ++src_crsr;
 			else if (org[src_crsr+1]==' ')
 			{
 				if (org[src_crsr+2] == 0)

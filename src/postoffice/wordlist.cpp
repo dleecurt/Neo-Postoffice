@@ -251,7 +251,7 @@ void WordList::MakeGeneric (const char *theLine, char Seperator, char Escape)
 				else ++SourcePosition;
 			}
 
-			if ((DestPosition > 2) && (myWord[DestPosition - 1] < 32))
+			if ((DestPosition > 2) && ((unsigned char) myWord[DestPosition - 1] < 32))	// unsigned: not UTF-8 bytes
 				--DestPosition;
 			myWord[DestPosition] = 0;
 
@@ -349,7 +349,7 @@ void WordList::MakeGenericQuoted (const char *theLine, char Seperator, char Esca
 				++cpos;
 			}
 
-			if ((DestPosition > 2) && (myWord[DestPosition - 1] < 32))
+			if ((DestPosition > 2) && ((unsigned char) myWord[DestPosition - 1] < 32))	// unsigned: not UTF-8 bytes
 				--DestPosition;
 			myWord[DestPosition] = 0;
 

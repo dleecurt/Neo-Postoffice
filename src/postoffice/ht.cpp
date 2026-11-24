@@ -925,6 +925,8 @@ void Fl_View::clear (void)
 {
 	delete Pane;
 	Pane = new HTGroup;
+	BSel = ESel = NULL;		// they pointed into the old pane
+	SelText.clear ();
 	scrollbar_.value(0,h(),0,1);
 	oldval_ = 0;
 }
@@ -940,6 +942,12 @@ void Fl_View::draw_clip (int xx, int yy, int ww, int hh)
 	fl_pop_clip();
 }
 
+void Fl_View::copy_selection () const
+{
+	if (!SelText.empty ())
+		Fl::copy (SelText.data (), (int) SelText.size (), 1);
+}
+
 int Fl_View::handle (int event)
 {
 	int ox, oy;
@@ -950,6 +958,7 @@ int Fl_View::handle (int event)
 	{
 		case FL_PUSH:
 			if (Fl::event_button()>1) return 0;
+			SelText.clear ();
 			if (BSel) BSel->UnBMark();
 			BSel = NULL;
 			if (ESel) ESel->UnEMark();
@@ -1020,6 +1029,7 @@ int Fl_View::handle (int event)
 					cbuf[0] = 0;
 					for (int i=0; i<W->Count;++i) strcat (cbuf, W->Get(i));
 					Fl::selection (*this, (const char *) cbuf, (int) cnt);
+					SelText.assign (cbuf, cnt);
 					delete[] cbuf;
 				}
 				delete (W);

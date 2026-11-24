@@ -657,9 +657,15 @@ FL_EXPORT int Fl_Editor::HandleKey(int key, const char *text, int len, int state
 	if ( key < 256 )
 	{
 		// standard ASCII key.  
-		if ( state & FL_CTRL )
+		// Ctrl (and, for old habits, Alt) with X, C, V (Neo-PostOffice).
+		if ( ( state & (FL_CTRL|FL_ALT) ) && !( state & FL_SHIFT ) )
 			switch ( key )
 			{
+				case 'a':
+					if ( !( state & FL_CTRL ) ) break;
+					SelectAll();
+					handled = 1;
+					break;
 				case 'x':
 					if(Readonly)
 						Copy();
@@ -1049,8 +1055,25 @@ FL_EXPORT int Fl_Editor::HandleCursorKey(int key, const char */*text*/, int /*le
 	return(handled);
 }
 
+FL_EXPORT void Fl_Editor::SelectAll()
+{
+	engine->Command(CLEAR_MARKS);
+	engine->Command(MOVE_TOF);
+	Mark.Row = engine->CursorRow();
+	Mark.Column = engine->CursorColumn();
+	marking = 1;
+	selectlines = 0;
+	engine->Command(MARK_BEGIN, 1);
+	engine->Command(MOVE_BOF);
+	engine->Command(MOVE_EOL);
+	engine->Command(MARK_END);
+	CopySelection(false);
+	damage(DAMAGE_EDITOR);
+}
+
 FL_EXPORT void Fl_Editor::Cut()
 {
+	if ( !marking ) return;		// nothing marked: nothing to cut
 	Copy();
 	EditPosition edp = engine->GetPosition();
 	SortPositions(Mark, edp);
@@ -1062,7 +1085,7 @@ FL_EXPORT void Fl_Editor::Cut()
 }
 
 
-FL_EXPORT void Fl_Editor::CopySelection(bool clrmarks)
+FL_EXPORT void Fl_Editor::CopySelection(bool clrmarks, bool clipboard)
 {
 	if ( marking )
 	{
@@ -1072,6 +1095,8 @@ FL_EXPORT void Fl_Editor::CopySelection(bool clrmarks)
 		{
 			engine->CopyRegionTo(copybuffer);
 			Fl::selection(*this, copybuffer, size);
+			if ( clipboard )
+				Fl::copy(copybuffer, size, 1);
 		}
 		free(copybuffer);
 		if ( clrmarks )

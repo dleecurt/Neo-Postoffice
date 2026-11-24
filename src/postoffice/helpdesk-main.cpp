@@ -541,14 +541,87 @@ void cb_select_all (Fl_Menu_ */*w*/, void */*d*/)
 
 // Ctrl+A in the main window selects all messages too, unless a text field
 // has the focus (where it keeps its own meaning).
-static int select_all_shortcut (int event)
+// Edit menu (Neo-PostOffice). Cut and Paste work on the text field you are
+// typing in; Copy also copies the text selected in the message view.
+// Copy and Cut go to the clipboard, Paste takes the clipboard.
+
+static Fl_Input_ *focused_input (void)
 {
-	if (event != FL_SHORTCUT || !(Fl::event_state() & FL_CTRL) || (Fl::event_state() & (FL_ALT | FL_SHIFT))) return 0;
-	if (Fl::event_key() != 'a') return 0;
-	if (!win_main || Fl::first_window() != win_main) return 0;
-	if (Fl::focus() && dynamic_cast<Fl_Input_ *> (Fl::focus())) return 0;
-	cb_select_all (NULL, NULL);
-	return 1;
+	Fl_Input_ *in = Fl::focus () ? dynamic_cast<Fl_Input_ *> (Fl::focus ()) : NULL;
+	if (!in || !win_main || in->top_window () != win_main) return NULL;
+	return in;
+}
+
+static Fl_View *shown_view (void)
+{
+	if (mdi_current < 0 || mdi_current >= 8) return NULL;
+	return mdi_views[mdi_current];
+}
+
+static void update_edit_menu (void)
+{
+	Fl_Input_ *in = focused_input ();
+	bool editable = in && !in->readonly ();
+	bool insel = in && in->insert_position () != in->mark ();
+	Fl_View *v = shown_view ();
+	bool viewsel = v && !v->selected_text ().empty ();
+	if (editable && insel) mi_edit_cut->activate (); else mi_edit_cut->deactivate ();
+	if (insel || viewsel) mi_edit_copy->activate (); else mi_edit_copy->deactivate ();
+	if (editable) mi_edit_paste->activate (); else mi_edit_paste->deactivate ();
+	if (viewsel) mi_popup_copy->activate (); else mi_popup_copy->deactivate ();
+}
+
+void cb_edit_cut_m (Fl_Menu_ */*m*/, void */*d*/)
+{
+	Fl_Input_ *in = focused_input ();
+	if (!in || in->readonly () || in->insert_position () == in->mark ()) return;
+	in->copy (1);
+	in->cut ();
+	in->do_callback (FL_REASON_CHANGED);
+}
+
+void cb_edit_copy_m (Fl_Menu_ */*m*/, void */*d*/)
+{
+	Fl_Input_ *in = focused_input ();
+	if (in && in->insert_position () != in->mark ()) { in->copy (1); return; }
+	Fl_View *v = shown_view ();
+	if (v) v->copy_selection ();
+}
+
+void cb_edit_paste_m (Fl_Menu_ */*m*/, void */*d*/)
+{
+	Fl_Input_ *in = focused_input ();
+	if (in && !in->readonly ()) Fl::paste (*in, 1);
+}
+
+// Every event updates the Edit menu first, so its items (and their
+// shortcuts) are active exactly when they can do something.
+static int edit_dispatch (int event, Fl_Window *w)
+{
+	if (win_main && (event == FL_PUSH || event == FL_SHORTCUT || event == FL_KEYBOARD))
+		update_edit_menu ();
+	return Fl::handle_ (event, w);
+}
+
+// Alt+X, Alt+C, Alt+V and Alt+A still work in the main window, as in the
+// original PostOffice (the menus show Ctrl).
+static int alt_edit_shortcut (int event)
+{
+	if (event != FL_SHORTCUT) return 0;
+	int st = Fl::event_state () & (FL_CTRL | FL_ALT | FL_SHIFT | FL_META);
+	if (st != FL_ALT) return 0;
+	if (!win_main || Fl::first_window () != win_main) return 0;
+	switch (Fl::event_key ())
+	{
+		case 'x': if (mi_edit_cut->active ()) cb_edit_cut_m (NULL, NULL); return 1;
+		case 'c': if (mi_edit_copy->active ()) cb_edit_copy_m (NULL, NULL); return 1;
+		case 'v': if (mi_edit_paste->active ()) cb_edit_paste_m (NULL, NULL); return 1;
+		case 'a':
+			if (focused_input ()) return 0;
+			cb_select_all (NULL, NULL);
+			return 1;
+	}
+	return 0;
 }
 
 //===============================================================================
@@ -901,7 +974,9 @@ int main (int argc, char *argv[])
 	br_folderindex_->type (Fl_Scroll::VERTICAL);
 	
 	W->show (argc, argv);
-	Fl::add_handler (select_all_shortcut);
+	Fl::add_handler (alt_edit_shortcut);
+	Fl::event_dispatch (edit_dispatch);
+	update_edit_menu ();
 	attachments_init ();
 
 	o = br_folderindex;

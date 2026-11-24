@@ -1,3 +1,4 @@
+#include <FL/Fl_Input_.H>
 #include <algorithm>
 #include <vector>
 #include <set>
@@ -245,6 +246,63 @@ Composer_Window *create_composer_window (void)
 	
 	return W;
 }
+
+// Edit menu and Cut/Copy/Paste buttons (Neo-PostOffice): they work on the
+// header field you are typing in, otherwise on the message text.
+static Composer_Window *composer_of (Fl_Widget *w)
+{
+	Fl_Window *win = w ? w->top_window () : NULL;
+	for (Composer_Window *W : open_composers)
+		if (W->comp == win) return W;
+	return NULL;
+}
+
+static Fl_Input_ *composer_field (Composer_Window *W)
+{
+	Fl_Input_ *in = Fl::focus () ? dynamic_cast<Fl_Input_ *> (Fl::focus ()) : NULL;
+	return (in && in->top_window () == W->comp) ? in : NULL;
+}
+
+enum { EDIT_CUT, EDIT_COPY, EDIT_PASTE, EDIT_ALL };
+
+static void composer_edit (Fl_Widget *w, int what)
+{
+	Composer_Window *W = composer_of (w);
+	if (!W) return;
+	Fl_Input_ *in = composer_field (W);
+	if (in)
+	{
+		switch (what)
+		{
+			case EDIT_CUT:
+				if (in->insert_position () != in->mark ()) { in->copy (1); in->cut (); }
+				break;
+			case EDIT_COPY:
+				if (in->insert_position () != in->mark ()) in->copy (1);
+				break;
+			case EDIT_PASTE: Fl::paste (*in, 1); break;
+			case EDIT_ALL: in->insert_position (in->size (), 0); break;
+		}
+		return;
+	}
+	switch (what)
+	{
+		case EDIT_CUT: W->in_message->Cut (); break;
+		case EDIT_COPY: W->in_message->Copy (); break;
+		case EDIT_PASTE: W->in_message->Paste (); break;
+		case EDIT_ALL: W->in_message->SelectAll (); break;
+	}
+	Fl::focus (W->in_message);
+	W->in_message->redraw ();
+}
+
+void cb_compose_cut (Fl_Menu_ *m, void *) { composer_edit (m, EDIT_CUT); }
+void cb_compose_copy (Fl_Menu_ *m, void *) { composer_edit (m, EDIT_COPY); }
+void cb_compose_paste (Fl_Menu_ *m, void *) { composer_edit (m, EDIT_PASTE); }
+void cb_compose_select_all (Fl_Menu_ *m, void *) { composer_edit (m, EDIT_ALL); }
+void cb_compose_cut_b (Fl_Button *b, void *) { composer_edit (b, EDIT_CUT); }
+void cb_compose_copy_b (Fl_Button *b, void *) { composer_edit (b, EDIT_COPY); }
+void cb_compose_paste_b (Fl_Button *b, void *) { composer_edit (b, EDIT_PASTE); }
 
 void cb_compose (Fl_Menu_ */*m*/, void */*d*/)
 {
@@ -534,14 +592,6 @@ void doforward (bool fullhdr)
 			if (!(O->Flags & MMFL_INRAM) && (O->Flags & MMFL_HAVEBODY)) O->LoadBody ();
 			if (O->Flags & MMFL_INRAM) attach_parts_of (W, O, 0);
 		}
-}
-
-static Composer_Window *composer_of (Fl_Widget *w)
-{
-	Fl_Window *win = w ? w->window() : NULL;
-	for (Composer_Window *W : open_composers)
-		if (W->comp == win) return W;
-	return NULL;
 }
 
 static void forget_composer (Composer_Window *W)

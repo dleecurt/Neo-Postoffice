@@ -255,6 +255,23 @@ back.
   in the raw message) are shown decoded in replies, forwards and the
   quoted header lines, and encoded again when sent.
 
+## Cut, Copy and Paste
+
+- **Copy** and **Cut** put text on the clipboard, so **Paste** (or
+  Ctrl+V) in another program pastes it; **Paste** takes the clipboard.
+  Selecting text with the mouse still sets the X selection, which the
+  middle mouse button pastes, as in other X programs.
+- Shortcuts are Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A (Select All). The
+  original Alt+X, Alt+C, Alt+V and Alt+A also work.
+- **Main window, Edit menu:** Copy copies the text you selected in the
+  message view (or in a text field); it is greyed out when nothing is
+  selected. The message's right-click menu has Copy too. Cut and Paste
+  work in a text field you are typing in. Select All selects all
+  messages in the list.
+- **Composer:** the Edit menu and the Cut, Copy and Paste buttons work on
+  the header field you are typing in (To, CC, BCC, Subject), otherwise
+  on the message text. Select All selects the whole message text.
+
 ## Sending mail
 
 Sent messages wait in the outbox, which is emptied every 15 seconds.
@@ -675,6 +692,8 @@ See the git history for details. In summary:
   - 0.8.3: sending attachments.
   - 0.8.4: Reply All; replies and forwards show decoded names and
     subjects; Forward leaves To empty.
+  - 0.8.5: Cut, Copy and Paste with the clipboard; accented letters at
+    the end of words in headers fixed.
 - **0.9.0**: when all the planned features are in (attachments, Reply
   All, and the rest): the feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
