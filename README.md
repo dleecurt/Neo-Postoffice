@@ -87,10 +87,11 @@ over.
 Config → Mailboxes → *POP3 Account* collects mail from a POP3 server:
 
 - **Encryption**: *TLS* (port 995, the default for new mailboxes),
-  *STARTTLS* (port 110, then encrypted; if the server cannot, nothing is
-  sent and an error says so), or *None* for a server on your own machine
-  or network. *Port* overrides the usual port. Mailboxes set up before
-  this option existed keep working unencrypted until it is changed.
+  or *STARTTLS* (port 110, then encrypted; if the server cannot, nothing
+  is sent and an error says so). There is no unencrypted choice: the
+  password would be sent in the clear. *Port* overrides the usual port.
+  Mailboxes set up before this option existed, or set to *None* in older
+  versions, use STARTTLS.
 - **Certificates** are always checked against the system's certificate
   authorities, Neo-PostOffice's own store (see *Certificates* below) and
   the host name. *CA file* adds a PEM file with a CA for this mailbox
@@ -144,8 +145,8 @@ deletes and moves go to the server; folders are created, renamed,
 deleted and subscribed to here.
 
 What works now: an *IMAP4 Account* mailbox (Config → Mailboxes) connects
-over TLS (port 993), STARTTLS (port 143) or, for a server on your own
-network, without encryption; certificates are checked as for POP3
+over TLS (port 993) or STARTTLS (port 143), never without encryption
+(older *None* settings use STARTTLS); certificates are checked as for POP3
 (system CAs, the certificate store and an optional CA file, and the host
 name), with no way to
 turn that off. It logs in with the password or the first line printed
@@ -476,6 +477,14 @@ See the git history for details. In summary:
 - Encoded words in headers (`=?UTF-8?B?...?=`) are decoded in the
   message list, the message view and the window tabs; 8-bit headers
   without a character set are read as ISO-8859-1.
+- Security review (Stage 1): no unencrypted POP3/IMAP login (the *None*
+  choice is gone; old settings use STARTTLS, which fails safely if the
+  server cannot); header values sent can no longer carry a line break
+  that starts another header (an encoded CR LF in a subject, or a pasted
+  one); a lone CR in the text is a line end also for sendmail and msmtp;
+  mailbox index and mbox state files are created readable by you only
+  (0600). The IMAP *LOGINDISABLED* message says that password logins
+  are off on the server instead of asking for TLS.
 - Sent mail says it is UTF-8 (`MIME-Version`, `Content-Type: text/plain;
   charset=UTF-8`, `7bit`/`8bit`), and a subject, organization or display
   name with non-ASCII text is sent as encoded words. Before, other mail

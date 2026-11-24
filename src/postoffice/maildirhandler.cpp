@@ -21,6 +21,7 @@
 // GNU LGPL like PostOffice itself.
 //===============================================================================
 
+#include "privatefile.h"
 #include "mailbox.h"
 #include "mailheaders.h"
 #include "var.h"
@@ -273,7 +274,7 @@ static bool make_maildir (const std::string &path)
 		if (!is_dir (p) && mkdir (p.c_str(), 0700) != 0) return false;
 	}
 	// Maildir++ marks subfolders with an empty "maildirfolder" file.
-	if (FILE *F = fopen ((path + "/maildirfolder").c_str(), "a")) fclose (F);
+	if (FILE *F = fopen_private ((path + "/maildirfolder").c_str(), "a")) fclose (F);
 	return true;
 }
 

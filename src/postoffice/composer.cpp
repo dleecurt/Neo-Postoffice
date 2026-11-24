@@ -416,6 +416,20 @@ void cb_discardmessage (Fl_Window */*b*/, Composer_Window *W)
 
 // A Message-ID (RFC 5322 3.6.4) on the sender's domain, so it is unique to
 // it and does not give away (or make up) the machine's name.
+// A header field's text on one line: line breaks and other control
+// characters (pasted, or decoded from a received header) become spaces, so
+// a value cannot start another header.
+static std::string one_line (const char *v)
+{
+	std::string out;
+	for (const char *p = v ? v : ""; *p; ++p)
+	{
+		unsigned char c = *p;
+		out += (c < 0x20 && c != '\t') || c == 0x7f ? ' ' : (char) c;
+	}
+	return out;
+}
+
 char *make_msgid (const char *email);
 char *make_msgid (const char *email)
 {
@@ -602,21 +616,21 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	// Header values with non-ASCII text are written as RFC 2047 encoded
 	// words; the addresses themselves are left alone (Neo-PostOffice).
 	{
-		std::string from = mailheaders::EncodeWords (pers_from) + " <" + pers_email + ">";
+		std::string from = mailheaders::EncodeWords (one_line (pers_from)) + " <" + one_line (pers_email) + ">";
 		HdrNames->Add ((char *) "From");
 		HdrValues->Add ((char *) from.c_str());
 	}
 	if (strlen (W->in_to->value()))
 	{
 		HdrNames->Add ((char *) "To");
-		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_to->value()).c_str());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (one_line (W->in_to->value())).c_str());
 	}
 
 	
 	if (strlen (W->in_cc->value()) > 0)
 	{
 		HdrNames->Add ((char *) "CC");
-		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_cc->value()).c_str());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (one_line (W->in_cc->value())).c_str());
 	}
 
 	// BCC is just added as a regular header. It should be stripped when delivering.
@@ -624,23 +638,23 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	if (strlen (W->in_bcc->value()) > 0)
 	{
 		HdrNames->Add ((char *) "BCC");
-		HdrValues->Add ((char *) mailheaders::EncodeAddresses (W->in_bcc->value()).c_str());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (one_line (W->in_bcc->value())).c_str());
 	}
 	
 	HdrNames->Add ((char *) "Subject");
-	HdrValues->Add ((char *) mailheaders::EncodeWords (W->in_subject->value()).c_str());
+	HdrValues->Add ((char *) mailheaders::EncodeWords (one_line (W->in_subject->value())).c_str());
 	M->Envelope->Set (ENVELOPE_SUBJECT, (char *) W->in_subject->value());
 	
 	if (pers_replyto && strlen (pers_replyto) > 0)
 	{
 		HdrNames->Add ((char *) "Reply-To");
-		HdrValues->Add ((char *) mailheaders::EncodeAddresses (pers_replyto).c_str());
+		HdrValues->Add ((char *) mailheaders::EncodeAddresses (one_line (pers_replyto)).c_str());
 	}
 	
 	if (pers_org && *pers_org)
 	{
 		HdrNames->Add ("Organization");
-		HdrValues->Add ((char *) mailheaders::EncodeWords (pers_org).c_str());
+		HdrValues->Add ((char *) mailheaders::EncodeWords (one_line (pers_org)).c_str());
 	}
 
 	HdrNames->Add ("X-Mailer");

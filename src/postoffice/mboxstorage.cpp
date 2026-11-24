@@ -9,6 +9,7 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include "privatefile.h"
 #include "mailstorage.h"
 #include "mailbox.h"
 #include "strdupp.h"
@@ -509,7 +510,7 @@ bool MBoxStorage::Expunge (const char *msgid, std::string &error, bool wait)
 
 		// 1. Everything after the record to a safety file.
 		safety = sname;
-		FILE *S = fopen (sname, "w+");
+		FILE *S = fopen_private (sname, "w+");
 		if (!S) { error = std::string ("cannot create ") + sname + ": " + strerror (errno); break; }
 		std::vector<char> buf (65536);
 		fseek (DB, start + size, SEEK_SET);
@@ -691,7 +692,7 @@ void MBoxStorage::StoreIndex (bool /*x*/)
 	strcpy (oldindexfilename, indexfilename);
 	strcat (indexfilename, ".tmp");
 	
-	IF = fopen (indexfilename, "w");
+	IF = fopen_private (indexfilename, "w");
 	dprintf ("[mboxstorage] writing %s\n", indexfilename);
 	if (IF)
 	{
@@ -710,7 +711,7 @@ void MBoxStorage::StoreIndex (bool /*x*/)
 	strcpy (oldindexfilename, indexfilename);
 	strcat (indexfilename, ".tmp");
 	
-	IF = fopen (indexfilename, "w");
+	IF = fopen_private (indexfilename, "w");
 	dprintf ("[mboxstorage] writing %s\n", indexfilename);
 	if (IF)
 	{

@@ -2,8 +2,8 @@
 // POP3Handler (Neo-PostOffice)
 // ----------------------------
 // Collects mail from a POP3 server (RFC 1939), over TLS (port 995), after
-// STLS (RFC 2595, port 110) or, for a server on your own network, without
-// encryption. Rewritten for Neo-PostOffice on NetStream; the settings and
+// STLS (RFC 2595, port 110); never without encryption, as the password
+// would be sent in the clear. Rewritten for Neo-PostOffice on NetStream; the settings and
 // the uidl.dat file of PostOffice 0.7 are kept.
 //
 // - Every operation (check, fetching a body, deleting, expiring) is one
@@ -183,7 +183,10 @@ bool POP3Handler::Session (int jid)
 
 	std::string host = Parameters->Get_char ("host");
 	std::string security = Parameters->Get_char ("security");
-	if (security != "tls" && security != "starttls") security = "none";
+	// No unencrypted login: anything but TLS is STARTTLS (also "none" and
+	// the empty setting of mailboxes from PostOffice 0.7), which fails
+	// rather than sending the password in the clear.
+	if (security != "tls") security = "starttls";
 	int port = Parameters->Get_int ("port");
 	if (port <= 0) port = security == "tls" ? 995 : 110;
 	std::string cafile = Parameters->Get_char ("cafile");

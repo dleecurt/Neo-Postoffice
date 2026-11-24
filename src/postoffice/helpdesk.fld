@@ -1678,7 +1678,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
               } {
                 Fl_Choice ch_prefs_protocol_pop3_security {
                   callback cb_prefs_protocol_pop3_security open
-                  tooltip {TLS: encrypted from the start (port 995). STARTTLS: port 110, then encrypted; fails if the server cannot. None: only for a server on your own machine or network.} xywh {376 108 229 19} down_box BORDER_BOX labelsize 12 textsize 12
+                  tooltip {TLS: encrypted from the start. STARTTLS: plain at first, then encrypted before the login; fails if the server cannot. A password is never sent unencrypted.} xywh {376 108 229 19} down_box BORDER_BOX labelsize 12 textsize 12
                 } {
                   MenuItem {} {
                     label {TLS (port 995)}
@@ -1686,10 +1686,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   }
                   MenuItem {} {
                     label {STARTTLS (port 110)}
-                    xywh {0 0 100 20} labelsize 12
-                  }
-                  MenuItem {} {
-                    label {None (unencrypted)}
                     xywh {0 0 100 20} labelsize 12
                   }
                 }

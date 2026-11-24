@@ -9,6 +9,7 @@
 // Copyright (C) 1999 Mad Sciene Labs - Rotterdam, The Netherlands
 //===============================================================================
 
+#include "privatefile.h"
 #include <string>
 #include <vector>
 #include "mailbox.h"
@@ -488,7 +489,7 @@ void MailBox::SaveMailBox (void)
 		
 		// touch the original index file to ensure it exists.
 		
-		FILE *OLD = fopen (path, "a");
+		FILE *OLD = fopen_private (path, "a");
 		if (!OLD)
 		{
 			eprintf ("could not touch %s\n", path);
@@ -502,7 +503,7 @@ void MailBox::SaveMailBox (void)
 		
 		strcat (path, ".new");
 		
-        FILE *OUT = fopen (path, "w");
+        FILE *OUT = fopen_private (path, "w");
         if (OUT)
         {
             MailMessage *M;

@@ -48,12 +48,27 @@ std::string build_message (WordList *HdrNames, WordList *HdrValues, const char *
 	{
 		out += HdrNames->Get (i);
 		out += ": ";
-		out += HdrValues->Get (i);
+		// A value cannot start another header (header injection, e.g. an
+		// encoded CR LF in a subject): a line break stays only as folding
+		// (followed by a space or tab); other control characters become
+		// spaces.
+		const char *v = HdrValues->Get (i);
+		for (const char *p = v ? v : ""; *p; ++p)
+		{
+			unsigned char c = *p;
+			if (c == '\r') continue;
+			if (c == '\n') { out += (p[1] == ' ' || p[1] == '\t') ? '\n' : ' '; continue; }
+			out += (c < 0x20 && c != '\t') || c == 0x7f ? ' ' : (char) c;
+		}
 		out += "\n";
 	}
 	out += "\n";
+	// Body: CR LF and a lone CR (from the editor) both become \n.
 	for (const char *p = body ? body : ""; *p; ++p)
-		if (!(p[0] == '\r' && p[1] == '\n')) out += *p;
+	{
+		if (p[0] == '\r' && p[1] == '\n') continue;
+		out += p[0] == '\r' ? '\n' : *p;
+	}
 	if (out.back() != '\n') out += "\n";
 	return out;
 }

@@ -5073,7 +5073,6 @@ Fl_Choice *ch_prefs_protocol_pop3_security=(Fl_Choice *)0;
 Fl_Menu_Item menu_ch_prefs_protocol_pop3_security[] = {
  {"TLS (port 995)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"STARTTLS (port 110)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"None (unencrypted)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
 
@@ -5860,9 +5859,8 @@ Fl_Window* make_prefs_window() {
                 o->box(FL_BORDER_FRAME);
                 o->color(FL_FOREGROUND_COLOR);
                 { ch_prefs_protocol_pop3_security = new Fl_Choice(376, 108, 229, 19);
-                  ch_prefs_protocol_pop3_security->tooltip("TLS: encrypted from the start (port 995). STARTTLS: port 110, then encrypted;"
-" fails if the server cannot. None: only for a server on your own machine or ne"
-"twork.");
+                  ch_prefs_protocol_pop3_security->tooltip("TLS: encrypted from the start. STARTTLS: plain at first, then encrypted befor"
+"e the login; fails if the server cannot. A password is never sent unencrypted.");
                   ch_prefs_protocol_pop3_security->down_box(FL_BORDER_BOX);
                   ch_prefs_protocol_pop3_security->labelsize(12);
                   ch_prefs_protocol_pop3_security->textsize(12);

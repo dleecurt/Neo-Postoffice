@@ -173,11 +173,11 @@ static void load_server_fields (bool imap)
 	in_prefs_protocol_pop3_port->value (PREFS_CURRENTBOX->Get_int ("port") > 0 ? PREFS_CURRENTBOX->Get_char ("port") : "");
 	in_prefs_protocol_pop3_passcmd->value (PREFS_CURRENTBOX->Get_char ("passcmd"));
 	in_prefs_protocol_pop3_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
-	// Mailboxes from before encryption existed have none set, which the
-	// POP3 client reads as "none" and the IMAP client as "starttls".
+	// Anything but TLS is STARTTLS: there is no unencrypted login (also not
+	// for "none" or the empty setting of mailboxes from PostOffice 0.7).
 	const char *sec = PREFS_CURRENTBOX->Get_char ("security");
-	ch_prefs_protocol_pop3_security->value (strcmp (sec, "tls") == 0 ? 0 : strcmp (sec, "starttls") == 0 ? 1 :
-											(imap && !*sec) ? 1 : 2);
+	ch_prefs_protocol_pop3_security->value (strcmp (sec, "tls") == 0 ? 0 : 1);
+	(void) imap;
 }
 
 void func_view_protocol (void)
@@ -1087,8 +1087,8 @@ void cb_prefs_protocol_pop3 (Fl_Input */*i*/, void */*v*/)
 
 void cb_prefs_protocol_pop3_security (Fl_Choice *c, void */*v*/)
 {
-	static const char *values[] = { "tls", "starttls", "none" };
-	if (PREFS_CURRENTBOX && c->value() >= 0 && c->value() <= 2)
+	static const char *values[] = { "tls", "starttls" };
+	if (PREFS_CURRENTBOX && c->value() >= 0 && c->value() <= 1)
 	{
 		PREFS_MBOX_CHANGE=1;
 		PREFS_CURRENTBOX->Set_char ("security", (char *) values[c->value()]);

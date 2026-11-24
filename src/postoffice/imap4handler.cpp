@@ -443,12 +443,12 @@ bool IMAP4Handler::Session (int jid)
 	EndSession (false);
 
 	Host = Parameters->Get_char ("host");
-	// Mailboxes from PostOffice 0.7 have no "security": they used port 143
-	// without encryption, so they get STARTTLS rather than sending the
-	// password in the clear.
+	// No unencrypted login: anything but TLS is STARTTLS (also "none" and
+	// the empty setting of mailboxes from PostOffice 0.7, which used port
+	// 143 without encryption); it fails rather than sending the password
+	// in the clear.
 	std::string security = Parameters->Get_char ("security");
-	if (security.empty ()) security = "starttls";
-	if (security != "tls" && security != "starttls") security = "none";
+	if (security != "tls") security = "starttls";
 	int port = Parameters->Get_int ("port");
 	if (port <= 0) port = security == "tls" ? 993 : 143;
 	std::string cafile = Parameters->Get_char ("cafile");
@@ -553,8 +553,12 @@ bool IMAP4Handler::Session (int jid)
 	{
 		if (Capability ("LOGINDISABLED"))
 		{
-			Report ("The IMAP server " + Host + " does not accept a password on this connection"
-					" (LOGINDISABLED). Choose TLS or STARTTLS.");
+			// The connection is always encrypted by now, so the server has
+			// password logins turned off (Dovecot: no "plain" in
+			// auth_mechanisms).
+			Report ("The IMAP server " + Host + " does not accept a password login, even over the encrypted"
+					" connection (LOGINDISABLED). Password logins are turned off on the server; with Dovecot,"
+					" add \"plain\" to auth_mechanisms.");
 			EndSession (true);
 			return false;
 		}
