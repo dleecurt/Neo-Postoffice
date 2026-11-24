@@ -717,8 +717,12 @@ See the git history for details. In summary:
     the end of words in headers fixed.
   - 0.8.6: the composer wraps lines at 72 characters (adjustable) and
     sends format=flowed; the unused Template menu is removed.
-- **0.9.0**: when all the planned features are in (attachments, Reply
-  All, and the rest): the feature-complete beta.
+- **0.9.x**: the beta. 0.9.0 has all the features planned for 0.8.x
+  (attachments, Reply All, clipboard, line wrapping). The 0.9.x releases
+  finish or remove the controls the original author left without code
+  (Redirect, Refilter, Print, Search, the address book), fix the known
+  issues below and add packaging.
+  - 0.9.0: feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.
