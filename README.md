@@ -29,7 +29,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 - Filter rules that sort incoming mail into folders
 - Inline display of JPEG attachments, clickable links; saving and
   opening received attachments, sending attachments
-- Multiple message views, composer with quoting and templates
+- Multiple message views, composer with quoting, lines wrapped at 72
+  characters and sent as format=flowed
 
 ## Building
 
@@ -254,6 +255,26 @@ back.
 - Names and subjects written in other character sets (`=?UTF-8?B?...?=`
   in the raw message) are shown decoded in replies, forwards and the
   quoted header lines, and encoded again when sent.
+
+## Line length and format=flowed
+
+The composer wraps what you type at 72 characters, on the screen as well
+as in the message sent (a wider window leaves space on the right). The
+width can be changed in **Settings → Style → Composer → Wrap lines at**
+(60 to 100); it applies to composers opened afterwards.
+
+Messages are sent as `format=flowed` (RFC 3676): each line of a wrapped
+paragraph ends with a space. Mail programs that understand it
+(Thunderbird, Apple Mail, mutt, most phone apps) join the lines again and
+fit the paragraph to their window; others show ordinary 72-character
+lines. Line breaks you type yourself stay as they are, and lines starting
+with a space or "From " are protected as the standard describes, so
+indented text and ASCII art in the signature come through unchanged.
+
+Replies quote the original re-wrapped at the same width with `> ` on
+every line; a word longer than a line, such as a link, is kept whole on
+a line of its own. **Edit Draft** joins a draft's paragraphs again so
+they re-wrap as you edit.
 
 ## Cut, Copy and Paste
 
@@ -694,6 +715,8 @@ See the git history for details. In summary:
     subjects; Forward leaves To empty.
   - 0.8.5: Cut, Copy and Paste with the clipboard; accented letters at
     the end of words in headers fixed.
+  - 0.8.6: the composer wraps lines at 72 characters (adjustable) and
+    sends format=flowed; the unused Template menu is removed.
 - **0.9.0**: when all the planned features are in (attachments, Reply
   All, and the rest): the feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without

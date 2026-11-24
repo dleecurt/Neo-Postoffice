@@ -955,45 +955,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {0 0 100 20} shortcut 0x40061 labelsize 12
           }
         }
-        Submenu {} {
-          label Template open
-          xywh {0 0 100 20} labelsize 12
-          code0 {xloc(o, "template");}
-        } {
-          MenuItem {} {
-            label {New Template}
-            xywh {0 0 100 20} labelsize 12
-            code0 {xloc(o, "new_template");}
-          }
-          Submenu {} {
-            label {Use Template} open
-            xywh {0 0 100 20} labelsize 12
-            code0 {xloc(o, "use_template");}
-          } {
-            Submenu {} {
-              label helpdesk open
-              xywh {0 0 100 20} labelsize 12
-            } {
-              MenuItem {} {
-                label {password vergeten}
-                xywh {0 0 100 20} labelsize 12
-              }
-              MenuItem {} {
-                label {mailquota vol}
-                xywh {10 10 100 20} labelsize 12
-              }
-            }
-            Submenu {} {
-              label beheer open
-              xywh {0 0 100 20} labelsize 12
-            } {
-              MenuItem {} {
-                label {frontpage verhuizing}
-                xywh {25 25 100 20} labelsize 12
-              }
-            }
-          }
-        }
       }
       Fl_Group gr_compose_mini_buttons {
         xywh {0 20 570 20} hide
@@ -2807,6 +2768,24 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           Fl_Box {} {
             label {messages per folder (0: all of them)}
             xywh {195 407 300 20} labelsize 12 align 20
+          }
+        }
+        Fl_Group {} {
+          label Composer open
+          xywh {20 460 600 45} box ENGRAVED_BOX color 51 labelsize 12 align 5
+        } {
+          Fl_Group {} {open
+            xywh {120 472 70 20} box BORDER_FRAME color 0
+          } {
+            Fl_Input in_prefs_wrap {
+              label {Wrap lines at}
+              callback cb_prefs_wrap
+              tooltip {Line length of the text you write, in characters (60 to 100). Sent as format=flowed, so programs that support it re-flow your paragraphs to their window.} xywh {122 474 68 18} type Int labelsize 12 textsize 12
+            }
+          }
+          Fl_Box {} {
+            label {characters (60 to 100; 72 is usual)}
+            xywh {195 472 300 20} labelsize 12 align 20
           }
         }
       }

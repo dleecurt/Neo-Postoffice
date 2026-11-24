@@ -1,3 +1,4 @@
+#include "flowed.h"
 #include <time.h>
 #include "semaphore.h"
 #include "helpdesk.h"
@@ -383,6 +384,14 @@ void cb_prefs_listlimit (Fl_Int_Input *i, void *)
 	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("gui")->Set_int ("list_limit", (int) n);
 }
 
+void cb_prefs_wrap (Fl_Int_Input *i, void *)
+{
+	int n = atoi (i->value ());
+	if (n < 60) n = 60;
+	if (n > 100) n = 100;
+	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("gui")->Set_int ("wrap", n);
+}
+
 void cb_configure (Fl_Button */*b*/, void */*d*/)
 {
 	WordList		*W;
@@ -450,6 +459,8 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 		char n[16];
 		snprintf (n, sizeof (n), "%d", list_limit (&LPREFERENCES));
 		in_prefs_listlimit->value (n);
+		snprintf (n, sizeof (n), "%d", flowed::WrapWidth (&LPREFERENCES));
+		in_prefs_wrap->value (n);
 	}
 	// The settings were copied anew: nothing from before is selected.
 	PREFS_CURRENTIDENT = (Var *) NULL;

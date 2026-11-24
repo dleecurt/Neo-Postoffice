@@ -189,6 +189,15 @@ public:
 	void Copy() { CopySelection(true, true);  damage(FL_DAMAGE_ALL); };
 	void Paste() { Fl::paste(*this, 1);     damage(FL_DAMAGE_ALL); };
 	FL_EXPORT void SelectAll();
+	// Wraps lines at cols characters of the (fixed-width) text font
+	// instead of the window edge; at the window edge when it is narrower.
+	// 0 wraps at the window edge (Neo-PostOffice).
+	FL_EXPORT void WrapColumns(int cols);
+	int WrapColumns() const { return wrapcols_; }
+	private:
+	int wrapcols_ = 0;
+	int wrap_width_px(int boxwidth);
+	public:
 	Fl_Color textcolor() const { return(Fl_Color)textcolor_; }
 	void textcolor(uchar n) { textcolor_ = n; }
 	void LoadFrom(FILE *file) { engine->LoadFrom(file); ShowCursor(CURSOR_UNHIDE); SyncDisplay(); }

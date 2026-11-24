@@ -920,7 +920,7 @@ FL_EXPORT void Fl_Editor::resize(int nx, int ny, int nw, int nh)
 		lineheight = 12;	// wild guess at line height if can't figure it out.
 	VisibleLines = editbox->h() / lineheight; 
     scroller->resize((nx + nw) - (scroller->w() + bdx), ny + bdy, SCROLLERWIDTH, h() - (2*bdy));
-    engine->ChangeWidth(EditWidth = editbox->w() - LEFTMARGIN);
+    engine->ChangeWidth(EditWidth = wrap_width_px(editbox->w() - LEFTMARGIN));
 	damage(FL_DAMAGE_ALL);
 	redraw();
 	ShowCursor(CURSOR_UNHIDE);
@@ -1053,6 +1053,28 @@ FL_EXPORT int Fl_Editor::HandleCursorKey(int key, const char */*text*/, int /*le
 		StartLine = engine->CursorRow() - (VisibleLines - 1);
 	damage(DAMAGE_EDITOR);
 	return(handled);
+}
+
+int Fl_Editor::wrap_width_px(int boxwidth)
+{
+	if ( wrapcols_ <= 0 )
+		return boxwidth;
+	Fl_Font cfont = fl_font();
+	int csize = fl_size();
+	fl_font(textfont(), textsize());
+	double cw = fl_width("0");
+	fl_font(cfont, csize);
+	// cols characters plus the space at the break fit; one more does not.
+	int px = (int)((wrapcols_ + 1) * cw + cw / 2);
+	return px < boxwidth ? px : boxwidth;
+}
+
+FL_EXPORT void Fl_Editor::WrapColumns(int cols)
+{
+	wrapcols_ = cols > 0 ? cols : 0;
+	engine->ChangeWidth(EditWidth = wrap_width_px(editbox->w() - LEFTMARGIN));
+	damage(FL_DAMAGE_ALL);
+	redraw();
 }
 
 FL_EXPORT void Fl_Editor::SelectAll()

@@ -1,3 +1,6 @@
+#include "flowed.h"
+#include "var.h"
+extern Var PREFERENCES;
 //===============================================================================
 // POSTOFFICE - X11 Office Communication Handler
 // ---------------------------------------------
@@ -214,6 +217,18 @@ TextMessage::TextMessage (WordList *W)
 		WW->Clear();
 		oldlen = curlen;
 	}
+	// The paragraph still being built at the end belongs to the text too
+	// (Neo-PostOffice: it was dropped unless its last line was short, so a
+	// reply lost the original's last paragraph).
+	if (P->Text->Count > 0)
+	{
+		P->Next = NULL;
+		P->Prev = Last;
+		if (Last) Last->Next = P; else First = P;
+		Last = P;
+	}
+	else delete P;
+	delete WW;
 }
 
 TextMessage::~TextMessage (void)
@@ -244,6 +259,7 @@ WordList *TextMessage::Get (int quoted)
 	int inc;
 	
 	WordList *result = new WordList;
+	int width = flowed::WrapWidth (&PREFERENCES);
 	
 	dprintf ("textmessage::get()\n");
 	
@@ -283,10 +299,12 @@ WordList *TextMessage::Get (int quoted)
 			{
 				ind = 0;
 			}
+			// Lines of at most the composer's wrap width in characters
+			// (Neo-PostOffice: was 74 bytes, and a longer word was cut to
+			// 70 bytes after "(...)"; now it gets a line of its own).
 			inc = 1;
-			while ( (j<P->Text->Count) && (total + (ln = strlen (P->Text->Get(j))) < 75) )
+			while ( (j<P->Text->Count) && (total + (ln = (int) flowed::Length (P->Text->Get(j))) <= width) )
 			{
-				//printf ("[quote] %s\n", buf);
 				buf += P->Text->Get(j); total += ln;
 				if ( (j+1) < P->Text->Count)
 				{
@@ -296,14 +314,10 @@ WordList *TextMessage::Get (int quoted)
 				++j;
 				inc = 0;
 			}
-			j += inc;
+			if (inc && j < P->Text->Count)
+				buf += P->Text->Get(j++);
+			while (!buf.empty () && buf.back () == ' ' && buf.size () > 2) buf.pop_back ();
 			result->Add (buf.c_str());
-			if (j < P->Text->Count && strlen (P->Text->Get(j)) > 74)
-			{
-				buf = "(...) ";
-				buf.append (P->Text->Get(j++), 70);
-				result->Add (buf.c_str());
-			}
 		}
 		
 		NP = P->Next;

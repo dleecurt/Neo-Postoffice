@@ -28,6 +28,7 @@
 #include "debug.h"
 #include "version.h"
 #include "mailheaders.h"
+#include "flowed.h"
 
 #include <FL/Fl_Pixmap.H>
 #include <FL/Fl_Hold_Browser.H>
@@ -203,6 +204,9 @@ Composer_Window *create_composer_window (void)
 	W->gr_bcc			= gr_compose_bcc;
 	
 	W->in_message->WantTabs (false);
+	// Lines wrap at the set width (72 characters unless changed in
+	// Settings), as they are sent.
+	W->in_message->WrapColumns (flowed::WrapWidth (&PREFERENCES));
 
 	// The attachments row (Neo-PostOffice): under Subject, shown by
 	// composer_layout only when something is attached.
@@ -960,20 +964,27 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	if (!pers_email) pers_email = "root@localhost";
    
 	// The edit buffer, the signature separator and the signature.
-	char *body = new char[W->in_message->SaveSize()+16+strlen (sig)];
-	W->in_message->SaveTo (body); // Store the edit buffer inside the body
+	// The text wrapped at the set width and sent as format=flowed (RFC
+	// 3676): soft line breaks of the editor become flowed lines.
+	std::string text;
+	{
+		char *raw = new char[W->in_message->SaveSize()+16];
+		W->in_message->SaveTo (raw);
+		text = flowed::Flow (raw, flowed::WrapWidth (&PREFERENCES));
+		delete[] raw;
+	}
 
 	// The signature separator only before a signature (RFC 3676 4.3).
 	bool has_sig = false;
 	for (const char *c = sig; *c; ++c) if (!isspace ((unsigned char) *c)) { has_sig = true; break; }
 	if (has_sig)
 	{
-		size_t n = strlen (body);
-		if (n && body[n - 1] != '\n' && body[n - 1] != '\r') strcat (body, "\n");
-		strcat (body, "-- \n");
-		strcat (body, sig);
+		if (!text.empty () && text.back () != '\n') text += "\n";
+		text += flowed::Fixed (std::string ("-- \n") + sig);
 	}
 	delete[] sig;
+	char *body = new char[text.size () + 1];
+	memcpy (body, text.c_str (), text.size () + 1);
 
 	if (strlen (W->msgid) > 0) // W->msgid contains the original message's message-id if the message is a reply
 	{
@@ -1087,7 +1098,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	if (W->atts.empty ())
 	{
 		HdrNames->Add ("Content-Type");
-		HdrValues->Add ("text/plain; charset=UTF-8");
+		HdrValues->Add ("text/plain; charset=UTF-8; format=flowed");
 		HdrNames->Add ("Content-Transfer-Encoding");
 		HdrValues->Add (mailheaders::IsASCII (body) ? "7bit" : "8bit");
 		M->AddPart ((char *) "text/plain", "", "", (char *) body);
@@ -1097,7 +1108,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 		// With attachments: multipart/mixed (its Content-Type, with the
 		// boundary, is written when the message is sent). The text is the
 		// first part, each file a base64 part after it.
-		std::string text_type = std::string ("text/plain; charset=UTF-8; x-neo-cte=") +
+		std::string text_type = std::string ("text/plain; charset=UTF-8; format=flowed; x-neo-cte=") +
 								(mailheaders::IsASCII (body) ? "7bit" : "8bit");
 		M->AddPart (text_type.c_str (), "", "", (char *) body);
 		for (auto &a : W->atts)
@@ -1425,6 +1436,14 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 	// The text, without the signature (the send adds the identity's).
 	MailPart *P = M->GetPart (0);
 	std::string body = P && P->Contents ? P->Contents : "";
+	// format=flowed text back as one line per paragraph: the editor wraps
+	// it again.
+	{
+		std::string ct = M->Header ("Content-Type") ? M->Header ("Content-Type") : "";
+		if (P && P->ContentType) ct += std::string (";") + P->ContentType;
+		for (char &c : ct) c = (char) tolower ((unsigned char) c);
+		if (ct.find ("format=flowed") != std::string::npos) body = flowed::Unflow (body);
+	}
 	size_t sig = body.rfind ("\n-- \n");
 	if (sig != std::string::npos) body.erase (sig);
 	else if (body.compare (0, 4, "-- \n") == 0) body.clear ();

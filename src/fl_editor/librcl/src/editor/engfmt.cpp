@@ -44,6 +44,26 @@ rclError _export EditorEngine::ReformatParagraph(bool fromfirst,bool all)
 						// never inside a UTF-8 character (Neo-PostOffice)
 						while (word > 0 && ((unsigned char) temp[word] & 0xC0) == 0x80)
 							word--;
+						// A quoted line is not broken inside its quote marks
+						// ("> > "): a word too long for the line (a link) stays
+						// on the quoted line (Neo-PostOffice).
+						if(temp[0] == '>')
+						{
+							short pre = 0;
+							while(temp[pre] == '>' || temp[pre] == ' ')
+								pre++;
+							// where WrapAt will break: after the space before word
+							short brk = word;
+							if(temp[brk] != ' ')
+							{
+								while(brk && temp[brk] != ' ')
+									brk--;
+								if(brk)
+									brk++;
+							}
+							if(brk <= pre)
+								continue;
+						}
 						if(Flags & EF_NOWRAP)
 							Lines[row]->ChopAt(word, &s);	// split line
 						else

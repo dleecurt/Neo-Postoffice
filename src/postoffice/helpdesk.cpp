@@ -1553,18 +1553,6 @@ Fl_Menu_Item menu_1[] = {
  {"Paste", FL_CTRL|'v',  (Fl_Callback*)cb_compose_paste, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Select All", FL_CTRL|'a',  (Fl_Callback*)cb_compose_select_all, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
- {"Template", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"New Template", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Use Template", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"helpdesk", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"password vergeten", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"mailquota vol", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0},
- {"beheer", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"frontpage verhuizing", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0},
- {0,0,0,0,0,0,0,0,0},
- {0,0,0,0,0,0,0,0,0},
  {0,0,0,0,0,0,0,0,0}
 };
 
@@ -2117,15 +2105,6 @@ Fl_Window* make_compose_window() {
         }
         { Fl_Menu_Item* o = &menu_1[7];
           xloc(o, "paste");
-        }
-        { Fl_Menu_Item* o = &menu_1[10];
-          xloc(o, "template");
-        }
-        { Fl_Menu_Item* o = &menu_1[11];
-          xloc(o, "new_template");
-        }
-        { Fl_Menu_Item* o = &menu_1[12];
-          xloc(o, "use_template");
         }
         o->menu(menu_1);
       } // Fl_Menu_Bar* o
@@ -5583,6 +5562,8 @@ Fl_Button *bt_prefs_style_update=(Fl_Button *)0;
 
 Fl_Int_Input *in_prefs_listlimit=(Fl_Int_Input *)0;
 
+Fl_Int_Input *in_prefs_wrap=(Fl_Int_Input *)0;
+
 Fl_Button *bt_prefs_save=(Fl_Button *)0;
 
 Fl_Button *bt_prefs_apply=(Fl_Button *)0;
@@ -7200,6 +7181,30 @@ Fl_Window* make_prefs_window() {
             o->end();
           } // Fl_Group* o
           { Fl_Box* o = new Fl_Box(195, 407, 300, 20, "messages per folder (0: all of them)");
+            o->labelsize(12);
+            o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Box* o
+          o->end();
+        } // Fl_Group* o
+        { Fl_Group* o = new Fl_Group(20, 460, 600, 45, "Composer");
+          o->box(FL_ENGRAVED_BOX);
+          o->color((Fl_Color)51);
+          o->labelsize(12);
+          o->align(Fl_Align(FL_ALIGN_TOP_LEFT));
+          { Fl_Group* o = new Fl_Group(120, 472, 70, 20);
+            o->box(FL_BORDER_FRAME);
+            o->color(FL_FOREGROUND_COLOR);
+            { in_prefs_wrap = new Fl_Int_Input(122, 474, 68, 18, "Wrap lines at");
+              in_prefs_wrap->tooltip("Line length of the text you write, in characters (60 to 100). Sent as format="
+"flowed, so programs that support it re-flow your paragraphs to their window.");
+              in_prefs_wrap->type(2);
+              in_prefs_wrap->labelsize(12);
+              in_prefs_wrap->textsize(12);
+              in_prefs_wrap->callback((Fl_Callback*)cb_prefs_wrap);
+            } // Fl_Int_Input* in_prefs_wrap
+            o->end();
+          } // Fl_Group* o
+          { Fl_Box* o = new Fl_Box(195, 472, 300, 20, "characters (60 to 100; 72 is usual)");
             o->labelsize(12);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Box* o
