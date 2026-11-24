@@ -600,6 +600,18 @@ See the git history for details. In summary:
   it answers). The message is shown once the keys pause. The mailbox
   list keeps its selection when it is rebuilt more than once.
 
+## Versions
+
+- **0.8.x**: one release per finished stage of work, each tagged in git
+  (`v0.8.1`, `v0.8.2`, ...).
+  - 0.8.1: security fixes (no unencrypted POP3/IMAP login, no header
+    injection, private mailbox files).
+- **0.9.0**: when all the planned features are in (attachments, Reply
+  All, and the rest): the feature-complete beta.
+- **1.0.0**: after 0.9.x has been in daily use for a while without
+  serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
+  features.
+
 ## Reporting bugs
 
 Info → Build Configuration → **Bug Report** opens a new issue on
