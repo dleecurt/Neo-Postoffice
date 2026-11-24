@@ -51,6 +51,20 @@ namespace mailheaders
 	// non-ASCII characters encoded as above; addresses are left alone.
 	std::string			EncodeAddresses (const std::string &list);
 
+	// Splits an address list at commas outside quotes, comments and angle
+	// brackets; each item is trimmed and empty items are dropped.
+	std::vector<std::string>	SplitAddresses (const std::string &list);
+
+	// For reading (Neo-PostOffice): an address list with encoded words in
+	// the display names decoded. A name with characters that are special in
+	// an address (a comma, say) is put in quotes, so the result can be
+	// used in a To or CC field as it is.
+	std::string			DecodeAddresses (const std::string &list);
+
+	// The address part (a@b) of one list item, in lower case, for
+	// comparing.
+	std::string			AddressKey (const std::string &item);
+
 	// True if the text is plain 7-bit ASCII.
 	bool				IsASCII (const std::string &text);
 

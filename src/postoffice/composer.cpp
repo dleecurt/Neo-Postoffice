@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <vector>
+#include <set>
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -52,9 +53,11 @@ void update_tree_counts (void);
 
 extern int			 mdi_current;
 
-extern char			 currentfrom[8][256];
-extern char			 currentsubject[8][256];
-extern char			 currentreplyto[8][256];
+extern std::string	 currentfrom[8];
+extern std::string	 currentsubject[8];
+extern std::string	 currentreplyto[8];
+extern std::string	 currentto[8];
+extern std::string	 currentcc[8];
 extern char			 currentmsgid[8][256];
 extern char			 currentreferences[8][2048];
 extern WordList		 currentmessage[8];
@@ -291,16 +294,61 @@ void cb_bugreport (Fl_Button */*b*/, void */*v*/)
 				"If no browser opens: https://github.com/dleecurt/Neo-Postoffice/issues");
 }
 
-void cb_reply_m (Fl_Menu_ *w, void *d)
+// The addresses (lower case) of all identities, and the identity that
+// owns one of the given addresses (the first match), for replies.
+static std::set<std::string> own_addresses (void)
 {
-	cb_reply ((Fl_Button *) w, d);
+	std::set<std::string> own;
+	Var *ids = PREFERENCES.Get_collection ("postoffice")->Get_collection ("identities");
+	WordList *X = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("identities");
+	for (int i = 0; i < X->Count; ++i)
+	{
+		std::string k = mailheaders::AddressKey (ids->Get_collection (X->Get (i))->Get_char ("mailfrom"));
+		if (!k.empty ()) own.insert (k);
+	}
+	return own;
 }
 
-void cb_reply (Fl_Button */*w*/, void */*d*/)
+static void choose_identity (Composer_Window *W, const std::vector<std::string> &items)
+{
+	Var *ids = PREFERENCES.Get_collection ("postoffice")->Get_collection ("identities");
+	WordList *X = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("identities");
+	for (const std::string &item : items)
+	{
+		std::string key = mailheaders::AddressKey (item);
+		if (key.empty ()) continue;
+		for (int i = 0; i < X->Count; ++i)
+		{
+			Var *I = ids->Get_collection (X->Get (i));
+			if (mailheaders::AddressKey (I->Get_char ("mailfrom")) != key) continue;
+			int k = W->ch_personality->find_index (I->Get_char ("shortname"));
+			if (k >= 0) W->ch_personality->value (k);
+			return;
+		}
+	}
+}
+
+// Joins list items into one field, leaving out own addresses and
+// addresses already used (seen is updated).
+static std::string join_new (const std::vector<std::string> &items, const std::set<std::string> &own,
+							 std::set<std::string> &seen)
+{
+	std::string out;
+	for (const std::string &item : items)
+	{
+		std::string key = mailheaders::AddressKey (item);
+		if (key.empty () || own.count (key) || seen.count (key)) continue;
+		seen.insert (key);
+		if (!out.empty ()) out += ", ";
+		out += item;
+	}
+	return out;
+}
+
+static void doreply (bool all)
 {
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
-	char buf[264]; // "Fwd: " + 255-character subject
 	WordList *quoted_lines;
 	AsyncBuffer *quoted_body;
 
@@ -326,7 +374,7 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 	
 	quoted_body = new AsyncBuffer (4096);
 	
-	quoted_body->AddF ("%s tapped some keys and produced:\n\n", currentfrom[mdi_current]);
+	quoted_body->AddF ("%s tapped some keys and produced:\n\n", currentfrom[mdi_current].c_str ());
 	
 	for (i=0;i<quoted_lines->Count;++i)
 	{
@@ -338,19 +386,71 @@ void cb_reply (Fl_Button */*w*/, void */*d*/)
 
 	// Add a "Re:" if it isn't already there in the subject
 	
-	if ( (tolower(currentsubject[mdi_current][0]) == 'r') &&
-		 (tolower(currentsubject[mdi_current][1]) == 'e') &&
-		 (currentsubject[mdi_current][2] == ':') )
+	const std::string &subj = currentsubject[mdi_current];
+	if (strncasecmp (subj.c_str (), "re:", 3) == 0) W->in_subject->value (subj.c_str ());
+	else W->in_subject->value (("Re: " + subj).c_str ());
+
+	// The recipients. The sender (Reply-To, else From) goes in To; Reply
+	// All puts everyone else from To and CC in CC. Own addresses are left
+	// out. A reply to a message you sent goes to its recipients instead.
+	std::set<std::string> own = own_addresses (), seen;
+	std::vector<std::string> sender = mailheaders::SplitAddresses (currentreplyto[mdi_current]);
+	std::vector<std::string> to = mailheaders::SplitAddresses (currentto[mdi_current]);
+	std::vector<std::string> cc = mailheaders::SplitAddresses (currentcc[mdi_current]);
+	bool from_me = !sender.empty ();
+	for (const std::string &item : sender)
+		if (!own.count (mailheaders::AddressKey (item))) from_me = false;
+
+	std::string to_field, cc_field;
+	if (from_me)
 	{
-		 strcpy (buf, currentsubject[mdi_current]);
+		to_field = join_new (to, own, seen);
+		if (all) cc_field = join_new (cc, own, seen);
+		if (to_field.empty ()) to_field = currentreplyto[mdi_current];	// sent to yourself
 	}
-	else snprintf (buf, sizeof (buf), "Re: %s", currentsubject[mdi_current]);
-	
-	W->in_subject->value (buf);
-	W->in_to->value (currentreplyto[mdi_current]);
+	else
+	{
+		// Own addresses are kept in To when the sender is one of them.
+		std::set<std::string> none;
+		to_field = join_new (sender, none, seen);
+		if (all)
+		{
+			std::vector<std::string> rest (to);
+			rest.insert (rest.end (), cc.begin (), cc.end ());
+			cc_field = join_new (rest, own, seen);
+		}
+	}
+	W->in_to->value (to_field.c_str ());
+	W->in_cc->value (cc_field.c_str ());
+
+	// The identity the message was sent to.
+	std::vector<std::string> rcpt (to);
+	rcpt.insert (rcpt.end (), cc.begin (), cc.end ());
+	if (from_me) rcpt.insert (rcpt.begin (), sender.begin (), sender.end ());
+	choose_identity (W, rcpt);
 	
 	W->in_message->LoadFrom ((char *) quoted_body->Data);
 	delete (quoted_body);
+}
+
+void cb_reply_m (Fl_Menu_ */*w*/, void */*d*/)
+{
+	doreply (false);
+}
+
+void cb_reply (Fl_Button */*w*/, void */*d*/)
+{
+	doreply (false);
+}
+
+void cb_reply_all_m (Fl_Menu_ */*w*/, void */*d*/)
+{
+	doreply (true);
+}
+
+void cb_reply_all (Fl_Button */*w*/, void */*d*/)
+{
+	doreply (true);
 }
 
 void cb_forward_m (Fl_Menu_ */*w*/, void */*d*/)
@@ -372,7 +472,6 @@ void doforward (bool fullhdr)
 {
 	if (!currentmsgid[mdi_current][0]) return;
 	int i;
-	char buf[264]; // "Fwd: " + 255-character subject
 	AsyncBuffer *quoted_body;
 
 	Composer_Window *W = create_composer_window();
@@ -401,7 +500,12 @@ void doforward (bool fullhdr)
 				 (strncasecmp (tt, "Subject", 7) == 0) ||
 				 (strncasecmp (tt, "Organization", 12) == 0) )
 			{
-				quoted_body->AddF ("%s: %s\n", M->HeaderNames->Get(i), M->HeaderValues->Get(i));
+				// Shown decoded, as in the message view.
+				const char *hv = M->HeaderValues->Get (i);
+				bool addr = strcasecmp (tt, "From") == 0 || strcasecmp (tt, "To") == 0 ||
+							strcasecmp (tt, "Cc") == 0 || strcasecmp (tt, "Reply-To") == 0;
+				std::string dv = addr ? mailheaders::DecodeAddresses (hv) : mailheaders::Decode (hv);
+				quoted_body->AddF ("%s: %s\n", tt, dv.c_str ());
 			}
 		}
 		quoted_body->AddF ("\n");
@@ -417,10 +521,8 @@ void doforward (bool fullhdr)
 	
 	// Add a "Re:" if it isn't already there in the subject
 	
-	snprintf (buf, sizeof (buf), "Fwd: %s", currentsubject[mdi_current]);
-	
-	W->in_subject->value (buf);
-	W->in_to->value (currentreplyto[mdi_current]);
+	// The recipient is left for you to fill in.
+	W->in_subject->value (("Fwd: " + currentsubject[mdi_current]).c_str ());
 	
 	W->in_message->LoadFrom ((char *) quoted_body->Data);
 	delete (quoted_body);

@@ -14,6 +14,7 @@ extern void cb_check_mail_m(Fl_Menu_*, void*);
 extern void cb_quit_m(Fl_Menu_*, void*);
 extern void cb_select_all(Fl_Menu_*, void*);
 extern void cb_reply_m(Fl_Menu_*, void*);
+extern void cb_reply_all_m(Fl_Menu_*, void*);
 extern void cb_forward_m(Fl_Menu_*, void*);
 extern void cb_forwardfull_m(Fl_Menu_*, void*);
 extern void cb_save_attachments_m(Fl_Menu_*, void*);
@@ -47,6 +48,7 @@ extern Fl_Group *gr_bigbuttons;
 extern void cb_check_mail(Fl_Button*, void*);
 extern void cb_forward(Fl_Button*, void*);
 extern void cb_reply(Fl_Button*, void*);
+extern void cb_reply_all(Fl_Button*, void*);
 extern void cb_delete(Fl_Button*, void*);
 extern void cb_mark(Fl_Button*, void*);
 extern void cb_configure(Fl_Button*, void*);
@@ -106,8 +108,8 @@ extern void cb_sortby_date(Fl_Button*, void*);
 extern Fl_Button *bt_date;
 Fl_Window* make_window();
 extern Fl_Menu_Item menu_[];
-#define rad_viewall (menu_+36)
-#define rad_viewunread (menu_+37)
+#define rad_viewall (menu_+37)
+#define rad_viewunread (menu_+38)
 extern Fl_Menu_Item menu_popup_msgwin[];
 extern Fl_Window *win_menu;
 Fl_Window* make_menuwindow();
@@ -362,14 +364,6 @@ extern Fl_Menu_Item menu_ch_prefs_delivery[];
 extern Fl_Menu_Item menu_ch_prefs_directoryservice[];
 extern Fl_Menu_Item menu_ch_prefs_style_typeface[];
 extern Fl_Menu_Item menu_ch_prefs_style_size[];
-extern Fl_Window *win_reply_options;
-extern Fl_Choice *ch_repopts_quoting;
-extern Fl_Choice *ch_repopts_replyto;
-extern Fl_Button *bt_repopts_save;
-extern Fl_Button *bt_repopts_apply;
-Fl_Window* make_reply_options();
-extern Fl_Menu_Item menu_ch_repopts_quoting[];
-extern Fl_Menu_Item menu_ch_repopts_replyto[];
 extern Fl_Window *win_exit;
 extern Fl_Slider *bt_exitline;
 Fl_Window* make_exitwindow();

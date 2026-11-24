@@ -71,10 +71,14 @@ extern void			 mdi_init (void);
 extern void			 mdi_title (const char *);
 extern Fl_View		*mdi_views[8];
 
-char				 currentfrom[8][256];
+// The shown message's From, Subject, Reply-To (or From), To and CC, with
+// encoded words decoded (Neo-PostOffice), for Reply, Reply All and Forward.
+std::string			 currentfrom[8];
 char				 currentlabel[8][256];
-char				 currentsubject[8][256];
-char				 currentreplyto[8][256];
+std::string			 currentsubject[8];
+std::string			 currentreplyto[8];
+std::string			 currentto[8];
+std::string			 currentcc[8];
 char				 currentmsgid[8][256];
 char				 currentreferences[8][2048];
 WordList			 currentmessage[8];
@@ -1265,9 +1269,11 @@ void displaymessage (MailMessage *M)
 
 	// clear status information for the current mdi window
 
-	currentfrom[mdi_current][0] = 0;
-	currentsubject[mdi_current][0] = 0;
-	currentreplyto[mdi_current][0] = 0;
+	currentfrom[mdi_current].clear ();
+	currentsubject[mdi_current].clear ();
+	currentreplyto[mdi_current].clear ();
+	currentto[mdi_current].clear ();
+	currentcc[mdi_current].clear ();
 	currentmsgid[mdi_current][0] = 0;
 	currentmessage[mdi_current].Clear();
 	currentreferences[mdi_current][0] = 0;
@@ -1310,12 +1316,12 @@ void displaymessage (MailMessage *M)
 		if (strcasecmp (nval, "From") == 0)
 		{
 			addheader (locs("From","From"), xval);
-			strncpy (currentfrom[mdi_current], xval, 255);
-			currentfrom[mdi_current][255] = 0;
+			currentfrom[mdi_current] = mailheaders::DecodeAddresses (xval);
 		}
 		else if (strcasecmp (nval, "To") == 0)
 		{
 			addheader (locs("To","To"), xval);
+			currentto[mdi_current] = mailheaders::DecodeAddresses (xval);
 		}
 		else if (strcasecmp (nval, "References") == 0)
 		{
@@ -1326,6 +1332,7 @@ void displaymessage (MailMessage *M)
 		else if (strcasecmp (nval, "Cc") == 0)
 		{
 			addheader (locs("Cc","Cc"), xval);
+			currentcc[mdi_current] = mailheaders::DecodeAddresses (xval);
 		}
 		else if (strcasecmp (nval, "Date") == 0)
 		{
@@ -1334,8 +1341,7 @@ void displaymessage (MailMessage *M)
 		else if (strcasecmp (nval, "Subject") == 0)
 		{
 			addheader (locs("Subject","Subject"), xval);
-			strncpy (currentsubject[mdi_current], xval, 255);
-			currentsubject[mdi_current][255] = 0;
+			currentsubject[mdi_current] = mailheaders::Decode (xval);
 		}
 		else if (strcasecmp (nval, "Newsgroups") == 0)
 		{
@@ -1348,8 +1354,7 @@ void displaymessage (MailMessage *M)
 		else if (strcasecmp (nval, "Reply-To") == 0)
 		{
 			addheader (locs("Reply-To","Reply-To"), xval);
-			strncpy (currentreplyto[mdi_current], xval, 255);
-			currentreplyto[mdi_current][255] = 0;
+			currentreplyto[mdi_current] = mailheaders::DecodeAddresses (xval);
 		}
 		else if (strcasecmp (nval, "Followup-To") == 0)
 		{
@@ -1375,8 +1380,8 @@ void displaymessage (MailMessage *M)
 
 	// set the default reply options
 
-	if (strlen (currentreplyto[mdi_current]) == 0)
-		strcpy (currentreplyto[mdi_current], currentfrom[mdi_current]);
+	if (currentreplyto[mdi_current].empty ())
+		currentreplyto[mdi_current] = currentfrom[mdi_current];
 
 	// find the relevant style info
 

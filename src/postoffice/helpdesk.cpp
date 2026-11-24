@@ -31,9 +31,10 @@ Fl_Menu_Item menu_[] = {
  {"Select All", FL_ALT|'a',  (Fl_Callback*)cb_select_all, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0},
  {"Message", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Reply", FL_ALT|'r',  (Fl_Callback*)cb_reply_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Reply", FL_ALT|'r',  (Fl_Callback*)cb_reply_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Reply All", FL_ALT|'R',  (Fl_Callback*)cb_reply_all_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward", FL_ALT|'f',  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Redirect", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Save all attachments...", 0,  (Fl_Callback*)cb_save_attachments_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Edit Draft", 0,  (Fl_Callback*)cb_edit_draft_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -274,6 +275,44 @@ static Fl_Image *image_redo() {
   static Fl_Image *image = NULL;
   if (!image)
     image = new Fl_Pixmap(idata_redo);
+  return image;
+}
+
+static const char *idata_replyall[] = {
+"22 22 6 1",
+" \tc None",
+".\tc #757575",
+"+\tc #000000",
+"@\tc #3F3F3F",
+"#\tc #565656",
+"$\tc #A5A5A5",
+"                      ",
+"                      ",
+"                      ",
+"          .+++.       ",
+"        .++@#@++  +   ",
+"        ++ $$$$+..+   ",
+"       .+$$$$$$$+#+$  ",
+"     .+++$$    .#++$  ",
+"   .++@+$$+  ++++++$  ",
+"   ++ $+$$+..+  $$$$  ",
+"  .+$$$+$$$+#+$$$$$$  ",
+"  + $$  + .#++$       ",
+"  +$$   $+++++$       ",
+"  +$     $++$$$       ",
+"  +$      $$$$$       ",
+"   +       $$         ",
+"   $+                 ",
+"    $++               ",
+"     $                ",
+"      $$              ",
+"                      ",
+"                      "
+};
+static Fl_Image *image_replyall() {
+  static Fl_Image *image = NULL;
+  if (!image)
+    image = new Fl_Pixmap(idata_replyall);
   return image;
 }
 
@@ -612,7 +651,8 @@ Fl_Menu_Button *popup_msgwin=(Fl_Menu_Button *)0;
 
 Fl_Menu_Item menu_popup_msgwin[] = {
  {"Reply", 0,  (Fl_Callback*)cb_reply_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Forward", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Reply All", 0,  (Fl_Callback*)cb_reply_all_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Forward", 0,  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
@@ -689,33 +729,36 @@ Fl_Window* make_window() {
         xloc(o, "reply");
       }
       { Fl_Menu_Item* o = &menu_[16];
+        xloc(o, "reply_all");
+      }
+      { Fl_Menu_Item* o = &menu_[17];
         xloc(o, "forward");
       }
-      { Fl_Menu_Item* o = &menu_[18];
+      { Fl_Menu_Item* o = &menu_[19];
         xloc(o, "redirect");
       }
-      { Fl_Menu_Item* o = &menu_[21];
+      { Fl_Menu_Item* o = &menu_[22];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[34];
+      { Fl_Menu_Item* o = &menu_[35];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[36];
-        xloc(o, "all_messages");
-      }
       { Fl_Menu_Item* o = &menu_[37];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[40];
         xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[38];
+        xloc(o, "unread_messages");
       }
       { Fl_Menu_Item* o = &menu_[41];
-        xloc(o, "unread_messages");
-      }
-      { Fl_Menu_Item* o = &menu_[44];
         xloc(o, "all_messages");
       }
+      { Fl_Menu_Item* o = &menu_[42];
+        xloc(o, "unread_messages");
+      }
       { Fl_Menu_Item* o = &menu_[45];
+        xloc(o, "all_messages");
+      }
+      { Fl_Menu_Item* o = &menu_[46];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);
@@ -729,24 +772,24 @@ Fl_Window* make_window() {
       } // Fl_Button* bt_tear
       { gr_buttons = new Fl_Group(10, 20, 845, 20);
         { gr_bigbuttons = new Fl_Group(10, 20, 845, 20);
-          { Fl_Group* o = new Fl_Group(85, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(85, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(78, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(78, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(86, 21, 29, 18);
+            { Fl_Box* o = new Fl_Box(79, 21, 29, 18);
               o->image( image_search() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(111, 21, 48, 18, "Search");
+            { Fl_Box* o = new Fl_Box(104, 21, 41, 18, "Search");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "search");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(10, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(10, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(10, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(10, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_check_mail);
@@ -755,158 +798,176 @@ Fl_Window* make_window() {
               o->image( image_send() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(41, 21, 43, 18, "Check");
+            { Fl_Box* o = new Fl_Box(41, 21, 36, 18, "Check");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "check");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(235, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(235, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(282, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(282, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_forward);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(236, 21, 29, 18);
+            { Fl_Box* o = new Fl_Box(283, 21, 29, 18);
               o->image( image_forward() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(261, 21, 48, 18, "Fwd");
+            { Fl_Box* o = new Fl_Box(308, 21, 41, 18, "Fwd");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "fwd");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(160, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(160, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(146, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(146, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_reply);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(161, 21, 29, 18);
+            { Fl_Box* o = new Fl_Box(147, 21, 29, 18);
               o->image( image_redo() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(181, 21, 53, 18, "Reply");
+            { Fl_Box* o = new Fl_Box(167, 21, 46, 18, "Reply");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "rply");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(385, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(385, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(214, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(214, 20, 68, 20);
+              o->tooltip("Reply to the sender and everyone the message went to");
+              o->box(FL_THIN_UP_FRAME);
+              o->down_box(FL_THIN_DOWN_FRAME);
+              o->callback((Fl_Callback*)cb_reply_all);
+            } // Fl_Button* o
+            { Fl_Box* o = new Fl_Box(215, 21, 29, 18);
+              o->image( image_replyall() );
+              o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+            } // Fl_Box* o
+            { Fl_Box* o = new Fl_Box(238, 21, 43, 18, "Reply All");
+              o->labelsize(10);
+              o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
+              xloc(o, "reply_all");
+            } // Fl_Box* o
+            o->end();
+          } // Fl_Group* o
+          { Fl_Group* o = new Fl_Group(418, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(418, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_delete);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(386, 21, 23, 18);
+            { Fl_Box* o = new Fl_Box(419, 21, 23, 18);
               o->image( image_delete() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(411, 21, 48, 18, "Delete");
+            { Fl_Box* o = new Fl_Box(444, 21, 41, 18, "Delete");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "dlte");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(310, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(310, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(350, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(350, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(311, 21, 23, 18);
+            { Fl_Box* o = new Fl_Box(351, 21, 23, 18);
               o->image( image_move() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(331, 21, 53, 18, "Redir");
+            { Fl_Box* o = new Fl_Box(371, 21, 46, 18, "Redir");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "redir");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(460, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(460, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(486, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(486, 20, 68, 20);
               o->tooltip("Flag or unflag the selected messages (Maildir)");
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_mark);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(461, 21, 29, 18);
+            { Fl_Box* o = new Fl_Box(487, 21, 29, 18);
               o->image( image_stamp() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(486, 21, 48, 18, "Mark");
+            { Fl_Box* o = new Fl_Box(512, 21, 41, 18, "Mark");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "mark");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(535, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(535, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(554, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(554, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(536, 21, 29, 18);
+            { Fl_Box* o = new Fl_Box(555, 21, 29, 18);
               o->image( image_fileprint() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(561, 21, 48, 18, "Print");
+            { Fl_Box* o = new Fl_Box(580, 21, 41, 18, "Print");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "print");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(610, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(610, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(622, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(622, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(611, 21, 23, 18);
+            { Fl_Box* o = new Fl_Box(623, 21, 23, 18);
               o->image( image_openbook() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(636, 21, 48, 18, "Addr");
+            { Fl_Box* o = new Fl_Box(648, 21, 41, 18, "Addr");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "addr");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(685, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(685, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(690, 20, 68, 20);
+            { Fl_Button* o = new Fl_Button(690, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_configure);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(686, 21, 28, 18);
+            { Fl_Box* o = new Fl_Box(691, 21, 28, 18);
               o->image( image_configure() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(711, 21, 48, 18, "Config");
+            { Fl_Box* o = new Fl_Box(716, 21, 41, 18, "Config");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               xloc(o, "config");
             } // Fl_Box* o
             o->end();
           } // Fl_Group* o
-          { Fl_Group* o = new Fl_Group(760, 20, 75, 20);
-            { Fl_Button* o = new Fl_Button(760, 20, 75, 20);
+          { Fl_Group* o = new Fl_Group(758, 20, 77, 20);
+            { Fl_Button* o = new Fl_Button(758, 20, 77, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
               o->callback((Fl_Callback*)cb_stop);
             } // Fl_Button* o
-            { Fl_Box* o = new Fl_Box(761, 21, 28, 18);
+            { Fl_Box* o = new Fl_Box(759, 21, 28, 18);
               o->image( image_stop() );
               o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
             } // Fl_Box* o
-            { Fl_Box* o = new Fl_Box(786, 21, 48, 18, "Stop");
+            { Fl_Box* o = new Fl_Box(784, 21, 50, 18, "Stop");
               o->labelsize(10);
               o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
               Fl_Group::current()->resizable(o);
@@ -943,58 +1004,66 @@ Fl_Window* make_window() {
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(100, 20, 30, 20);
+            o->tooltip("Reply All");
+            o->box(FL_THIN_UP_BOX);
+            o->down_box(FL_THIN_DOWN_BOX);
+            o->image( image_replyall() );
+            o->callback((Fl_Callback*)cb_reply_all);
+            o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+          } // Fl_Button* o
+          { Fl_Button* o = new Fl_Button(130, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_forward() );
             o->callback((Fl_Callback*)cb_forward);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(130, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(160, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_move() );
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(160, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(190, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_delete() );
             o->callback((Fl_Callback*)cb_delete);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(190, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(220, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_stamp() );
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(220, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(250, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_fileprint() );
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(250, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(280, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_openbook() );
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(280, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(310, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_configure() );
             o->callback((Fl_Callback*)cb_configure);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(310, 20, 30, 20);
+          { Fl_Button* o = new Fl_Button(340, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_stop() );
             o->callback((Fl_Callback*)cb_stop);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
-          { out_ministatus = new Fl_Output(360, 20, 495, 20);
+          { out_ministatus = new Fl_Output(390, 20, 465, 20);
             out_ministatus->box(FL_THIN_DOWN_BOX);
             out_ministatus->color(FL_LIGHT2);
             out_ministatus->labelsize(12);
@@ -1002,7 +1071,7 @@ Fl_Window* make_window() {
             out_ministatus->textsize(11);
             Fl_Group::current()->resizable(out_ministatus);
           } // Fl_Output* out_ministatus
-          { bt_menu_expand = new Fl_Button(340, 20, 20, 20, "@-2>");
+          { bt_menu_expand = new Fl_Button(370, 20, 20, 20, "@-2>");
             bt_menu_expand->box(FL_THIN_UP_BOX);
             bt_menu_expand->callback((Fl_Callback*)cb_menu_expand);
           } // Fl_Button* bt_menu_expand
@@ -1137,9 +1206,12 @@ Fl_Window* make_window() {
                   xloc(o, "reply");
                 }
                 { Fl_Menu_Item* o = &menu_popup_msgwin[1];
-                  xloc(o, "forward");
+                  xloc(o, "reply_all");
                 }
                 { Fl_Menu_Item* o = &menu_popup_msgwin[2];
+                  xloc(o, "forward");
+                }
+                { Fl_Menu_Item* o = &menu_popup_msgwin[3];
                   xloc(o, "delete");
                 }
                 popup_msgwin->menu(menu_popup_msgwin);
@@ -7146,149 +7218,6 @@ Fl_Window* make_prefs_window() {
     win_prefs->end();
   } // Fl_Window* win_prefs
   return win_prefs;
-}
-
-Fl_Window *win_reply_options=(Fl_Window *)0;
-
-Fl_Choice *ch_repopts_quoting=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_repopts_quoting[] = {
- {"Smart Quoting", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Literal Quoting", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Quote All", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Choice *ch_repopts_replyto=(Fl_Choice *)0;
-
-Fl_Menu_Item menu_ch_repopts_replyto[] = {
- {"Sender or Reply-To header", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Sender and All Recipients", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Sender", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {0,0,0,0,0,0,0,0,0}
-};
-
-Fl_Button *bt_repopts_save=(Fl_Button *)0;
-
-Fl_Button *bt_repopts_apply=(Fl_Button *)0;
-
-Fl_Window* make_reply_options() {
-  int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
-  char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
-  Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");
-  { Fl_Window* o = win_reply_options = new Fl_Window(610, 112, "Reply With Options");
-    { Fl_Group* o = new Fl_Group(5, 5, 600, 70);
-      o->box(FL_ENGRAVED_BOX);
-      o->color((Fl_Color)51);
-      { Fl_Group* o = new Fl_Group(20, 45, 565, 20);
-        { Fl_Group* o = new Fl_Group(215, 45, 165, 20);
-          o->box(FL_BORDER_FRAME);
-          o->color(FL_FOREGROUND_COLOR);
-          { ch_repopts_quoting = new Fl_Choice(216, 46, 164, 19);
-            ch_repopts_quoting->down_box(FL_BORDER_BOX);
-            ch_repopts_quoting->selection_color(FL_BACKGROUND2_COLOR);
-            ch_repopts_quoting->labelsize(12);
-            ch_repopts_quoting->textsize(12);
-            ch_repopts_quoting->callback((Fl_Callback*)cb_prefs_mailbox_flags);
-            ch_repopts_quoting->when(FL_WHEN_CHANGED);
-            { Fl_Menu_Item* o = &menu_ch_repopts_quoting[0];
-              xloc(o, "smart_quoting");
-            }
-            { Fl_Menu_Item* o = &menu_ch_repopts_quoting[1];
-              xloc(o, "literal_quoting");
-            }
-            { Fl_Menu_Item* o = &menu_ch_repopts_quoting[2];
-              xloc(o, "quote_all");
-            }
-            ch_repopts_quoting->menu(menu_ch_repopts_quoting);
-          } // Fl_Choice* ch_repopts_quoting
-          o->end();
-        } // Fl_Group* o
-        { Fl_Button* o = new Fl_Button(20, 45, 154, 20, "Quoting");
-          o->box(FL_NO_BOX);
-          o->labelsize(12);
-          o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-          xloc(o, "quoting");
-        } // Fl_Button* o
-        { Fl_Int_Input* o = new Fl_Int_Input(500, 45, 85, 20);
-          o->type(2);
-          o->labelsize(12);
-          o->textsize(12);
-        } // Fl_Int_Input* o
-        { Fl_Button* o = new Fl_Button(390, 45, 130, 20, "Max Quote Depth");
-          o->box(FL_NO_BOX);
-          o->labelsize(12);
-          o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-          xloc(o, "message_policy");
-        } // Fl_Button* o
-        o->end();
-      } // Fl_Group* o
-      { Fl_Group* o = new Fl_Group(20, 15, 565, 20);
-        { Fl_Group* o = new Fl_Group(215, 15, 370, 20);
-          o->box(FL_BORDER_FRAME);
-          o->color(FL_FOREGROUND_COLOR);
-          { ch_repopts_replyto = new Fl_Choice(216, 16, 369, 19);
-            ch_repopts_replyto->down_box(FL_BORDER_BOX);
-            ch_repopts_replyto->selection_color(FL_BACKGROUND2_COLOR);
-            ch_repopts_replyto->labelsize(12);
-            ch_repopts_replyto->textsize(12);
-            ch_repopts_replyto->callback((Fl_Callback*)cb_prefs_mailbox_flags);
-            ch_repopts_replyto->when(FL_WHEN_CHANGED);
-            { Fl_Menu_Item* o = &menu_ch_repopts_replyto[0];
-              xloc(o, "sender_or_reply_to");
-            }
-            { Fl_Menu_Item* o = &menu_ch_repopts_replyto[1];
-              xloc(o, "sender_and_all_rcpt");
-            }
-            { Fl_Menu_Item* o = &menu_ch_repopts_replyto[2];
-              xloc(o, "sender");
-            }
-            ch_repopts_replyto->menu(menu_ch_repopts_replyto);
-          } // Fl_Choice* ch_repopts_replyto
-          o->end();
-        } // Fl_Group* o
-        { Fl_Button* o = new Fl_Button(20, 15, 154, 20, "Email Reply");
-          o->box(FL_NO_BOX);
-          o->labelsize(12);
-          o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-          xloc(o, "reply_to");
-        } // Fl_Button* o
-        o->end();
-      } // Fl_Group* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(509, 81, 95, 24);
-      o->box(FL_BORDER_FRAME);
-      o->color((Fl_Color)35);
-      { Fl_Group* o = new Fl_Group(512, 84, 89, 18);
-        o->box(FL_BORDER_BOX);
-        { Fl_Button* o = bt_repopts_save = new Fl_Button(513, 85, 88, 17, "Use");
-          bt_repopts_save->down_box(FL_DOWN_BOX);
-          bt_repopts_save->color((Fl_Color)51);
-          bt_repopts_save->labelsize(12);
-          bt_repopts_save->callback((Fl_Callback*)cb_prefs_save);
-          xloc(o, "save");
-        } // Fl_Button* bt_repopts_save
-        o->end();
-      } // Fl_Group* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(8, 84, 90, 20);
-      o->box(FL_BORDER_BOX);
-      { Fl_Button* o = bt_repopts_apply = new Fl_Button(9, 85, 89, 19, "Apply");
-        bt_repopts_apply->down_box(FL_DOWN_BOX);
-        bt_repopts_apply->color((Fl_Color)51);
-        bt_repopts_apply->labelsize(12);
-        bt_repopts_apply->callback((Fl_Callback*)cb_prefs_apply);
-        xloc(o, "apply");
-      } // Fl_Button* bt_repopts_apply
-      o->end();
-    } // Fl_Group* o
-    win_reply_options->set_modal();
-    xloc(o, "reply_with_options");
-    win_reply_options->end();
-  } // Fl_Window* win_reply_options
-  return win_reply_options;
 }
 
 Fl_Window *win_exit=(Fl_Window *)0;

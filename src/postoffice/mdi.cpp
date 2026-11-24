@@ -1,3 +1,4 @@
+#include <string>
 #include <stdio.h>
 #include <stdint.h>
 #include "wordlist.h"
@@ -10,9 +11,11 @@ Fl_View 			*mdi_views[8];
 int					 mdi_number = 0;
 int					 mdi_current = 0;
 
-extern char			 currentfrom[8][256];
-extern char			 currentsubject[8][256];
-extern char			 currentreplyto[8][256];
+extern std::string	 currentfrom[8];
+extern std::string	 currentsubject[8];
+extern std::string	 currentreplyto[8];
+extern std::string	 currentto[8];
+extern std::string	 currentcc[8];
 extern char			 currentmsgid[8][256];
 extern char			 currentlabel[8][256];
 extern char			 currentreferences[8][2048];
@@ -25,9 +28,11 @@ void mdi_init (void)
 	for (int i=0; i<8; ++i)
 	{
 		mdi_views[i] = NULL;
-		currentfrom[i][0] = 0;
-		currentsubject[i][0] = 0;
-		currentreplyto[i][0] = 0;
+		currentfrom[i].clear ();
+		currentsubject[i].clear ();
+		currentreplyto[i].clear ();
+		currentto[i].clear ();
+		currentcc[i].clear ();
 		currentmsgid[i][0] = 0;
 		currentreferences[i][0] = 0;
 		currentbodystart[i] = 0;
@@ -92,9 +97,11 @@ void mdi_move (int oldid, int newid)
 	
 	if (oldid != newid) // the buffers would overlap
 	{
-		memmove (currentfrom[newid], currentfrom[oldid], strlen (currentfrom[oldid]) + 1);
-		memmove (currentsubject[newid], currentsubject[oldid], strlen (currentsubject[oldid]) + 1);
-		memmove (currentreplyto[newid], currentreplyto[oldid], strlen (currentreplyto[oldid]) + 1);
+		currentfrom[newid] = currentfrom[oldid];
+		currentsubject[newid] = currentsubject[oldid];
+		currentreplyto[newid] = currentreplyto[oldid];
+		currentto[newid] = currentto[oldid];
+		currentcc[newid] = currentcc[oldid];
 		memmove (currentmsgid[newid], currentmsgid[oldid], strlen (currentmsgid[oldid]) + 1);
 		memmove (currentreferences[newid], currentreferences[oldid], strlen (currentreferences[oldid]) + 1);
 	}

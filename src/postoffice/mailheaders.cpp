@@ -373,6 +373,74 @@ std::string Decode (const std::string &in)
 // Addresses and dates
 //-------------------------------------------------------------------------------
 
+std::vector<std::string> SplitAddresses (const std::string &list)
+{
+	std::vector<std::string> items;
+	std::string cur;
+	bool quoted = false;
+	int angle = 0, paren = 0;
+	for (size_t i = 0; i < list.size (); ++i)
+	{
+		char c = list[i];
+		if (c == '\\' && (quoted || paren) && i + 1 < list.size ()) { cur += c; cur += list[++i]; continue; }
+		if (c == '"' && !paren) quoted = !quoted;
+		else if (!quoted && c == '(') ++paren;
+		else if (!quoted && c == ')' && paren) --paren;
+		else if (!quoted && !paren && c == '<') ++angle;
+		else if (!quoted && !paren && c == '>' && angle) --angle;
+		if (c == ',' && !quoted && !angle && !paren)
+		{
+			std::string t = trim (cur);
+			if (!t.empty ()) items.push_back (t);
+			cur.clear ();
+			continue;
+		}
+		cur += c;
+	}
+	std::string t = trim (cur);
+	if (!t.empty ()) items.push_back (t);
+	return items;
+}
+
+std::string DecodeAddresses (const std::string &list)
+{
+	std::string out;
+	for (const std::string &item : SplitAddresses (list))
+	{
+		std::string res = item;
+		size_t lt = item.rfind ('<');
+		if (lt != std::string::npos && lt > 0 && item.find ("=?") < lt)
+		{
+			std::string name = trim (item.substr (0, lt));
+			bool wasquoted = name.size () >= 2 && name.front () == '"' && name.back () == '"';
+			if (!wasquoted)
+			{
+				name = Decode (name);
+				// Quote the name when it has characters special in an
+				// address, escaping quotes and backslashes.
+				if (name.find_first_of ("()<>[]:;@\\,.\"") != std::string::npos)
+				{
+					std::string q = "\"";
+					for (char c : name) { if (c == '"' || c == '\\') q += '\\'; q += c; }
+					name = q + "\"";
+				}
+			}
+			res = name + " " + item.substr (lt);
+		}
+		if (!out.empty ()) out += ", ";
+		out += res;
+	}
+	return out;
+}
+
+std::string AddressKey (const std::string &item)
+{
+	std::string name, addr;
+	SplitAddress (item, name, addr);
+	for (char &c : addr) c = (char) tolower ((unsigned char) c);
+	return addr;
+}
+
 void SplitAddress (const std::string &from, std::string &name, std::string &addr)
 {
 	name.clear(); addr.clear();

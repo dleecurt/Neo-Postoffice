@@ -112,8 +112,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         MenuItem {} {
           label Reply
           callback cb_reply_m
-          xywh {15 15 100 20} shortcut 0x80072 labelsize 12 divider
+          xywh {15 15 100 20} shortcut 0x80072 labelsize 12
           code0 {xloc(o, "reply");}
+        }
+        MenuItem {} {
+          label {Reply All}
+          callback cb_reply_all_m
+          xywh {15 15 100 20} shortcut 0x80052 labelsize 12
+          code0 {xloc(o, "reply_all");}
         }
         MenuItem {} {
           label Forward
@@ -124,7 +130,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         MenuItem {} {
           label {Forward full headers}
           callback cb_forwardfull_m
-          xywh {0 0 100 20} shortcut 0x80046 labelsize 12
+          xywh {0 0 100 20} shortcut 0x80046 labelsize 12 divider
         }
         MenuItem {} {
           label Redirect
@@ -285,174 +291,190 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {10 20 845 20}
         } {
           Fl_Group {} {open
-            xywh {85 20 75 20}
+            xywh {78 20 68 20}
           } {
             Fl_Button {} {
-              xywh {85 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {78 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/search.xpm} compress_image 1 xywh {86 21 29 18} align 20
+              image {icons/search.xpm} compress_image 1 xywh {79 21 29 18} align 20
             }
             Fl_Box {} {
               label Search
-              xywh {111 21 48 18} labelsize 10 align 24
+              xywh {104 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "search");}
             }
           }
           Fl_Group {} {open
-            xywh {10 20 75 20}
+            xywh {10 20 68 20}
           } {
             Fl_Button {} {
               callback cb_check_mail
-              xywh {10 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {10 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
               image {icons/send.xpm} compress_image 1 xywh {11 21 28 18} align 20
             }
             Fl_Box {} {
               label Check
-              xywh {41 21 43 18} labelsize 10 align 24
+              xywh {41 21 36 18} labelsize 10 align 24
               code0 {xloc(o, "check");}
             }
           }
           Fl_Group {} {open
-            xywh {235 20 75 20}
+            xywh {282 20 68 20}
           } {
             Fl_Button {} {
               callback cb_forward
-              xywh {235 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {282 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/forward.xpm} compress_image 1 xywh {236 21 29 18} align 20
+              image {icons/forward.xpm} compress_image 1 xywh {283 21 29 18} align 20
             }
             Fl_Box {} {
               label Fwd
-              xywh {261 21 48 18} labelsize 10 align 24
+              xywh {308 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "fwd");}
             }
           }
           Fl_Group {} {open
-            xywh {160 20 75 20}
+            xywh {146 20 68 20}
           } {
             Fl_Button {} {
               callback cb_reply
-              xywh {160 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {146 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/redo.xpm} compress_image 1 xywh {161 21 29 18} align 20
+              image {icons/redo.xpm} compress_image 1 xywh {147 21 29 18} align 20
             }
             Fl_Box {} {
               label Reply
-              xywh {181 21 53 18} labelsize 10 align 24
+              xywh {167 21 46 18} labelsize 10 align 24
               code0 {xloc(o, "rply");}
             }
           }
           Fl_Group {} {open
-            xywh {385 20 75 20}
+            xywh {214 20 68 20}
+          } {
+            Fl_Button {} {
+              callback cb_reply_all
+              tooltip {Reply to the sender and everyone the message went to} xywh {214 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+            }
+            Fl_Box {} {
+              image {icons/replyall.xpm} compress_image 1 xywh {215 21 29 18} align 20
+            }
+            Fl_Box {} {
+              label {Reply All}
+              xywh {238 21 43 18} labelsize 10 align 24
+              code0 {xloc(o, "reply_all");}
+            }
+          }
+          Fl_Group {} {open
+            xywh {418 20 68 20}
           } {
             Fl_Button {} {
               callback cb_delete
-              xywh {385 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {418 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/delete.xpm} compress_image 1 xywh {386 21 23 18} align 20
+              image {icons/delete.xpm} compress_image 1 xywh {419 21 23 18} align 20
             }
             Fl_Box {} {
               label Delete
-              xywh {411 21 48 18} labelsize 10 align 24
+              xywh {444 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "dlte");}
             }
           }
           Fl_Group {} {open
-            xywh {310 20 75 20}
+            xywh {350 20 68 20}
           } {
             Fl_Button {} {
-              xywh {310 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {350 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/move.xpm} compress_image 1 xywh {311 21 23 18} align 20
+              image {icons/move.xpm} compress_image 1 xywh {351 21 23 18} align 20
             }
             Fl_Box {} {
               label Redir
-              xywh {331 21 53 18} labelsize 10 align 24
+              xywh {371 21 46 18} labelsize 10 align 24
               code0 {xloc(o, "redir");}
             }
           }
           Fl_Group {} {open
-            xywh {460 20 75 20}
+            xywh {486 20 68 20}
           } {
             Fl_Button {} {
               callback cb_mark
-              tooltip {Flag or unflag the selected messages (Maildir)} xywh {460 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              tooltip {Flag or unflag the selected messages (Maildir)} xywh {486 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/stamp.xpm} compress_image 1 xywh {461 21 29 18} align 20
+              image {icons/stamp.xpm} compress_image 1 xywh {487 21 29 18} align 20
             }
             Fl_Box {} {
               label Mark
-              xywh {486 21 48 18} labelsize 10 align 24
+              xywh {512 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "mark");}
             }
           }
           Fl_Group {} {open
-            xywh {535 20 75 20}
+            xywh {554 20 68 20}
           } {
             Fl_Button {} {
-              xywh {535 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {554 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/fileprint.xpm} compress_image 1 xywh {536 21 29 18} align 20
+              image {icons/fileprint.xpm} compress_image 1 xywh {555 21 29 18} align 20
             }
             Fl_Box {} {
               label Print
-              xywh {561 21 48 18} labelsize 10 align 24
+              xywh {580 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "print");}
             }
           }
           Fl_Group {} {open
-            xywh {610 20 75 20}
+            xywh {622 20 68 20}
           } {
             Fl_Button {} {
-              xywh {610 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {622 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/openbook.xpm} compress_image 1 xywh {611 21 23 18} align 20
+              image {icons/openbook.xpm} compress_image 1 xywh {623 21 23 18} align 20
             }
             Fl_Box {} {
               label Addr
-              xywh {636 21 48 18} labelsize 10 align 24
+              xywh {648 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "addr");}
             }
           }
           Fl_Group {} {open
-            xywh {685 20 75 20}
+            xywh {690 20 68 20}
           } {
             Fl_Button {} {
               callback cb_configure
-              xywh {685 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {690 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/configure.xpm} compress_image 1 xywh {686 21 28 18} align 20
+              image {icons/configure.xpm} compress_image 1 xywh {691 21 28 18} align 20
             }
             Fl_Box {} {
               label Config
-              xywh {711 21 48 18} labelsize 10 align 24
+              xywh {716 21 41 18} labelsize 10 align 24
               code0 {xloc(o, "config");}
             }
           }
           Fl_Group {} {open
-            xywh {760 20 75 20}
+            xywh {758 20 77 20}
           } {
             Fl_Button {} {
               callback cb_stop
-              xywh {760 20 75 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              xywh {758 20 77 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
-              image {icons/stop.xpm} compress_image 1 xywh {761 21 28 18} align 20
+              image {icons/stop.xpm} compress_image 1 xywh {759 21 28 18} align 20
             }
             Fl_Box {} {
               label Stop
-              xywh {786 21 48 18} labelsize 10 align 24 resizable
+              xywh {784 21 50 18} labelsize 10 align 24 resizable
             }
           }
           Fl_Button bt_menu_shrink {
@@ -476,40 +498,44 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/redo.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            callback cb_forward
-            image {icons/forward.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            callback cb_reply_all
+            tooltip {Reply All} image {icons/replyall.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/move.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            callback cb_forward
+            image {icons/forward.xpm} compress_image 1 xywh {130 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+          }
+          Fl_Button {} {
+            image {icons/move.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
             callback cb_delete
-            image {icons/delete.xpm} compress_image 1 xywh {160 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/delete.xpm} compress_image 1 xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/stamp.xpm} compress_image 1 xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/stamp.xpm} compress_image 1 xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/fileprint.xpm} compress_image 1 xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/fileprint.xpm} compress_image 1 xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/openbook.xpm} compress_image 1 xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/openbook.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
             callback cb_configure
-            image {icons/configure.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/configure.xpm} compress_image 1 xywh {310 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
             callback cb_stop
-            image {icons/stop.xpm} compress_image 1 xywh {310 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/stop.xpm} compress_image 1 xywh {340 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Output out_ministatus {
-            xywh {360 20 495 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11 resizable
+            xywh {390 20 465 20} box THIN_DOWN_BOX color 52 labelsize 12 textfont 1 textsize 11 resizable
           }
           Fl_Button bt_menu_expand {
             label {@-2>}
             callback cb_menu_expand
-            xywh {340 20 20 20} box THIN_UP_BOX
+            xywh {370 20 20 20} box THIN_UP_BOX
           }
         }
       }
@@ -625,7 +651,14 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                   code0 {xloc(o, "reply");}
                 }
                 MenuItem {} {
+                  label {Reply All}
+                  callback cb_reply_all_m
+                  xywh {0 0 100 20} labelsize 12
+                  code0 {xloc(o, "reply_all");}
+                }
+                MenuItem {} {
                   label Forward
+                  callback cb_forward_m
                   xywh {0 0 100 20} labelsize 12
                   code0 {xloc(o, "forward");}
                 }
@@ -2766,120 +2799,6 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         callback cb_prefs_cancel
         xywh {546 526 89 19} down_box DOWN_BOX color 51 labelsize 12
         code0 {xloc(o, "cancel");}
-      }
-    }
-  }
-}
-
-Function {make_reply_options()} {} {
-  code {int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
-char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
-Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
-  Fl_Window win_reply_options {
-    label {Reply With Options}
-    xywh {118 191 610 112} type Single hide
-    code0 {xloc(o, "reply_with_options");} modal
-  } {
-    Fl_Group {} {open
-      xywh {5 5 600 70} box ENGRAVED_BOX color 51
-    } {
-      Fl_Group {} {open
-        xywh {20 45 565 20}
-      } {
-        Fl_Group {} {
-          xywh {215 45 165 20} box BORDER_FRAME color 0
-        } {
-          Fl_Choice ch_repopts_quoting {
-            callback cb_prefs_mailbox_flags
-            xywh {216 46 164 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
-          } {
-            MenuItem {} {
-              label {Smart Quoting}
-              xywh {40 40 100 20} labelsize 12
-              code0 {xloc(o, "smart_quoting");}
-            }
-            MenuItem {} {
-              label {Literal Quoting}
-              xywh {40 40 100 20} labelsize 12
-              code0 {xloc(o, "literal_quoting");}
-            }
-            MenuItem {} {
-              label {Quote All}
-              xywh {0 0 100 20} labelsize 12
-              code0 {xloc(o, "quote_all");}
-            }
-          }
-        }
-        Fl_Button {} {
-          label Quoting
-          xywh {20 45 154 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc(o, "quoting");}
-        }
-        Fl_Input {} {
-          xywh {500 45 85 20} type Int labelsize 12 textsize 12
-        }
-        Fl_Button {} {
-          label {Max Quote Depth}
-          xywh {390 45 130 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc(o, "message_policy");}
-        }
-      }
-      Fl_Group {} {
-        xywh {20 15 565 20}
-      } {
-        Fl_Group {} {
-          xywh {215 15 370 20} box BORDER_FRAME color 0
-        } {
-          Fl_Choice ch_repopts_replyto {
-            callback cb_prefs_mailbox_flags
-            xywh {216 16 369 19} down_box BORDER_BOX selection_color 7 labelsize 12 when 1 textsize 12
-          } {
-            MenuItem {} {
-              label {Sender or Reply-To header}
-              xywh {50 50 100 20} labelsize 12
-              code0 {xloc(o, "sender_or_reply_to");}
-            }
-            MenuItem {} {
-              label {Sender and All Recipients}
-              xywh {50 50 100 20} labelsize 12
-              code0 {xloc(o, "sender_and_all_rcpt");}
-            }
-            MenuItem {} {
-              label Sender
-              xywh {15 15 100 20} labelsize 12
-              code0 {xloc(o, "sender");}
-            }
-          }
-        }
-        Fl_Button {} {
-          label {Email Reply}
-          xywh {20 15 154 20} box NO_BOX labelsize 12 align 20
-          code0 {xloc(o, "reply_to");}
-        }
-      }
-    }
-    Fl_Group {} {
-      xywh {509 81 95 24} box BORDER_FRAME color 35
-    } {
-      Fl_Group {} {open
-        xywh {512 84 89 18} box BORDER_BOX
-      } {
-        Fl_Button bt_repopts_save {
-          label Use
-          callback cb_prefs_save
-          xywh {513 85 88 17} down_box DOWN_BOX color 51 labelsize 12
-          code0 {xloc(o, "save");}
-        }
-      }
-    }
-    Fl_Group {} {
-      xywh {8 84 90 20} box BORDER_BOX
-    } {
-      Fl_Button bt_repopts_apply {
-        label Apply
-        callback cb_prefs_apply
-        xywh {9 85 89 19} down_box DOWN_BOX color 51 labelsize 12
-        code0 {xloc(o, "apply");}
       }
     }
   }

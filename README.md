@@ -236,6 +236,25 @@ directory with `mbsync -a` (or `offlineimap -o -u quiet`) as its *Fetch
 command*: every check then brings new mail in and sends your changes
 back.
 
+## Replying and forwarding
+
+- **Reply** (Alt+R) answers the sender: the Reply-To address if the
+  message has one, otherwise From.
+- **Reply All** (toolbar, Message menu, the message's right-click menu,
+  Alt+Shift+R) puts the sender in To and everyone else the message went
+  to (its To and CC) in CC.
+- Your own addresses (those of all your identities) are left out, and
+  each address appears only once. Replying to a message you sent goes to
+  its recipients instead of to yourself.
+- The identity is chosen from the address the message was sent to: mail
+  to one of your identities is answered from that identity; otherwise
+  the default identity is used.
+- **Forward** leaves To empty for you to fill in, and keeps the
+  original's attachments.
+- Names and subjects written in other character sets (`=?UTF-8?B?...?=`
+  in the raw message) are shown decoded in replies, forwards and the
+  quoted header lines, and encoded again when sent.
+
 ## Sending mail
 
 Sent messages wait in the outbox, which is emptied every 15 seconds.
@@ -654,6 +673,8 @@ See the git history for details. In summary:
     injection, private mailbox files).
   - 0.8.2: saving and opening received attachments.
   - 0.8.3: sending attachments.
+  - 0.8.4: Reply All; replies and forwards show decoded names and
+    subjects; Forward leaves To empty.
 - **0.9.0**: when all the planned features are in (attachments, Reply
   All, and the rest): the feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
