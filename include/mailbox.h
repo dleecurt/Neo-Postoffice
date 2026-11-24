@@ -95,4 +95,9 @@ class MailBox
 		ASemaphore			*VLock;
 };
 
+// Neo-PostOffice: a multipart/mixed body of M's parts and its Content-Type
+// value (mailbox.cpp).
+#include <string>
+std::string mime_multipart_body (MailMessage *M, std::string &content_type);
+
 #endif

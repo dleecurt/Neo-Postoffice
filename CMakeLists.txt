@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
-  VERSION 0.8.2
+  VERSION 0.8.3
   DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 

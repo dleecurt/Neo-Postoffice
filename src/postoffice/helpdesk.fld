@@ -936,8 +936,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         Fl_Button {} {
           image {icons/lock.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
-        Fl_Button {} {
-          image {icons/attach2.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
+        Fl_Button compose_bt_attach_mini {
+          tooltip {Attach a file (you can also drag files onto the message)} image {icons/attach2.xpm} compress_image 1 xywh {70 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
         }
         Fl_Button {} {
           image {icons/editcut.xpm} compress_image 1 xywh {100 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 16
@@ -1048,8 +1048,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         Fl_Button {} {
           image {icons/lock.xpm} compress_image 1 xywh {100 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
-        Fl_Button {} {
-          image {icons/attach2.xpm} compress_image 1 xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
+        Fl_Button compose_bt_attach {
+          tooltip {Attach a file (you can also drag files onto the message)} image {icons/attach2.xpm} compress_image 1 xywh {190 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20
         }
         Fl_Button {} {
           image {icons/editcut.xpm} compress_image 1 xywh {280 20 90 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME align 20

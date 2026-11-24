@@ -76,6 +76,7 @@ FL_EXPORT Fl_Editor::Fl_Editor(int x, int y, int w, int h, const char *cap)
 	int bdx, bdy, bdh, bdw;
 	[[maybe_unused]] int ebdx, ebdy;
 	myHideCursor = false;
+	dnd_drop_ = false;
 	clear_output();
 	StartLine = 0;
 	overstrike = 0;
@@ -409,6 +410,8 @@ FL_EXPORT long Fl_Editor::FindRow(short screenY)
 	return(target);
 }
 
+void (*Fl_Editor::file_drop_hook) (Fl_Widget *, const char *) = 0;
+
 FL_EXPORT int Fl_Editor::handle(int event)
 {
 	int handled = 0;
@@ -596,7 +599,27 @@ FL_EXPORT int Fl_Editor::handle(int event)
 			CopySelection(false);	// set selection() so normal X mark-then-paste works.
 			selectlines =  false;
 			break;
+		// Neo-PostOffice: accept drops (files go to file_drop_hook).
+		case FL_DND_ENTER:
+		case FL_DND_DRAG:
+		case FL_DND_LEAVE:
+			handled = Readonly ? 0 : 1;
+			break;
+		case FL_DND_RELEASE:
+			dnd_drop_ = true;
+			handled = Readonly ? 0 : 1;
+			break;
 		case FL_PASTE:
+			if (dnd_drop_)
+			{
+				dnd_drop_ = false;
+				if (file_drop_hook && strncmp (Fl::event_text(), "file://", 7) == 0)
+				{
+					file_drop_hook (this, Fl::event_text());
+					handled = 1;
+					break;
+				}
+			}
 			if ( marking )
 			{
 				engine->Command(DELETE_REGION);
@@ -609,7 +632,11 @@ FL_EXPORT int Fl_Editor::handle(int event)
 			{
 				engine->LoadFrom(Fl::event_text());
 				// and move the cursor to the end of what was just inserted
-				engine->Command(MOVE_RIGHT, Fl::event_length());
+				// (MOVE_RIGHT steps whole UTF-8 characters: count those).
+				int chars = 0;
+				for (const char *c = Fl::event_text(); c && *c; ++c)
+					if (((unsigned char) *c & 0xC0) != 0x80) ++chars;
+				engine->Command(MOVE_RIGHT, chars);
 			}
 			damage(DAMAGE_EDITOR);
 			handled = 1;

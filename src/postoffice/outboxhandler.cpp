@@ -64,11 +64,14 @@ static Var *identity_for (const char *mailfrom, std::string &name)
 // identity names ("Save sent mail to"). The mailbox keeps it in its spool
 // and stores it on the server at its next check, which is started now.
 // Bcc stays in the copy, as a record of who got it.
-static void save_sent_copy (MailBox *Parent, MailMessage *M, const char *mailfrom, MailPart *P)
+// mime_type: the Content-Type of a multipart body (a message with
+// attachments), which then replaces the message's own content headers.
+static void save_sent_copy (MailBox *Parent, MailMessage *M, const char *mailfrom, const char *body,
+							const std::string &mime_type)
 {
 	std::string idname;
 	Var *I = identity_for (mailfrom, idname);
-	if (!I || !P) return;
+	if (!I || !body) return;
 	const char *target = I->Get_char ("sent_imap");
 	if (!target || !*target) return;
 	MailBox *T = NULL;
@@ -85,12 +88,17 @@ static void save_sent_copy (MailBox *Parent, MailMessage *M, const char *mailfro
 	bool have_id = false;
 	for (int i = 0; i < M->HeaderNames->Count; ++i)
 	{
-		if (strcasecmp (M->HeaderNames->Get (i), "Message-ID") == 0) have_id = true;
-		raw += std::string (M->HeaderNames->Get (i)) + ": " + M->HeaderValues->Get (i) + "\n";
+		const char *n = M->HeaderNames->Get (i);
+		if (strcasecmp (n, "Message-ID") == 0) have_id = true;
+		if (!mime_type.empty () && (strcasecmp (n, "Content-Type") == 0 || strcasecmp (n, "MIME-Version") == 0 ||
+									strcasecmp (n, "Content-Transfer-Encoding") == 0))
+			continue;
+		raw += std::string (n) + ": " + M->HeaderValues->Get (i) + "\n";
 	}
 	if (!have_id) raw += std::string ("Message-ID: ") + M->MsgID + "\n";
+	if (!mime_type.empty ()) raw += "MIME-Version: 1.0\nContent-Type: " + mime_type + "\n";
 	raw += "\n";
-	raw.append (P->Contents, strlen (P->Contents));
+	raw.append (body, strlen (body));
 	std::string err;
 	if (!T->Handler->DeliverRaw (raw, "\\Sent", "S", err))
 		Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
@@ -376,7 +384,27 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 			HeaderValues->Add (M->MsgID);
 
 			P = M->GetPart (0);
-			
+
+			// A message with attachments: its parts as a multipart/mixed
+			// body, whose Content-Type (with the boundary) replaces the
+			// message's own content headers.
+			std::string mime_body, mime_type;
+			char *send_body = P ? P->Contents : NULL;
+			if (P && M->Count > 1)
+			{
+				mime_body = mime_multipart_body (M, mime_type);
+				for (const char *h : { "Content-Type", "Content-Transfer-Encoding", "MIME-Version" })
+					for (int k; (k = HeaderNames->Find (h)) >= 0; )
+					{
+						HeaderNames->Delete (k);
+						HeaderValues->Delete (k);
+					}
+				HeaderNames->Add ("MIME-Version");
+				HeaderValues->Add ("1.0");
+				HeaderNames->Add ("Content-Type");
+				HeaderValues->Add ((char *) mime_type.c_str ());
+				send_body = &mime_body[0];
+			}
 
 			if (P && RCPT->Count)
 			{
@@ -392,14 +420,14 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 					JOBQ.Stat (jid, "Sending message from queue...");
 					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 					std::string err;
-					SendOutcome how = deliver_message (Parent, HeaderNames, HeaderValues, mailfrom, RCPT, P->Contents, err);
+					SendOutcome how = deliver_message (Parent, HeaderNames, HeaderValues, mailfrom, RCPT, send_body, err);
 					std::string subject = M->Header ("Subject") ? M->Header ("Subject") : "";
 					std::string what = "\"" + subject + "\"";
 					Q->DoneWithMessage();
 					switch (how)
 					{
 						case SEND_OK:
-							save_sent_copy (Parent, M, mailfrom, P);
+							save_sent_copy (Parent, M, mailfrom, send_body, mime_type);
 							sent = true;
 							retries.erase (M->MsgID);
 							forget_reports (M->MsgID);

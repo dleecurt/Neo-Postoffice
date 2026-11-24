@@ -152,6 +152,11 @@ protected:
 	FL_EXPORT void PushState(const fleditor_DrawState& state);
 	FL_EXPORT void PopState();
 public:
+	// Neo-PostOffice: files dropped on the editor (a text/uri-list of
+	// file:// addresses) go to this hook instead of being pasted as text.
+	static void (*file_drop_hook) (Fl_Widget *, const char *uris);
+	bool dnd_drop_;
+
 	FL_EXPORT Fl_Editor(int x, int y, int w, int h, const char *cap="") ;
 	virtual FL_EXPORT ~Fl_Editor();
 	FL_EXPORT int handle(int event);

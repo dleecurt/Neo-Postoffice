@@ -28,7 +28,7 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
 - Filter rules that sort incoming mail into folders
 - Inline display of JPEG attachments, clickable links; saving and
-  opening received attachments
+  opening received attachments, sending attachments
 - Multiple message views, composer with quoting and templates
 
 ## Building
@@ -353,6 +353,23 @@ Clicking a line offers:
 message into a folder you choose; an existing file is kept and the new
 one is saved as `name (2).ext`.
 
+### Sending attachments
+
+In the composer, **Attach** (also the small paperclip button) picks a
+file with the file requester, starting in the folder you attached from
+last. Files can also be dragged from a file manager onto the message
+text. Attached files are listed under the headers with their size and
+type; select one and press **Remove** to take it off. When the
+attachments together pass 10 MB you are asked first, since many mail
+servers refuse large messages and attachments grow by about a third
+when sent.
+
+A message with attachments is sent as `multipart/mixed`: the text
+first, then each file in base64 with its name (non-ASCII names are
+encoded as in RFC 2231). The copy kept in Sent has the attachments too.
+**Forward** keeps the original's attachments (remove any you do not
+want), and **Message → Edit Draft** brings back a draft's attachments.
+
 ## Storing mail in PostgreSQL
 
 Each mailbox can keep its downloaded messages in PostgreSQL instead of
@@ -636,6 +653,7 @@ See the git history for details. In summary:
   - 0.8.1: security fixes (no unencrypted POP3/IMAP login, no header
     injection, private mailbox files).
   - 0.8.2: saving and opening received attachments.
+  - 0.8.3: sending attachments.
 - **0.9.0**: when all the planned features are in (attachments, Reply
   All, and the rest): the feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without

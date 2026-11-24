@@ -28,6 +28,10 @@
 #include "mailheaders.h"
 
 #include <FL/Fl_Pixmap.H>
+#include <FL/Fl_Hold_Browser.H>
+#include <FL/Fl_Box.H>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <FL/x.H>
 
 #include <pthread.h>
@@ -110,6 +114,14 @@ struct Composer_Window
 		// Neo-PostOffice: the OutBox draft this window edits; it is removed
 		// once the corrected message is queued.
 		char				 draftid[256];
+
+		// Neo-PostOffice: the files attached (their contents, read when
+		// attached), and the row under Subject that lists them.
+		struct Attachment { std::string Name, Type, Data; };
+		std::vector<Attachment> atts;
+		Fl_Group			*gr_atts;
+		Fl_Hold_Browser		*br_atts;
+		Fl_Button			*bt_att_remove;
 };
 
 // The composer windows that are open (Neo-PostOffice): the Message menu's
@@ -136,6 +148,13 @@ static void set_original (Composer_Window *W, char flag)
 	const char *mid = M->Header ("Message-ID");
 	if (mid && *mid) snprintf (W->msgid, sizeof (W->msgid), "%s", mid);
 }
+
+// Attachments (Neo-PostOffice; defined below).
+static void composer_layout (Composer_Window *W, bool full);
+static void cb_compose_attach (Fl_Widget *, void *);
+static void cb_compose_att_remove (Fl_Widget *, void *);
+static void composer_file_drop (Fl_Widget *, const char *);
+static void attach_parts_of (Composer_Window *, MailMessage *, int);
 
 Composer_Window *create_composer_window (void)
 {
@@ -180,6 +199,30 @@ Composer_Window *create_composer_window (void)
 	W->gr_bcc			= gr_compose_bcc;
 	
 	W->in_message->WantTabs (false);
+
+	// The attachments row (Neo-PostOffice): under Subject, shown by
+	// composer_layout only when something is attached.
+	{
+		int ax = W->in_subject->x (), aw = W->in_subject->w (), ay = W->in_subject->y () + 25;
+		W->gr_headers->begin ();
+		W->gr_atts = new Fl_Group (ax, ay, aw, 48);
+		W->br_atts = new Fl_Hold_Browser (ax, ay, aw - 76, 48, "Attachments");
+		W->br_atts->labelsize (12);
+		W->br_atts->textsize (12);
+		W->br_atts->align (FL_ALIGN_LEFT);
+		W->br_atts->format_char (0);		// names are shown as they are
+		W->bt_att_remove = new Fl_Button (ax + aw - 72, ay, 72, 20, "Remove");
+		W->bt_att_remove->labelsize (12);
+		W->bt_att_remove->tooltip ("Remove the selected attachment");
+		W->bt_att_remove->callback ((Fl_Callback *) cb_compose_att_remove, (void *) W);
+		W->gr_atts->resizable (W->br_atts);
+		W->gr_atts->end ();
+		W->gr_headers->end ();
+		W->gr_atts->hide ();
+	}
+	compose_bt_attach->callback ((Fl_Callback *) cb_compose_attach, (void *) W);
+	compose_bt_attach_mini->callback ((Fl_Callback *) cb_compose_attach, (void *) W);
+	Fl_Editor::file_drop_hook = composer_file_drop;
 	
 	compose_bt_address->callback ((Fl_Callback *) cb_address, (void *) compose_in_to);
 	compose_bt_address2->callback ((Fl_Callback *) cb_address, (void *) compose_in_cc);
@@ -381,6 +424,14 @@ void doforward (bool fullhdr)
 	
 	W->in_message->LoadFrom ((char *) quoted_body->Data);
 	delete (quoted_body);
+
+	// The original's attachments go along (each can be removed).
+	if (currentmailbox)
+		if (MailMessage *O = currentmailbox->Find (currentmsgid[mdi_current]))
+		{
+			if (!(O->Flags & MMFL_INRAM) && (O->Flags & MMFL_HAVEBODY)) O->LoadBody ();
+			if (O->Flags & MMFL_INRAM) attach_parts_of (W, O, 0);
+		}
 }
 
 static Composer_Window *composer_of (Fl_Widget *w)
@@ -394,6 +445,223 @@ static Composer_Window *composer_of (Fl_Widget *w)
 static void forget_composer (Composer_Window *W)
 {
 	open_composers.erase (std::remove (open_composers.begin(), open_composers.end(), W), open_composers.end());
+}
+
+//-------------------------------------------------------------------------------
+// Attachments in the composer (Neo-PostOffice)
+//-------------------------------------------------------------------------------
+
+const char *file_request (const char *title, const char *dir, const char *name, bool folder);
+bool part_is_attachment (const MailPart *);
+std::string attachment_file_name (const MailPart *, int);
+bool attachment_bytes (const MailPart *, std::string &);
+
+// Above this the user is asked first: many servers refuse 10-25 MB, and
+// base64 makes attachments a third bigger.
+static const size_t ATTACH_WARN = 10 * 1024 * 1024;
+
+static std::string size_label (size_t n)
+{
+	char buf[32];
+	if (n < 1024) snprintf (buf, sizeof (buf), "%zu bytes", n);
+	else if (n < 1024 * 1024) snprintf (buf, sizeof (buf), "%.1f KB", n / 1024.0);
+	else snprintf (buf, sizeof (buf), "%.1f MB", n / (1024.0 * 1024.0));
+	return buf;
+}
+
+// The MIME type by the file's extension; application/octet-stream if unknown.
+static std::string guess_type (const std::string &name)
+{
+	static const struct { const char *ext, *type; } known[] = {
+		{ "txt", "text/plain" }, { "text", "text/plain" }, { "log", "text/plain" }, { "md", "text/plain" },
+		{ "csv", "text/csv" }, { "html", "text/html" }, { "htm", "text/html" }, { "xml", "text/xml" },
+		{ "ics", "text/calendar" }, { "vcf", "text/vcard" }, { "pdf", "application/pdf" },
+		{ "jpg", "image/jpeg" }, { "jpeg", "image/jpeg" }, { "png", "image/png" }, { "gif", "image/gif" },
+		{ "webp", "image/webp" }, { "svg", "image/svg+xml" }, { "bmp", "image/bmp" }, { "tif", "image/tiff" },
+		{ "tiff", "image/tiff" }, { "zip", "application/zip" }, { "gz", "application/gzip" },
+		{ "tgz", "application/gzip" }, { "bz2", "application/x-bzip2" }, { "xz", "application/x-xz" },
+		{ "7z", "application/x-7z-compressed" }, { "tar", "application/x-tar" },
+		{ "doc", "application/msword" }, { "xls", "application/vnd.ms-excel" },
+		{ "ppt", "application/vnd.ms-powerpoint" },
+		{ "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+		{ "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+		{ "pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+		{ "odt", "application/vnd.oasis.opendocument.text" },
+		{ "ods", "application/vnd.oasis.opendocument.spreadsheet" },
+		{ "odp", "application/vnd.oasis.opendocument.presentation" },
+		{ "rtf", "application/rtf" }, { "json", "application/json" }, { "mp3", "audio/mpeg" },
+		{ "ogg", "audio/ogg" }, { "wav", "audio/wav" }, { "mp4", "video/mp4" }, { "eml", "message/rfc822" },
+	};
+	size_t dot = name.rfind ('.');
+	if (dot == std::string::npos) return "application/octet-stream";
+	std::string ext = name.substr (dot + 1);
+	for (char &c : ext) c = tolower ((unsigned char) c);
+	for (auto &k : known) if (ext == k.ext) return k.type;
+	return "application/octet-stream";
+}
+
+// Base64 in lines of 76 characters (RFC 2045).
+static std::string base64_lines (const std::string &in)
+{
+	static const char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	std::string out;
+	out.reserve (in.size () * 4 / 3 + in.size () / 57 * 2 + 8);
+	int col = 0;
+	size_t i = 0;
+	auto put = [&](char c) { out += c; if (++col == 76) { out += '\n'; col = 0; } };
+	for (; i + 2 < in.size (); i += 3)
+	{
+		unsigned v = ((unsigned char) in[i] << 16) | ((unsigned char) in[i + 1] << 8) | (unsigned char) in[i + 2];
+		put (b64[v >> 18]); put (b64[(v >> 12) & 63]); put (b64[(v >> 6) & 63]); put (b64[v & 63]);
+	}
+	if (i + 1 == in.size ())
+	{
+		unsigned v = (unsigned char) in[i] << 16;
+		put (b64[v >> 18]); put (b64[(v >> 12) & 63]); put ('='); put ('=');
+	}
+	else if (i + 2 == in.size ())
+	{
+		unsigned v = ((unsigned char) in[i] << 16) | ((unsigned char) in[i + 1] << 8);
+		put (b64[v >> 18]); put (b64[(v >> 12) & 63]); put (b64[(v >> 6) & 63]); put ('=');
+	}
+	if (col) out += '\n';
+	return out;
+}
+
+static size_t attached_total (Composer_Window *W)
+{
+	size_t n = 0;
+	for (auto &a : W->atts) n += a.Data.size ();
+	return n;
+}
+
+// The list under Subject, and the header area around it.
+static void refresh_attachments (Composer_Window *W)
+{
+	W->br_atts->clear ();
+	for (auto &a : W->atts)
+		W->br_atts->add ((a.Name + "   (" + size_label (a.Data.size ()) + ", " + a.Type + ")").c_str ());
+	char tip[96];
+	snprintf (tip, sizeof (tip), "%d file%s, %s in all", (int) W->atts.size (), W->atts.size () == 1 ? "" : "s",
+			  size_label (attached_total (W)).c_str ());
+	W->br_atts->copy_tooltip (tip);
+	composer_layout (W, W->gr_cc->visible ());
+}
+
+// Adds an attachment, asking first if the total passes ATTACH_WARN.
+static bool add_attachment (Composer_Window *W, const std::string &name, const std::string &type, std::string data)
+{
+	size_t total = attached_total (W) + data.size ();
+	if (total > ATTACH_WARN &&
+		fl_choice ("With \"%s\" the attachments come to %s.\n\n"
+				   "Many mail servers refuse messages over 10 to 25 MB, and attachments grow\n"
+				   "by about a third when sent. Attach it anyway?",
+				   "Cancel", "Attach", NULL, name.c_str (), size_label (total).c_str ()) != 1)
+		return false;
+	W->atts.push_back ({ name, type, std::move (data) });
+	return true;
+}
+
+// Reads a file and attaches it. Says why if it cannot.
+static bool attach_file (Composer_Window *W, const std::string &path)
+{
+	struct stat st;
+	if (stat (path.c_str (), &st) != 0) { fl_alert ("Cannot attach %s: %s.", path.c_str (), strerror (errno)); return false; }
+	if (!S_ISREG (st.st_mode)) { fl_alert ("Cannot attach %s: only files can be attached, not folders.", path.c_str ()); return false; }
+	int fd = open (path.c_str (), O_RDONLY | O_CLOEXEC);
+	if (fd < 0) { fl_alert ("Cannot attach %s: %s.", path.c_str (), strerror (errno)); return false; }
+	std::string data;
+	data.reserve ((size_t) st.st_size);
+	char buf[65536];
+	ssize_t n;
+	while ((n = read (fd, buf, sizeof (buf))) > 0) data.append (buf, (size_t) n);
+	int err = n < 0 ? errno : 0;
+	close (fd);
+	if (err) { fl_alert ("Cannot read %s: %s.", path.c_str (), strerror (err)); return false; }
+	size_t slash = path.rfind ('/');
+	std::string name = slash == std::string::npos ? path : path.substr (slash + 1);
+	if (slash != std::string::npos)
+		PREFERENCES.Set_char_tree ("postoffice/state/attachments/attachfolder", (char *) (slash ? path.substr (0, slash) : std::string ("/")).c_str ());
+	return add_attachment (W, name, guess_type (name), std::move (data));
+}
+
+// The Attach button: the file requester, in the folder used last.
+static void cb_compose_attach (Fl_Widget *, void *v)
+{
+	Composer_Window *W = (Composer_Window *) v;
+	std::string dir = PREFERENCES.Get_char_tree ("postoffice/state/attachments/attachfolder");
+	struct stat st;
+	if (dir.empty () || stat (dir.c_str (), &st) != 0 || !S_ISDIR (st.st_mode))
+		dir = getenv ("HOME") ? getenv ("HOME") : "/";
+	const char *path = file_request ("Attach a file", dir.c_str (), "", false);
+	if (!path || !*path) return;
+	if (attach_file (W, path)) refresh_attachments (W);
+}
+
+static void cb_compose_att_remove (Fl_Widget *, void *v)
+{
+	Composer_Window *W = (Composer_Window *) v;
+	int i = W->br_atts->value ();
+	if (i < 1 || i > (int) W->atts.size ())
+	{
+		if (W->atts.size () != 1) { fl_alert ("Select the attachment to remove."); return; }
+		i = 1;
+	}
+	W->atts.erase (W->atts.begin () + (i - 1));
+	refresh_attachments (W);
+}
+
+// Files dropped on the message text (a text/uri-list of file:// addresses).
+static void composer_file_drop (Fl_Widget *w, const char *uris)
+{
+	Composer_Window *W = composer_of (w);
+	if (!W) return;
+	bool any = false;
+	std::string list = uris ? uris : "";
+	size_t pos = 0;
+	while (pos < list.size ())
+	{
+		size_t end = list.find ('\n', pos);
+		if (end == std::string::npos) end = list.size ();
+		std::string line = list.substr (pos, end - pos);
+		pos = end + 1;
+		while (!line.empty () && (line.back () == '\r' || line.back () == ' ')) line.pop_back ();
+		if (line.compare (0, 7, "file://") != 0) continue;
+		size_t slash = line.find ('/', 7);		// file:///path or file://host/path
+		if (slash == std::string::npos) continue;
+		std::string path;
+		for (size_t k = slash; k < line.size (); ++k)
+		{
+			if (line[k] == '%' && k + 2 < line.size () && isxdigit ((unsigned char) line[k + 1]) && isxdigit ((unsigned char) line[k + 2]))
+			{
+				path += (char) strtol (line.substr (k + 1, 2).c_str (), NULL, 16);
+				k += 2;
+			}
+			else path += line[k];
+		}
+		if (attach_file (W, path)) any = true;
+	}
+	if (any) refresh_attachments (W);
+}
+
+// The attachments of a message (a forwarded original, or a draft from
+// part skip on), with their transfer encoding undone.
+static void attach_parts_of (Composer_Window *W, MailMessage *M, int skip)
+{
+	if (!M) return;
+	for (int i = skip; i < M->Count; ++i)
+	{
+		MailPart *P = M->GetPart (i);
+		if (!part_is_attachment (P)) continue;
+		std::string data;
+		if (!attachment_bytes (P, data)) continue;
+		std::string type = P->ContentType ? P->ContentType : "application/octet-stream";
+		size_t semi = type.find (';');
+		if (semi != std::string::npos) type.erase (semi);
+		if (type == "text/uuencoded") type = guess_type (attachment_file_name (P, i));
+		W->atts.push_back ({ attachment_file_name (P, i), type, std::move (data) });
+	}
+	refresh_attachments (W);
 }
 
 void cb_compose_menu_send (Fl_Menu_ *m, void * /*v*/)
@@ -664,13 +932,44 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 	// (without these headers, other programs had to guess the charset).
 	HdrNames->Add ("MIME-Version");
 	HdrValues->Add ("1.0");
-	HdrNames->Add ("Content-Type");
-	HdrValues->Add ("text/plain; charset=UTF-8");
-	HdrNames->Add ("Content-Transfer-Encoding");
-	HdrValues->Add (mailheaders::IsASCII (body) ? "7bit" : "8bit");
-
-
-	M->AddPart ((char *) "text/plain", "", "", (char *) body);
+	if (W->atts.empty ())
+	{
+		HdrNames->Add ("Content-Type");
+		HdrValues->Add ("text/plain; charset=UTF-8");
+		HdrNames->Add ("Content-Transfer-Encoding");
+		HdrValues->Add (mailheaders::IsASCII (body) ? "7bit" : "8bit");
+		M->AddPart ((char *) "text/plain", "", "", (char *) body);
+	}
+	else
+	{
+		// With attachments: multipart/mixed (its Content-Type, with the
+		// boundary, is written when the message is sent). The text is the
+		// first part, each file a base64 part after it.
+		std::string text_type = std::string ("text/plain; charset=UTF-8; x-neo-cte=") +
+								(mailheaders::IsASCII (body) ? "7bit" : "8bit");
+		M->AddPart (text_type.c_str (), "", "", (char *) body);
+		for (auto &a : W->atts)
+		{
+			// A whole message (message/rfc822) may not be base64 (RFC 2046
+			// 5.2.1): it goes as text when it is text with lines of mail
+			// length, else as a plain file.
+			if (a.Type.compare (0, 8, "message/") == 0)
+			{
+				bool ok = a.Data.find ('\0') == std::string::npos;
+				size_t line = 0;
+				for (char c : a.Data) { if (c == '\n') line = 0; else if (++line > 998) { ok = false; break; } }
+				if (ok)
+				{
+					M->AddPart ((a.Type + "; x-neo-cte=" + (mailheaders::IsASCII (a.Data) ? "7bit" : "8bit")).c_str (),
+								"", a.Name.c_str (), a.Data.c_str ());
+					continue;
+				}
+				M->AddPart ("application/octet-stream; x-neo-cte=base64", "", a.Name.c_str (), base64_lines (a.Data).c_str ());
+				continue;
+			}
+			M->AddPart ((a.Type + "; x-neo-cte=base64").c_str (), "", a.Name.c_str (), base64_lines (a.Data).c_str ());
+		}
+	}
 
 	// Store the message in the outbox
 	
@@ -765,10 +1064,14 @@ static void composer_layout (Composer_Window *W, bool full)
 	Fl_Widget *optional[] = { W->gr_personality, W->gr_cc, W->gr_bcc };
 	int n = full ? 5 : 2;
 
+	// The attachments row under Subject, only when something is attached.
+	const int atth = 48;
+	bool atts = W->gr_atts && !W->atts.empty ();
+
 	// The header area first, without FLTK moving its children (it would
 	// stretch the To row into the new height), then the rows.
 	int bottom = W->in_message->y () + W->in_message->h ();
-	H->Fl_Widget::resize (H->x (), H->y (), H->w (), top + n * inc);
+	H->Fl_Widget::resize (H->x (), H->y (), H->w (), top + n * inc + (atts ? atth + 5 : 0));
 	int i = 0;
 	for (Fl_Widget *r : rows_full)
 	{
@@ -783,6 +1086,14 @@ static void composer_layout (Composer_Window *W, bool full)
 		else { r->hide (); r->resize (x, y, r->w (), rowh); }
 	}
 	if (full) W->ch_personality->show ();
+	if (W->gr_atts)
+	{
+		int ay = y + n * inc;
+		W->gr_atts->resize (x, ay, W->in_subject->w (), atth);
+		W->br_atts->resize (x, ay, W->in_subject->w () - 76, atth);
+		W->bt_att_remove->resize (x + W->in_subject->w () - 72, ay, 72, 20);
+		if (atts) W->gr_atts->show (); else W->gr_atts->hide ();
+	}
 
 	// Its drag handle, and the message below it.
 	W->bt_resizeheader->resize (W->bt_resizeheader->x (), H->y (), W->bt_resizeheader->w (), H->h ());
@@ -963,10 +1274,12 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 	MailPart *P = M->GetPart (0);
 	std::string body = P && P->Contents ? P->Contents : "";
 	size_t sig = body.rfind ("\n-- \n");
-	if (sig != std::string::npos) body.erase (sig + 1);
+	if (sig != std::string::npos) body.erase (sig);
 	else if (body.compare (0, 4, "-- \n") == 0) body.clear ();
 	W->in_message->LoadFrom ((char *) body.c_str ());
 
 	if (*M->Header ("CC") || *M->Header ("BCC"))
 		cb_compose_header_expand (NULL, W);
+	// Its attachments (the parts after the text).
+	attach_parts_of (W, M, 1);
 }

@@ -1556,6 +1556,8 @@ static Fl_Image *image_lock() {
   return image;
 }
 
+Fl_Button *compose_bt_attach_mini=(Fl_Button *)0;
+
 static const char *idata_attach2[] = {
 "16 16 59 1",
 " \tc None",
@@ -1997,6 +1999,8 @@ Fl_Group *gr_compose_bigbuttons=(Fl_Group *)0;
 
 Fl_Button *compose_bt_send=(Fl_Button *)0;
 
+Fl_Button *compose_bt_attach=(Fl_Button *)0;
+
 Fl_Button *bt_compose_menu_shrink=(Fl_Button *)0;
 
 Fl_FancyEditor *compose_in_message=(Fl_FancyEditor *)0;
@@ -2053,12 +2057,13 @@ Fl_Window* make_compose_window() {
           o->image( image_lock() );
           o->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
         } // Fl_Button* o
-        { Fl_Button* o = new Fl_Button(70, 20, 30, 20);
-          o->box(FL_THIN_UP_BOX);
-          o->down_box(FL_THIN_DOWN_BOX);
-          o->image( image_attach2() );
-          o->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
-        } // Fl_Button* o
+        { compose_bt_attach_mini = new Fl_Button(70, 20, 30, 20);
+          compose_bt_attach_mini->tooltip("Attach a file (you can also drag files onto the message)");
+          compose_bt_attach_mini->box(FL_THIN_UP_BOX);
+          compose_bt_attach_mini->down_box(FL_THIN_DOWN_BOX);
+          compose_bt_attach_mini->image( image_attach2() );
+          compose_bt_attach_mini->align(Fl_Align(FL_ALIGN_CENTER|FL_ALIGN_INSIDE));
+        } // Fl_Button* compose_bt_attach_mini
         { Fl_Button* o = new Fl_Button(100, 20, 30, 20);
           o->box(FL_THIN_UP_BOX);
           o->down_box(FL_THIN_DOWN_BOX);
@@ -2199,12 +2204,13 @@ Fl_Window* make_compose_window() {
           o->image( image_lock() );
           o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
         } // Fl_Button* o
-        { Fl_Button* o = new Fl_Button(190, 20, 90, 20);
-          o->box(FL_THIN_UP_FRAME);
-          o->down_box(FL_THIN_DOWN_FRAME);
-          o->image( image_attach2() );
-          o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-        } // Fl_Button* o
+        { compose_bt_attach = new Fl_Button(190, 20, 90, 20);
+          compose_bt_attach->tooltip("Attach a file (you can also drag files onto the message)");
+          compose_bt_attach->box(FL_THIN_UP_FRAME);
+          compose_bt_attach->down_box(FL_THIN_DOWN_FRAME);
+          compose_bt_attach->image( image_attach2() );
+          compose_bt_attach->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
+        } // Fl_Button* compose_bt_attach
         { Fl_Button* o = new Fl_Button(280, 20, 90, 20);
           o->box(FL_THIN_UP_FRAME);
           o->down_box(FL_THIN_DOWN_FRAME);

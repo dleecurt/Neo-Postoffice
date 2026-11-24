@@ -920,38 +920,17 @@ void MailBox::ClearBiff (void)
 
 extern MailBox *MailBoxList[16];
 
-// Best-effort rebuild of a message from the local copy, for when its source
-// no longer has it (e.g. deleted from a POP3 server after downloading).
-// The local copy keeps the headers and the body split into parts, but not
-// each part's transfer encoding, so the result may differ from the original.
-static std::string rebuild_raw (MailMessage *M)
+// The body of a multipart/mixed message made of M's parts, and the value
+// for its Content-Type header (with the boundary). Each part gets its type,
+// file name (RFC 2231 for non-ASCII) and transfer encoding (kept in the
+// x-neo-cte parameter). Used to rebuild copies and to send messages with
+// attachments.
+std::string mime_multipart_body (MailMessage *M, std::string &content_type)
 {
-    if (!M || !(M->Flags & MMFL_HAVEBODY)) return "";
-    if (!(M->Flags & MMFL_INRAM)) M->LoadBody();
-    if (!(M->Flags & MMFL_INRAM)) return "";
-    if (M->HeaderNames->Count == 0) M->LoadHeaders();
-
-    bool multi = M->Count > 1;
-    std::string out = "X-Neo-PostOffice-Rebuilt: the original was no longer available; rebuilt from the local copy\n";
-    for (int i = 0; i < M->HeaderNames->Count; ++i)
-    {
-        const char *n = M->HeaderNames->Get (i);
-        if (multi && (strcasecmp (n, "Content-Type") == 0 || strcasecmp (n, "Content-Transfer-Encoding") == 0 ||
-                      strcasecmp (n, "MIME-Version") == 0 || strcasecmp (n, "Content-Length") == 0))
-            continue;
-        out += std::string (n) + ": " + M->HeaderValues->Get (i) + "\n";
-    }
-    if (!multi)
-    {
-        out += "\n";
-        if (MailPart *P = M->GetPart (0)) out.append (P->Contents, P->ContentSize);
-        return out;
-    }
-
     char boundary[64];
     snprintf (boundary, sizeof (boundary), "neo-postoffice-%lx-%x", (long) time (NULL), (unsigned) rand());
-    out += "MIME-Version: 1.0\n";
-    out += std::string ("Content-Type: multipart/mixed; boundary=\"") + boundary + "\"\n\n";
+    content_type = std::string ("multipart/mixed; boundary=\"") + boundary + "\"";
+    std::string out;
     for (int i = 0; i < M->Count; ++i)
     {
         MailPart *P = M->GetPart (i);
@@ -1004,6 +983,42 @@ static std::string rebuild_raw (MailMessage *M)
         if (body.empty() || body.back() != '\n') out += "\n";
     }
     out += std::string ("--") + boundary + "--\n";
+    return out;
+}
+
+// Best-effort rebuild of a message from the local copy, for when its source
+// no longer has it (e.g. deleted from a POP3 server after downloading).
+// The local copy keeps the headers and the body split into parts, but not
+// each part's transfer encoding, so the result may differ from the original.
+static std::string rebuild_raw (MailMessage *M)
+{
+    if (!M || !(M->Flags & MMFL_HAVEBODY)) return "";
+    if (!(M->Flags & MMFL_INRAM)) M->LoadBody();
+    if (!(M->Flags & MMFL_INRAM)) return "";
+    if (M->HeaderNames->Count == 0) M->LoadHeaders();
+
+    bool multi = M->Count > 1;
+    std::string out = "X-Neo-PostOffice-Rebuilt: the original was no longer available; rebuilt from the local copy\n";
+    for (int i = 0; i < M->HeaderNames->Count; ++i)
+    {
+        const char *n = M->HeaderNames->Get (i);
+        if (multi && (strcasecmp (n, "Content-Type") == 0 || strcasecmp (n, "Content-Transfer-Encoding") == 0 ||
+                      strcasecmp (n, "MIME-Version") == 0 || strcasecmp (n, "Content-Length") == 0))
+            continue;
+        out += std::string (n) + ": " + M->HeaderValues->Get (i) + "\n";
+    }
+    if (!multi)
+    {
+        out += "\n";
+        if (MailPart *P = M->GetPart (0)) out.append (P->Contents, P->ContentSize);
+        return out;
+    }
+
+    std::string ctype;
+    std::string body = mime_multipart_body (M, ctype);
+    out += "MIME-Version: 1.0\n";
+    out += "Content-Type: " + ctype + "\n\n";
+    out += body;
     return out;
 }
 

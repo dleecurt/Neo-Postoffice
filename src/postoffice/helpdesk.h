@@ -115,6 +115,7 @@ extern void cb_compose_menu_send(Fl_Menu_*, void*);
 extern void cb_compose_menu_discard(Fl_Menu_*, void*);
 extern Fl_Group *gr_compose_mini_buttons;
 extern Fl_Button *compose_mbt_send;
+extern Fl_Button *compose_bt_attach_mini;
 extern void cb_compose_menu_expand(Fl_Button*, void*);
 extern Fl_Button *bt_compose_menu_expand;
 extern Fl_Group *gr_compose_attachments;
@@ -138,6 +139,7 @@ extern Fl_Input *compose_in_subject;
 extern Fl_Button *compose_bt_resizeheader;
 extern Fl_Group *gr_compose_bigbuttons;
 extern Fl_Button *compose_bt_send;
+extern Fl_Button *compose_bt_attach;
 extern void cb_compose_menu_shrink(Fl_Button*, void*);
 extern Fl_Button *bt_compose_menu_shrink;
 #include <FL/Fl_FancyEditor.H>
