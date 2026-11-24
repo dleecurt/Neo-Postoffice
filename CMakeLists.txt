@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
-  VERSION 0.8.1
+  VERSION 0.8.2
   DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 
@@ -162,7 +162,7 @@ configure_file(src/postoffice/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated
 set(PO_GUI_SOURCES
   composer.cpp filereq.cpp filereq-main.cpp helpdesk.cpp helpdesk-main.cpp
   ht.cpp iconbrowser.cpp initexitthread.cpp listviewtree.cpp maccheck.cpp
-  mailboxtree.cpp mdi.cpp prefpanel.cpp style.cpp)
+  mailboxtree.cpp attachments.cpp mdi.cpp prefpanel.cpp style.cpp)
 
 set(PO_BACKEND_SOURCES
   base64.cpp btree.cpp buffer.cpp ccache.cpp checksum.cpp chop.cpp

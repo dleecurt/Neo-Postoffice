@@ -402,6 +402,10 @@ void cb_markunread_m (Fl_Menu_ */*w*/, void */*d*/)
 }
 
 void folder_subscriptions_show (WordList *);
+void attachments_init (void);
+bool part_is_attachment (const MailPart *);
+std::string attachment_file_name (const MailPart *, int);
+bool attachment_bytes (const MailPart *, std::string &);
 void cb_delete (Fl_Button *, void *);
 void cb_mark (Fl_Button *, void *);
 
@@ -894,6 +898,7 @@ int main (int argc, char *argv[])
 	
 	W->show (argc, argv);
 	Fl::add_handler (select_all_shortcut);
+	attachments_init ();
 
 	o = br_folderindex;
     	o->column_widths (xwidths);
@@ -1384,6 +1389,10 @@ void displaymessage (MailMessage *M)
 
 	// display the message body
 
+	// Attachments shown inline (named text, JPEG pictures) get their own
+	// clickable line after the message, to save or open them.
+	std::vector<int> inline_attachments;
+
 	for (int ik=0;ik<M->Count;++ik)
 	{
 		P = M->GetPart (ik);
@@ -1418,6 +1427,7 @@ void displaymessage (MailMessage *M)
 			
 			if (strcasecmp (CTH.Get(0), "text/plain") == 0)
 			{
+				if (P->FileName && *P->FileName) inline_attachments.push_back (ik);
 				// Undo the transfer encoding and convert the charset to UTF-8
 				// (Neo-PostOffice: 0.7 showed the stored text as it was, so
 				// quoted-printable showed =20 and 8-bit text showed ?).
@@ -1526,6 +1536,7 @@ void displaymessage (MailMessage *M)
 				}
 				if (strcasecmp (mimetype, "image/jpeg") == 0)
 				{
+					inline_attachments.push_back (ik);
 					unsigned long size = 0;
 					unsigned char *jpeg_data = NULL;
 
@@ -1590,12 +1601,32 @@ void displaymessage (MailMessage *M)
 					std::string shown_type = P->ContentType ? P->ContentType : "";
 					size_t cut = shown_type.find ("; x-neo-cte=");
 					if (cut != std::string::npos) shown_type.erase (cut);
-					snprintf (buf, sizeof (buf), "%i: \"%s\" %s (%i bytes): %s\n", ik + 1, P->FileName ? P->FileName : "",
-							  shown_type.c_str(), (int) P->ContentSize, P->Description ? P->Description : "");
-					mdi_views[mdi_current]->add_header ((char *) locs("Attachment","attachment"), buf);
+					// The size of the file itself, not of its encoded form.
+					std::string bytes;
+					size_t size = attachment_bytes (P, bytes) ? bytes.size () : (size_t) P->ContentSize;
+					char sz[32];
+					if (size < 1024) snprintf (sz, sizeof (sz), "%zu bytes", size);
+					else if (size < 1024 * 1024) snprintf (sz, sizeof (sz), "%.1f KB", size / 1024.0);
+					else snprintf (sz, sizeof (sz), "%.1f MB", size / (1024.0 * 1024.0));
+					const char *desc = P->Description && *P->Description ? P->Description : NULL;
+					snprintf (buf, sizeof (buf), "%i: \"%s\" %s (%s)%s%s", ik + 1, P->FileName ? P->FileName : "",
+							  shown_type.c_str(), sz, desc ? " - " : "", desc ? desc : "");
+					// Clicking it offers Save as... / Open... (attachments.cpp).
+					mdi_views[mdi_current]->add_attachment ((char *) locs("Attachment","attachment"), buf, ik);
 				}
 			}
 		}
+	}
+
+	for (int ik : inline_attachments)
+	{
+		P = M->GetPart (ik);
+		std::string shown_type = P->ContentType ? P->ContentType : "";
+		size_t cut = shown_type.find (';');
+		if (cut != std::string::npos) shown_type.erase (cut);
+		snprintf (buf, sizeof (buf), "%i: \"%s\" %s (shown above)", ik + 1,
+				  attachment_file_name (P, ik).c_str(), shown_type.c_str());
+		mdi_views[mdi_current]->add_attachment ((char *) locs("Attachment","attachment"), buf, ik);
 	}
 
 	mdi_views[mdi_current]->add_textline (" "); // Make a bit of bottom margin

@@ -112,27 +112,44 @@ char		 FREQ_FILENAME[512];
 WordList	 Garbage;
 
 const char *single_file_request (void);
+const char *file_request (const char *title, const char *dir, const char *name, bool folder);
 void freq_update (void);
+
+static bool FREQ_FOLDER = false;	// choosing a folder, not a file
 
 const char *single_file_request (void)
 {
-	char buf[256];
+	return file_request (NULL, NULL, "", false);
+}
+
+// The file requester (Neo-PostOffice: with a title, a starting folder and
+// name, and a folder mode in which OK returns the folder shown). "" if
+// cancelled.
+const char *file_request (const char *title, const char *dir, const char *name, bool folder)
+{
+	char buf[512];
 
 	FREQ_UPDATE = 0;
 	FREQ_OPEN = 1;
 	FREQ_FILENAME[0] = 0;
+	FREQ_FOLDER = folder;
 	if (!FREQ) FREQ = make_filereq();
+	static char label[256];
+	snprintf (label, sizeof (label), "%s", title ? title : "Select a file");
+	FREQ->label (label);
+	if (folder) in_freq_filename->hide(); else in_freq_filename->show();
 	FREQ->show();
 
 	buf[0] = 0;
-	if (!getcwd (buf, 255)) buf[0] = 0;
+	if (dir && *dir) snprintf (buf, sizeof (buf), "%s", dir);
+	else if (!getcwd (buf, sizeof (buf) - 1)) buf[0] = 0;
 	if (!buf[0])
 	{
 		strcpy (buf, "/");
 	}
 	
 	in_freq_dir->value (buf);
-	in_freq_filename->value ("");		// not the name chosen last time
+	in_freq_filename->value (name ? name : "");	// not the name chosen last time
 	freq_update();
 
 	while (FREQ_OPEN)
@@ -154,11 +171,7 @@ void freq_update (void)
 
 	FREQ_UPDATE = 0;
 
-	printf ("D(%s)=%p\n", wd, (void *) D);
-
 	in_freq_dir->redraw();
-
-	printf ("Done\n");
 
 	if (D)
 	{
@@ -270,7 +283,9 @@ void cb_freq_select (Fl_Iconbrowser */*br*/, void */*v*/)
 
 void cb_freq_ok (Fl_Button */*b*/, void */*v*/)
 {
-	if (strlen (in_freq_filename->value()))
+	if (FREQ_FOLDER)
+		snprintf (FREQ_FILENAME, sizeof (FREQ_FILENAME), "%s", in_freq_dir->value());
+	else if (strlen (in_freq_filename->value()))
 	{
 		// A name typed as a full path (or ~/...) is taken as it is.
 		const char *name = in_freq_filename->value();

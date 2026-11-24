@@ -72,11 +72,17 @@ class HTHeader : public HTElement
 		void			 Layout (int);
 		void			 Draw (int, int, int, int, int, int, bool, bool *);
 		void			 Selection (WordList *, bool *);
+		// Neo-PostOffice: the value's text colour (attachment lines).
+		void			 SetValueColor (int c);
 
 	private:
 		HTGroup			*Value;
 		HTElement		*Name;
 };
+
+// Neo-PostOffice: called with the part number when an attachment line
+// (Fl_View::add_attachment) is clicked.
+extern void (*ht_attachment_hook) (int part);
 
 class HTWord : public HTElement
 {
@@ -131,6 +137,9 @@ class Fl_View : public Fl_Group
 	void			 add_textline (const char *, int _color=FL_BLACK, int _font=FL_COURIER, int _size=12);
 	void			 add_bitmap (unsigned char *, int, int);
 	void			 add_header (const char *, const char *);
+	// A header line for attachment number part: clicking it calls
+	// ht_attachment_hook (Neo-PostOffice).
+	void			 add_attachment (const char *, const char *, int part);
 	HTGroup			*Pane;
 	
 	HTElement		*BSel, *ESel;

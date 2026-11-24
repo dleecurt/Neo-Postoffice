@@ -427,7 +427,7 @@ HTHeader::HTHeader (HTElement *p, char *nam, char *val) : HTElement (p)
 	Name->Y = 0;
 	Name->W = 128;
 	Value->X = 128;
-	Value->Y = 128;
+	Value->Y = 0;		// was 128: clicks on the value never found it
 	
 	WordList W;
 	W.MakeGeneric (val, ' ');
@@ -746,6 +746,13 @@ static void run_url_action (const char *tmpl, const char *url)
 		waitpid (pid, NULL, 0); // returns quickly: the command runs in the background
 }
 
+// Runs a command template with '$' standing for one argument, safely as
+// above (used for opening attachments).
+void run_with_argument (const char *tmpl, const char *arg)
+{
+	run_url_action (tmpl, arg);
+}
+
 // Opens a web address with the command set for links (Config; default
 // xdg-open), in the background.
 void open_url (const char *url)
@@ -762,6 +769,14 @@ void HTWord::HandlePush (void)
 	char 		*subtext;
 	char		*t;
 	int			 ln;
+
+	// An attachment line: the main window offers Save / Open.
+	int part = GetIProperty ("attachment");
+	if (part > 0)
+	{
+		if (ht_attachment_hook) ht_attachment_hook (part - 1);
+		return;
+	}
 
 	if (action)
 	{
@@ -935,7 +950,6 @@ int Fl_View::handle (int event)
 	{
 		case FL_PUSH:
 			if (Fl::event_button()>1) return 0;
-			printf ("still in &*%%^#$*&%%^$#&*%%&*#$%% Fl_PUSH\n");
 			if (BSel) BSel->UnBMark();
 			BSel = NULL;
 			if (ESel) ESel->UnEMark();
@@ -1035,6 +1049,20 @@ void Fl_View::resize (int xx, int yy, int ww, int hh)
 void Fl_View::add_header (const char *line, const char *val)
 {
 	new HTHeader (Pane, (char *) line, (char *) val);
+}
+
+void (*ht_attachment_hook) (int) = NULL;
+
+void Fl_View::add_attachment (const char *line, const char *val, int part)
+{
+	HTHeader *H = new HTHeader (Pane, (char *) line, (char *) val);
+	H->SetIProperty ("attachment", part + 1);
+	H->SetValueColor (_STYLES.color ("messagebody:hyperlink"));
+}
+
+void HTHeader::SetValueColor (int c)
+{
+	Value->SetIProperty ("fontcolor", c);
 }
 
 void Fl_View::add_bitmap (unsigned char *bmp, int _w, int _h)

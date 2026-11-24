@@ -27,7 +27,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
   PostgreSQL database over SSL
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
 - Filter rules that sort incoming mail into folders
-- Inline display of JPEG attachments, clickable links
+- Inline display of JPEG attachments, clickable links; saving and
+  opening received attachments
 - Multiple message views, composer with quoting and templates
 
 ## Building
@@ -324,6 +325,34 @@ Clicking a link runs the command in the preference
 is `xdg-open $`. The URL is passed to the shell as a separate argument,
 so links in messages cannot inject commands.
 
+## Attachments
+
+Each attachment of the message shown has an *Attachment* line (in the
+link colour) with its number, name, type and size. Pictures (JPEG) and
+named text files are shown in the message, and get a line after it.
+Clicking a line offers:
+
+- **Save as...**: the file requester, starting in the folder you saved
+  to last (the first time `~/Downloads`, or your home folder), with the
+  attachment's name filled in. The name is made safe: folder parts
+  (`../`), leading dots and control characters are removed, so a file
+  can only go where you choose. An existing file is replaced only after
+  you confirm.
+- **Open...**: always asks first, with a warning that attachments can be
+  harmful. Programs, scripts, `.desktop` files, macro documents and
+  similar files get a stronger warning. *Cancel* is the default (Return
+  and Escape cancel); opening must be clicked. The file is written to a
+  private folder, `~/.postoffice/tmp` (readable only by you, never
+  executable), and opened with the command in the preference
+  `postoffice/gui/action/attachment` (`$` stands for the file; the
+  default is `xdg-open $`), with the file passed as a separate argument
+  as for links. The folder is emptied when Neo-PostOffice starts and
+  quits.
+
+**Message → Save all attachments...** saves every attachment of the
+message into a folder you choose; an existing file is kept and the new
+one is saved as `name (2).ext`.
+
 ## Storing mail in PostgreSQL
 
 Each mailbox can keep its downloaded messages in PostgreSQL instead of
@@ -606,6 +635,7 @@ See the git history for details. In summary:
   (`v0.8.1`, `v0.8.2`, ...).
   - 0.8.1: security fixes (no unencrypted POP3/IMAP login, no header
     injection, private mailbox files).
+  - 0.8.2: saving and opening received attachments.
 - **0.9.0**: when all the planned features are in (attachments, Reply
   All, and the rest): the feature-complete beta.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
@@ -640,8 +670,8 @@ Found while modernizing and left for later:
   they are as at the last save, and the next check puts the folders
   right again.
 - The built-in SMTP client and IMAP do not support OAuth2 logins.
-- HTML-only messages show only an attachment line; there is no HTML to
-  text view.
+- HTML-only messages show only an attachment line (which can be saved
+  or opened in a browser); there is no HTML to text view.
 - SQL mailbox: messages cannot be moved between folders from the client.
 - Copies rebuilt from the local copy (when the source no longer has the
   original) flatten nested multiparts into one `multipart/mixed`.
