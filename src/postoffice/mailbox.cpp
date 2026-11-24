@@ -1022,6 +1022,35 @@ static std::string rebuild_raw (MailMessage *M)
     return out;
 }
 
+// The original text of a message as it came in (Maildir/MH file, or the
+// message fetched again with its raw text kept), else rebuilt from the
+// local copy; flags are its Maildir flag letters. False with error set
+// when there is none. Runs on the mailbox's own thread (Neo-PostOffice).
+bool MailBox::FetchRaw (const char *msgid, std::string &raw, std::string &flags, std::string &error)
+{
+    if (Handler->ExportRaw ((char *) msgid, raw, flags)) return true;
+    // Not a Maildir: fetch the message again and keep the raw text.
+    MailMessage *M = Find ((char *) msgid);
+    if (!M) { error = "The message is no longer in this mailbox."; return false; }
+    if (M->Envelope->GetInt (ENVELOPE_I_READ)) flags += 'S';
+    int ef = M->Envelope->GetInt (ENVELOPE_I_FLAGS);
+    if (ef & EFLAG_FLAGGED) flags += 'F';
+    if (ef & EFLAG_REPLIED) flags += 'R';
+    if (ef & EFLAG_PASSED) flags += 'P';
+
+    M->CaptureRaw = &raw;
+    Handler->GetBody ((char *) msgid);
+    if ((M = Find ((char *) msgid))) M->CaptureRaw = NULL;
+    if (raw.empty()) raw = rebuild_raw (M);
+    if (raw.empty())
+    {
+        error = "The original of this message is not available (it is no longer at its source "
+                "and was not downloaded).";
+        return false;
+    }
+    return true;
+}
+
 void MailBox::TransferMessage (const char *msgid, const char *target, const char *folder, bool move, bool last)
 {
     std::string raw, flags, error;
@@ -1031,28 +1060,8 @@ void MailBox::TransferMessage (const char *msgid, const char *target, const char
 
     if (!T || !T->Handler)
         error = std::string ("The mailbox \"") + target + "\" does not exist.";
-    else if (!Handler->ExportRaw ((char *) msgid, raw, flags))
-    {
-        // Not a Maildir: fetch the message again and keep the raw text.
-        MailMessage *M = Find ((char *) msgid);
-        if (!M) error = "The message is no longer in this mailbox.";
-        else
-        {
-            if (M->Envelope->GetInt (ENVELOPE_I_READ)) flags += 'S';
-            int ef = M->Envelope->GetInt (ENVELOPE_I_FLAGS);
-            if (ef & EFLAG_FLAGGED) flags += 'F';
-            if (ef & EFLAG_REPLIED) flags += 'R';
-            if (ef & EFLAG_PASSED) flags += 'P';
-
-            M->CaptureRaw = &raw;
-            Handler->GetBody ((char *) msgid);
-            if ((M = Find ((char *) msgid))) M->CaptureRaw = NULL;
-            if (raw.empty()) raw = rebuild_raw (M);
-            if (raw.empty())
-                error = "The original of this message is not available (it is no longer at its source "
-                        "and was not downloaded).";
-        }
-    }
+    else
+        FetchRaw (msgid, raw, flags, error);
 
     std::string err;
     if (error.empty() && !T->Handler->DeliverRaw (raw, folder, flags, err))
@@ -1068,4 +1077,21 @@ void MailBox::TransferMessage (const char *msgid, const char *target, const char
     }
     // Show the new arrivals; this is no reason to fetch mail.
     if (last && T) T->ToCollector->PostMessage (CLASS_CHECKGROUP, SUB_CHECK_NOFETCH, "*");
+}
+
+// Redirect: the original's raw text goes to the user interface, which
+// queues it in the OutBox with Resent- headers (Neo-PostOffice).
+void MailBox::RedirectMessage (const char *msgid, const char *from, const char *to)
+{
+    std::string raw, flags, error;
+    if (!FetchRaw (msgid, raw, flags, error))
+    {
+        ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Redirect", error.c_str());
+        return;
+    }
+    WordList *W = new WordList;
+    W->Add (raw.c_str());
+    W->Add (from);
+    W->Add (to);
+    ToUI->PostMessage (CLASS_REDIRECTED, NO_SUBCLASS, W);
 }

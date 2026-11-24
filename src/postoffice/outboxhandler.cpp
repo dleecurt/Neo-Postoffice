@@ -23,6 +23,7 @@
 #include "sendpipe.h"
 #include "style.h"
 #include "debug.h"
+#include "mailheaders.h"
 
 #include <algorithm>
 #include <set>
@@ -36,6 +37,7 @@
 extern JobList JOBQ;
 
 extern void extract_recipients (WordList *, char *);
+bool is_redirect (MailMessage *M);
 extern MailBox *MailBoxList[];
 
 // The identity whose sender address is mailfrom (Config -> Identities,
@@ -362,26 +364,40 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 			HeaderNames = new WordList (M->HeaderNames);
 			HeaderValues = new WordList (M->HeaderValues);
 
-			pos = HeaderNames->Find ("To");
+			// A redirected message (Redirect) goes to its Resent- recipients
+			// from the Resent-From address; its own To, CC and From are the
+			// original's and stay as they are (Neo-PostOffice).
+			bool redirect = is_redirect (M);
+			const char *h_to = redirect ? "Resent-To" : "To";
+			const char *h_from = redirect ? "Resent-From" : "From";
+			const char *h_cc = redirect ? "Resent-Cc" : "Cc";
+
+			pos = HeaderNames->Find (h_to);
 			if (pos>=0) extract_recipients (RCPT, HeaderValues->Get (pos));
 
-			pos = HeaderNames->Find ("From");
+			pos = HeaderNames->Find (h_from);
 			if (pos>=0) mailfrom = eaddr2addr (HeaderValues->Get (pos));
 			else mailfrom = strdupp ("nobody@nowhere.com");
 
-			pos = HeaderNames->Find ("Cc");
+			pos = HeaderNames->Find (h_cc);
 			if (pos>=0) extract_recipients (RCPT, HeaderValues->Get (pos));
 
-			pos = HeaderNames->Find ("BCC");
-			if (pos>=0)
+			if (!redirect)
 			{
-				extract_recipients (RCPT, HeaderValues->Get (pos));
-				HeaderValues->Delete (pos);
-				HeaderNames->Delete (pos);
+				pos = HeaderNames->Find ("BCC");
+				if (pos>=0)
+				{
+					extract_recipients (RCPT, HeaderValues->Get (pos));
+					HeaderValues->Delete (pos);
+					HeaderNames->Delete (pos);
+				}
 			}
 
-			HeaderNames->Add ("Message-ID");
-			HeaderValues->Add (M->MsgID);
+			if (HeaderNames->Find ("Message-ID") < 0)
+			{
+				HeaderNames->Add ("Message-ID");
+				HeaderValues->Add (M->MsgID);
+			}
 
 			P = M->GetPart (0);
 
@@ -421,7 +437,7 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 					Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 					std::string err;
 					SendOutcome how = deliver_message (Parent, HeaderNames, HeaderValues, mailfrom, RCPT, send_body, err);
-					std::string subject = M->Header ("Subject") ? M->Header ("Subject") : "";
+					std::string subject = M->Header ("Subject") ? mailheaders::Decode (M->Header ("Subject")) : "";
 					std::string what = "\"" + subject + "\"";
 					Q->DoneWithMessage();
 					switch (how)
@@ -481,6 +497,15 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 							moved = true;
 							move_message (Parent, Q, drafts, M);
 							--i;
+							if (redirect)
+								// The server may refuse a From line that is not the
+								// user's own (the original sender's, kept by Redirect).
+								Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
+									("The redirected message " + what + " was not sent and was moved to OutBox "
+									 "\xe2\x86\x92 Drafts: " + err + "\n\nRedirect keeps the original sender in "
+									 "the From line; some mail servers only send messages from your own address. "
+									 "Through such a server, use Forward instead.").c_str ());
+							else
 							Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Outbox",
 								("The message " + what + " was not sent and was moved to OutBox \xe2\x86\x92"
 								 " Drafts, where Message \xe2\x86\x92 Edit Draft opens it to correct and send"
@@ -495,7 +520,7 @@ void OutBoxHandler::CheckGroup (const char */*groupname*/)
 			{
 				// No recipient to send to (a Usenet article from PostOffice
 				// 0.7, whose news support is gone): to the Drafts.
-				std::string subject = M->Header ("Subject") ? M->Header ("Subject") : "";
+				std::string subject = M->Header ("Subject") ? mailheaders::Decode (M->Header ("Subject")) : "";
 				Q->DoneWithMessage();
 				retries.erase (M->MsgID);
 				forget_reports (M->MsgID);

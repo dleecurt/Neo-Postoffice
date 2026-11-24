@@ -95,7 +95,10 @@ char *eaddr2addr (char *eaddr)
 		left = eaddr;
 		while ( *left == ' ' ) ++left;
 		right = left + strlen (left);
-		while ( (*(right-1) == ' ') && right > left ) *(--right) = 0;
+		// Trailing spaces left out (Neo-PostOffice: checked the byte before
+		// an empty string, and wrote into the caller's string, which can be
+		// a literal).
+		while ( right > left && *(right-1) == ' ' ) --right;
 		result = substr (left, right);
 	}
 	if ( !result )

@@ -53,12 +53,39 @@ std::string build_message (WordList *HdrNames, WordList *HdrValues, const char *
 		// (followed by a space or tab); other control characters become
 		// spaces.
 		const char *v = HdrValues->Get (i);
+		std::string line = std::string (HdrNames->Get (i)) + ": ";
+		size_t start = out.size ();
 		for (const char *p = v ? v : ""; *p; ++p)
 		{
 			unsigned char c = *p;
 			if (c == '\r') continue;
 			if (c == '\n') { out += (p[1] == ' ' || p[1] == '\t') ? '\n' : ' '; continue; }
 			out += (c < 0x20 && c != '\t') || c == 0x7f ? ' ' : (char) c;
+		}
+		// A line may not pass 998 characters (RFC 5322 2.1.1): a longer one
+		// (an unfolded Received or DKIM line of a redirected message) is
+		// folded before spaces, about every 78 characters.
+		std::string val = out.substr (start);
+		size_t col = line.size (), longest = 0;
+		for (char c : val) { if (c == '\n') col = 0; else if (++col > longest) longest = col; }
+		if (longest > 998)
+		{
+			std::string folded;
+			size_t last = 0;
+			col = line.size ();
+			for (size_t k = 0; k < val.size (); ++k)
+			{
+				if (val[k] == '\n') { col = 0; continue; }
+				if ((val[k] == ' ' || val[k] == '\t') && col > 78 && k > last)
+				{
+					folded += val.substr (last, k - last) + "\n";
+					last = k;
+					col = 0;
+				}
+				++col;
+			}
+			folded += val.substr (last);
+			out.replace (start, std::string::npos, folded);
 		}
 		out += "\n";
 	}

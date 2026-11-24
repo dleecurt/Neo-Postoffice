@@ -35,7 +35,7 @@ Fl_Menu_Item menu_[] = {
  {"Reply All", FL_ALT|'R',  (Fl_Callback*)cb_reply_all_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward", FL_ALT|'f',  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Redirect", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Redirect", 0,  (Fl_Callback*)cb_redirect_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Save all attachments...", 0,  (Fl_Callback*)cb_save_attachments_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Edit Draft", 0,  (Fl_Callback*)cb_edit_draft_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0xffff,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -877,8 +877,10 @@ Fl_Window* make_window() {
           } // Fl_Group* o
           { Fl_Group* o = new Fl_Group(350, 20, 68, 20);
             { Fl_Button* o = new Fl_Button(350, 20, 68, 20);
+              o->tooltip("Send the message on unchanged to someone else");
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
+              o->callback((Fl_Callback*)cb_redirect);
             } // Fl_Button* o
             { Fl_Box* o = new Fl_Box(351, 21, 23, 18);
               o->image( image_move() );
@@ -1020,9 +1022,11 @@ Fl_Window* make_window() {
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(160, 20, 30, 20);
+            o->tooltip("Redirect");
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_move() );
+            o->callback((Fl_Callback*)cb_redirect);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(190, 20, 30, 20);

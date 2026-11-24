@@ -24,6 +24,7 @@
 #define CLASS_SETFLAG		0x1009 // [2] arg1 = intmsgid     arg2 = "+F" / "-F" (Maildir flag letter)
 #define CLASS_TRANSFER		0x100A // [5] msgid, target mailbox, target folder, "move"/"copy", "1" if last
 #define CLASS_FOLDEROP		0x100B // [3] "create"/"rename"/"delete", name, new name
+#define CLASS_REDIRECT		0x100C // [3] msgid, Resent-From, Resent-To (Neo-PostOffice)
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]
@@ -39,6 +40,7 @@
 #define CLASS_NEWFOLDER		0x2007 // [2] arg1 = mailbox     arg2 = "" (folders or counts changed: redraw the tree)
 #define CLASS_GONE			0x2008 // [2] arg1 = mailbox     arg2 = intmsgid (deleted on the server)
 #define CLASS_FOLDERGONE	0x2009 // [2] arg1 = mailbox     arg2 = foldername (removed at the source)
+#define CLASS_REDIRECTED	0x200B // [3] raw message, Resent-From, Resent-To: queue it in the OutBox
 #define CLASS_FOLDERLIST	0x200A // [1+3n] arg1 = mailbox, then per folder: "1"/"0" subscribed, name here, server name
 
 // defines for scheduler events

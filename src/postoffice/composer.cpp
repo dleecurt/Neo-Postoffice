@@ -880,7 +880,9 @@ char *make_msgid (const char *email)
 // The Date header (RFC 5322 3.3): English names whatever the locale, and
 // the offset from UTC as a number (the old code always wrote the summer
 // time zone name, an hour off in winter).
-static std::string rfc5322_date (time_t t)
+bool is_redirect (MailMessage *M);
+
+std::string rfc5322_date (time_t t)
 {
 	static const char *days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 	static const char *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -1394,6 +1396,12 @@ void cb_edit_draft_m (Fl_Menu_ */*m*/, void */*v*/)
 	if (!M) return;
 	if (!M->HeaderNames->Count) M->LoadHeaders ();
 	if (!(M->Flags & MMFL_INRAM)) M->LoadBody ();
+	if (is_redirect (M))
+	{
+		fl_message ("This is a redirected message, which is sent unchanged and cannot be edited.\n"
+					"Delete it here and redirect the original again.");
+		return;
+	}
 
 	Composer_Window *W = create_composer_window ();
 	snprintf (W->draftid, sizeof (W->draftid), "%s", M->MsgID);

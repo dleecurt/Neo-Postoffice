@@ -156,6 +156,15 @@ void *MailerThread::MailerMain (void *_box)
 					}
 					break;
 
+				case CLASS_REDIRECT:
+					if (M->Message->Count >= 3)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->RedirectMessage (M->Message->Get(0), M->Message->Get(1), M->Message->Get(2));
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
 				case CLASS_FOLDEROP:
 					if (M->Message->Count >= 3)
 					{

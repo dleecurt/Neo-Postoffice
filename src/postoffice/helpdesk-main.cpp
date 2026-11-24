@@ -127,6 +127,7 @@ void cb_viewall (Fl_Menu_ *, void *);
 void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
+void redirect_queue (const char *raw, const char *from, const char *to);
 void clear_folder_index (void);
 void update_tree_counts (void);
 
@@ -1114,6 +1115,12 @@ int main (int argc, char *argv[])
 						PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (B->Name)->Get_collection ("folders")->Delete (M->Message->Get(1));
 						break;
 					}
+					break;
+
+				case CLASS_REDIRECTED:
+					// Redirect: the original's text, to queue in the OutBox.
+					if (M->Message->Count >= 3)
+						redirect_queue (M->Message->Get(0), M->Message->Get(1), M->Message->Get(2));
 					break;
 
 				case CLASS_FOLDERLIST:
