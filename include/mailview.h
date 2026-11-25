@@ -58,6 +58,7 @@ class MailView
 		int					 ProcessScore (class MailMessage *);
 		void				 Associate (class MailMessage *);
 		void				 Unassociate (class MailMessage *);
+		void				 UnassociateAll (void);	// empties the view (Refilter)
 
 		int					 Count (void);
 		MailMessage			*GetMessage (int);

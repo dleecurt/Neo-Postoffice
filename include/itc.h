@@ -25,6 +25,7 @@
 #define CLASS_TRANSFER		0x100A // [5] msgid, target mailbox, target folder, "move"/"copy", "1" if last
 #define CLASS_FOLDEROP		0x100B // [3] "create"/"rename"/"delete", name, new name
 #define CLASS_REDIRECT		0x100C // [3] msgid, Resent-From, Resent-To (Neo-PostOffice)
+#define CLASS_REFILTER		0x100D // [0] sort the messages into the folders again (Neo-PostOffice)
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]

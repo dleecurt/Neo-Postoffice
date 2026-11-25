@@ -11,6 +11,7 @@ extern Fl_Window *win_main;
 extern void cb_compose(Fl_Menu_*, void*);
 extern void cb_expire(Fl_Menu_*, void*);
 extern void cb_check_mail_m(Fl_Menu_*, void*);
+extern void cb_print_m(Fl_Menu_*, void*);
 extern void cb_quit_m(Fl_Menu_*, void*);
 extern void cb_edit_cut_m(Fl_Menu_*, void*);
 extern void cb_edit_copy_m(Fl_Menu_*, void*);
@@ -39,6 +40,8 @@ extern void cb_hdrfull(Fl_Menu_*, void*);
 extern void cb_hdrpart(Fl_Menu_*, void*);
 extern void cb_thr_open(Fl_Menu_*, void*);
 extern void cb_thr_close(Fl_Menu_*, void*);
+extern void cb_view_menuwin(Fl_Menu_*, void*);
+extern void cb_view_folderwin(Fl_Menu_*, void*);
 extern void cb_aboot(Fl_Menu_*, void*);
 extern void cb_show_build(Fl_Menu_*, void*);
 #include <FL/Fl_Group.H>
@@ -56,6 +59,7 @@ extern void cb_reply_all(Fl_Button*, void*);
 extern void cb_delete(Fl_Button*, void*);
 extern void cb_redirect(Fl_Button*, void*);
 extern void cb_mark(Fl_Button*, void*);
+extern void cb_print(Fl_Button*, void*);
 extern void cb_configure(Fl_Button*, void*);
 extern void cb_stop(Fl_Button*, void*);
 extern void cb_menu_shrink(Fl_Button*, void*);
@@ -113,11 +117,13 @@ extern void cb_sortby_date(Fl_Button*, void*);
 extern Fl_Button *bt_date;
 Fl_Window* make_window();
 extern Fl_Menu_Item menu_[];
-#define mi_edit_cut (menu_+9)
-#define mi_edit_copy (menu_+10)
-#define mi_edit_paste (menu_+11)
-#define rad_viewall (menu_+37)
-#define rad_viewunread (menu_+38)
+#define mi_edit_cut (menu_+10)
+#define mi_edit_copy (menu_+11)
+#define mi_edit_paste (menu_+12)
+#define rad_viewall (menu_+38)
+#define rad_viewunread (menu_+39)
+#define mi_view_menuwin (menu_+49)
+#define mi_view_folderwin (menu_+50)
 extern Fl_Menu_Item menu_popup_msgwin[];
 #define mi_popup_copy (menu_popup_msgwin+3)
 extern Fl_Window *win_menu;
@@ -328,7 +334,8 @@ extern void cb_prefs_delivery(Fl_Choice*, void*);
 extern Fl_Choice *ch_prefs_delivery;
 extern void cb_prefs_sendprogram(Fl_Input*, void*);
 extern Fl_Input *in_prefs_sendprogram;
-extern Fl_Choice *ch_prefs_directoryservice;
+extern void cb_prefs_printcmd(Fl_Input*, void*);
+extern Fl_Input *in_prefs_printcmd;
 extern Fl_Group *gr_prefs_certs;
 extern void cb_prefs_certs_select(Fl_Browser*, void*);
 extern Fl_Browser *br_prefs_certs;
@@ -379,7 +386,6 @@ extern Fl_Menu_Item menu_ch_prefs_filt_action[];
 extern Fl_Menu_Item menu_ch_prefs_filt_scoring[];
 extern Fl_Menu_Item menu_ch_prefs_id_smtpsec[];
 extern Fl_Menu_Item menu_ch_prefs_delivery[];
-extern Fl_Menu_Item menu_ch_prefs_directoryservice[];
 extern Fl_Menu_Item menu_ch_prefs_style_typeface[];
 extern Fl_Menu_Item menu_ch_prefs_style_size[];
 extern Fl_Window *win_exit;

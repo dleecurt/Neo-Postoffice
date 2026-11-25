@@ -49,6 +49,7 @@ class MailBox
 		// (runs in this mailbox's collector thread).
 		bool				 FetchRaw (const char *msgid, std::string &raw, std::string &flags, std::string &error);
 		void				 RedirectMessage (const char *msgid, const char *from, const char *to);
+		void				 Refilter (void);
 		void				 TransferMessage (const char *msgid, const char *target, const char *folder,
 											  bool move, bool last);
 		void				 DestroyMailView (char *);

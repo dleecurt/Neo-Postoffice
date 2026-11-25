@@ -1095,3 +1095,18 @@ void MailBox::RedirectMessage (const char *msgid, const char *from, const char *
     W->Add (to);
     ToUI->PostMessage (CLASS_REDIRECTED, NO_SUBCLASS, W);
 }
+
+// Refilter (Neo-PostOffice): every message of the mailbox is sorted into
+// its folders again by the folders' filters, as when the mailbox is
+// loaded at start-up; the window then shows the result.
+void MailBox::Refilter (void)
+{
+    VLock->LockR();
+    for (MailView *V = VFirst; V; V = V->Next) V->UnassociateAll ();
+    VLock->UnlockR();
+    Lock->LockR();
+    for (MailMessage *M = (MailMessage *) Root->BNext; M && M != Root; M = (MailMessage *) M->BNext)
+        Deliver (M);
+    Lock->UnlockR();
+    ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Name, "");
+}

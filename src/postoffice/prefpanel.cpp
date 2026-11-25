@@ -1531,6 +1531,8 @@ void show_delivery (void)
 	const char *method = LPREFERENCES.Get_char_tree ("postoffice/network/delivery");
 	const char *key = delivery_path_key ();
 	ch_prefs_delivery->value (strcasecmp (method, "sendmail") == 0 ? 1 : strcasecmp (method, "msmtp") == 0 ? 2 : 0);
+	const char *print = LPREFERENCES.Get_char_tree ("postoffice/gui/action/print");
+	in_prefs_printcmd->value (print && *print ? print : "lpr $");
 	if (key)
 	{
 		const char *path = LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Get_char (key);
@@ -1551,6 +1553,12 @@ void cb_prefs_delivery (Fl_Choice *c, void */*v*/)
 	if (v < 0 || v > 2) return;
 	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("network")->Set_char ("delivery", (char *) methods[v]);
 	show_delivery ();
+}
+
+// Config -> Network -> Print command (Neo-PostOffice): print.cpp.
+void cb_prefs_printcmd (Fl_Input *i, void */*v*/)
+{
+	LPREFERENCES.Get_collection ("postoffice")->Get_collection ("gui")->Get_collection ("action")->Set_char ("print", (char *) i->value ());
 }
 
 void cb_prefs_sendprogram (Fl_Input *i, void */*v*/)

@@ -156,6 +156,12 @@ void *MailerThread::MailerMain (void *_box)
 					}
 					break;
 
+				case CLASS_REFILTER:
+					Box->Handler->Lock.LockOnce();
+					Box->Refilter ();
+					Box->Handler->Lock.UnlockOnce();
+					break;
+
 				case CLASS_REDIRECT:
 					if (M->Message->Count >= 3)
 					{

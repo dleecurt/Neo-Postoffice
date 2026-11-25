@@ -280,6 +280,27 @@ void MailView::Associate (MailMessage *M)
 	Lock->UnlockRW();
 }
 
+// Empties the view; the messages stay in the mailbox (Neo-PostOffice:
+// Refilter runs them through the folders' filters again).
+void MailView::UnassociateAll (void)
+{
+	Lock->LockRW();
+	MailViewNode *N = First;
+	while (N)
+	{
+		MailViewNode *X = N->Next;
+		delete N;
+		N = X;
+	}
+	First = Last = NULL;
+	_Count = 0;
+	CacheLock->LockOnce();
+	_CachePos = -2;
+	Cache = NULL;
+	CacheLock->UnlockOnce();
+	Lock->UnlockRW();
+}
+
 void MailView::Unassociate (MailMessage *M)
 {
 	MailViewNode *N;

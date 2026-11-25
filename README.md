@@ -31,6 +31,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
   opening received attachments, sending attachments
 - Multiple message views, composer with quoting, lines wrapped at 72
   characters and sent as format=flowed
+- Redirect (resend a message unchanged), printing through lpr (CUPS or
+  the BSD print spooler), Refilter
 
 ## Building
 
@@ -252,6 +254,14 @@ back.
   the default identity is used.
 - **Forward** leaves To empty for you to fill in, and keeps the
   original's attachments.
+- **Redirect** (Message menu, Redir button) sends the message on
+  unchanged, as it was received, to the addresses you give: the
+  recipients see the original sender, with Resent-From, Resent-To and
+  Resent-Date lines naming you. It is sent from the identity the message
+  was addressed to (you can pick another), and a copy goes to Sent. Some
+  mail servers only send messages whose From line is your own address
+  and refuse a redirect; the message then goes to OutBox → Drafts with
+  an explanation, and Forward is the way to pass it on.
 - Names and subjects written in other character sets (`=?UTF-8?B?...?=`
   in the raw message) are shown decoded in replies, forwards and the
   quoted header lines, and encoded again when sent.
@@ -275,6 +285,35 @@ Replies quote the original re-wrapped at the same width with `> ` on
 every line; a word longer than a line, such as a link, is kept whole on
 a line of its own. **Edit Draft** joins a draft's paragraphs again so
 they re-wrap as you edit.
+
+## Printing
+
+**File → Print Message** (Ctrl+P) or the **Print** button prints the
+shown message: its From, To, Cc, Date and Subject, a list of its
+attachments by name, and its text, as plain UTF-8 text with lines wrapped
+at 80 characters. The text goes to the print command set in **Config →
+Network → Print command**, `lpr $` by default, where `$` stands for the
+file (without `$` the text is given on standard input). `lpr` is there
+with CUPS and with the BSD print spooler (lpd); use `lpr -P name $` for
+another printer than the default. If the command fails, what it said is
+shown.
+
+## Window layout
+
+The striped handle at the left of the toolbar, and the one at the left of
+the Mailboxes bar, move the toolbar or the folder list into a window of
+its own. Close that window to put it back, or use **View → Toolbar in
+Own Window** and **View → Folder List in Own Window**, which are ticked
+while they are separate. Search and Addr are greyed out until they are
+finished (0.9.2 and 0.9.3).
+
+## Filters and Refilter
+
+A local mailbox's folders are filters (Config → Mailfolders): each
+incoming message goes to the first folder whose rules accept it, else to
+the mailbox's default folder. Saving filter changes in Config sorts all
+of the mailbox's messages again. **Message → Refilter** does the same for
+the shown mailbox without changing anything in Config.
 
 ## Cut, Copy and Paste
 
@@ -723,6 +762,9 @@ See the git history for details. In summary:
   (Redirect, Refilter, Print, Search, the address book), fix the known
   issues below and add packaging.
   - 0.9.0: feature-complete beta.
+  - 0.9.1: Redirect, printing, Refilter; the separate toolbar window
+    works and View menu items put separated windows back; the unused
+    MySQL directory setting is removed.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.

@@ -515,15 +515,20 @@ void cb_delete (Fl_Button */*w*/, void */*d*/)
 
 //===============================================================================
 // CALLBACK		cb_refilter
-// SENDER		n/a
-// SYNOPSIS		stub (FIXME)
+// SENDER		Message -> Refilter
+// SYNOPSIS		sorts the shown mailbox's messages into its folders again
+//				with the folders' filters (Neo-PostOffice), on the
+//				mailbox's own thread (MailBox::Refilter)
 //===============================================================================
 
 void cb_refilter (Fl_Menu_ */*w*/, void */*d*/)
 {
-//	FolderData *D;
-//	MailMessage *M;3
-//	int i;
+	if (!currentmailbox)
+	{
+		fl_message ("Open a folder of the mailbox to refilter first.");
+		return;
+	}
+	currentmailbox->ToCollector->PostMessage (CLASS_REFILTER, NO_SUBCLASS, "");
 }
 
 //===============================================================================
@@ -638,6 +643,7 @@ void cb_menu_tearoff (Fl_Button */*b*/, void */*d*/)
 	if (!menu) menu = make_menuwindow();
 	menu->show();
 	menu->callback ((Fl_Callback *) cb_menu_untear);
+	mi_view_menuwin->set ();
 }
 
 //===============================================================================
@@ -653,6 +659,26 @@ void cb_menu_untear (Fl_Widget */*w*/, void */*d*/)
 	gr_buttons->redraw();
 	tile_lists->redraw();
 	menu->hide();
+	mi_view_menuwin->clear ();
+}
+
+// View -> Toolbar in Own Window / Folder List in Own Window (Neo-PostOffice):
+// the same as clicking a tear-off handle, or closing the torn-off window.
+void cb_view_menuwin (Fl_Menu_ */*m*/, void */*d*/)
+{
+	bool torn = menu && menu->shown ();
+	if (torn) cb_menu_untear (NULL, NULL);
+	else cb_menu_tearoff (NULL, NULL);
+}
+
+extern Fl_Window *wfolders;
+void cb_folders_untear (Fl_Widget *, void *);
+
+void cb_view_folderwin (Fl_Menu_ */*m*/, void */*d*/)
+{
+	bool torn = wfolders && wfolders->shown ();
+	if (torn) cb_folders_untear (NULL, NULL);
+	else cb_folders_tearoff (NULL, NULL);
 }
 
 int owidth = 0;
@@ -691,6 +717,7 @@ void cb_folders_tearoff (Fl_Button */*b*/, void */*d*/)
 	wfolders->callback ((Fl_Callback *) cb_folders_untear);
 	current_boxlist = br_winfolderlist;
 	update_tree (current_boxlist);
+	mi_view_folderwin->set ();
 }
 
 //===============================================================================
@@ -719,6 +746,7 @@ void cb_folders_untear (Fl_Widget */*w*/, void */*d*/)
 	wfolders->hide();
 	current_boxlist = br_folderlist;
 	update_tree (current_boxlist);
+	mi_view_folderwin->clear ();
 }
 
 int lwidth = 0;

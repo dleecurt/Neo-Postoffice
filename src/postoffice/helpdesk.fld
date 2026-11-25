@@ -62,8 +62,13 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         MenuItem {} {
           label {Check Mail}
           callback cb_check_mail_m
-          xywh {20 20 100 20} shortcut 0x8006c labelsize 12 divider
+          xywh {20 20 100 20} shortcut 0x8006c labelsize 12
           code0 {xloc(o, "check_mail");}
+        }
+        MenuItem {} {
+          label {Print Message}
+          callback cb_print_m
+          tooltip {Print the shown message with the print command (Config -> Network)} xywh {0 0 100 20} shortcut 0x40070 labelsize 12 divider
         }
         MenuItem {} {
           label Configure
@@ -180,7 +185,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         MenuItem {} {
           label Refilter
           callback cb_refilter
-          xywh {0 0 100 20} labelsize 12 deactivate
+          tooltip {Sort the messages of the shown mailbox into its folders again with the folders' filters (Config -> Mailfolders)} xywh {0 0 100 20} labelsize 12
         }
       }
       Submenu {} {
@@ -249,7 +254,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         }
         Submenu {} {
           label Threads
-          xywh {20 20 100 20} labelsize 12
+          xywh {20 20 100 20} labelsize 12 divider
         } {
           MenuItem {} {
             label {Open All}
@@ -263,6 +268,16 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {55 55 100 20} type Radio labelsize 12
             code0 {xloc(o, "unread_messages");}
           }
+        }
+        MenuItem mi_view_menuwin {
+          label {Toolbar in Own Window}
+          callback cb_view_menuwin
+          tooltip {Moves the toolbar into a window of its own; untick (or close that window) to put it back} xywh {0 0 100 20} type Toggle labelsize 12
+        }
+        MenuItem mi_view_folderwin {
+          label {Folder List in Own Window}
+          callback cb_view_folderwin
+          tooltip {Moves the folder list into a window of its own; untick (or close that window) to put it back} xywh {0 0 100 20} type Toggle labelsize 12
         }
       }
       Submenu {} {
@@ -286,7 +301,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
     } {
       Fl_Button bt_tear {
         callback cb_menu_tearoff
-        image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
+        tooltip {Click to move the toolbar into its own window. Close that window, or untick View -> Toolbar in Own Window, to put it back.} image {icons/bar2.xpm} compress_image 1 xywh {0 20 10 20} box THIN_UP_BOX
       }
       Fl_Group gr_buttons {
         xywh {10 20 845 20} resizable
@@ -295,7 +310,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {10 20 845 20}
         } {
           Fl_Group {} {open
-            xywh {78 20 68 20}
+            xywh {78 20 68 20} deactivate
           } {
             Fl_Button {} {
               xywh {78 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
@@ -425,6 +440,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             xywh {554 20 68 20}
           } {
             Fl_Button {} {
+              callback cb_print
               xywh {554 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
@@ -437,7 +453,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
           Fl_Group {} {open
-            xywh {622 20 68 20}
+            xywh {622 20 68 20} deactivate
           } {
             Fl_Button {} {
               xywh {622 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
@@ -496,7 +512,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/send.xpm} compress_image 1 xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/search.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/search.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20 deactivate
           }
           Fl_Button {} {
             callback cb_reply
@@ -519,13 +535,15 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/delete.xpm} compress_image 1 xywh {190 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
+            callback cb_mark
             image {icons/stamp.xpm} compress_image 1 xywh {220 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
+            callback cb_print
             image {icons/fileprint.xpm} compress_image 1 xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/openbook.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
+            image {icons/openbook.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20 deactivate
           }
           Fl_Button {} {
             callback cb_configure
@@ -704,7 +722,7 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
                 }
                 Fl_Button bt_tearfolders {
                   callback cb_folders_tearoff
-                  image {icons/bar2.xpm} compress_image 1 xywh {0 40 10 20} box THIN_UP_BOX
+                  tooltip {Click to move the folder list into its own window. Close that window, or untick View -> Folder List in Own Window, to put it back.} image {icons/bar2.xpm} compress_image 1 xywh {0 40 10 20} box THIN_UP_BOX
                 }
                 Fl_Button bt_dropfolders {
                   label {@-22>}
@@ -765,132 +783,148 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
 Function {make_menuwindow()} {} {
   Fl_Window win_menu {
     label {Mail Menu}
-    xywh {244 305 114 218} type Single hide resizable
+    tooltip {The toolbar in a window of its own: close this window, or untick View -> Toolbar in Own Window, to put it back} xywh {244 305 115 240} type Single hide
   } {
-    Fl_Group {} {open
-      xywh {0 0 115 220}
+    Fl_Group {} {
+      xywh {0 0 115 20}
     } {
-      Fl_Group {} {
-        xywh {0 20 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/search.xpm} compress_image 1 xywh {0 20 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Search
-          xywh {0 20 115 20} box NO_BOX labelsize 12 align 24
-        }
+      Fl_Button {} {
+        label Check
+        callback cb_check_mail
+        xywh {0 0 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
-      Fl_Group {} {
-        xywh {0 0 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/send.xpm} compress_image 1 xywh {0 0 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Check
-          xywh {0 0 115 20} box NO_BOX labelsize 12 align 24 hotspot
-        }
+      Fl_Box {} {
+        image {icons/send.xpm} compress_image 1 xywh {2 1 29 18} align 20
       }
-      Fl_Group {} {
-        xywh {0 60 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/forward.xpm} compress_image 1 xywh {0 60 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Fwd
-          xywh {0 60 115 20} box NO_BOX labelsize 12 align 24
-        }
+    }
+    Fl_Group {} {
+      xywh {0 20 115 20}
+    } {
+      Fl_Button {} {
+        label Search
+        xywh {0 20 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24 deactivate
       }
-      Fl_Group {} {
-        xywh {0 40 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/redo.xpm} compress_image 1 xywh {0 40 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Reply
-          xywh {0 40 115 20} box NO_BOX labelsize 12 align 24
-        }
+      Fl_Box {} {
+        image {icons/search.xpm} compress_image 1 xywh {2 21 29 18} align 20
       }
-      Fl_Group {} {
-        xywh {0 100 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/delete.xpm} compress_image 1 xywh {0 100 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Delete
-          xywh {0 100 115 20} box NO_BOX labelsize 12 align 24
-        }
+    }
+    Fl_Group {} {
+      xywh {0 40 115 20}
+    } {
+      Fl_Button {} {
+        label Reply
+        callback cb_reply
+        xywh {0 40 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
-      Fl_Group {} {
-        xywh {0 80 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/move.xpm} compress_image 1 xywh {0 80 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Redir
-          xywh {0 80 115 20} box NO_BOX labelsize 12 align 24
-        }
+      Fl_Box {} {
+        image {icons/redo.xpm} compress_image 1 xywh {2 41 29 18} align 20
       }
-      Fl_Group {} {
-        xywh {0 120 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/stamp.xpm} compress_image 1 xywh {0 120 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Mark
-          callback cb_mark
-          tooltip {Flag or unflag the selected messages (Maildir)} xywh {0 120 115 20} box NO_BOX labelsize 12 align 24
-        }
+    }
+    Fl_Group {} {
+      xywh {0 60 115 20}
+    } {
+      Fl_Button {} {
+        label {Reply All}
+        callback cb_reply_all
+        xywh {0 60 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
-      Fl_Group {} {
-        xywh {0 140 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/fileprint.xpm} compress_image 1 xywh {0 140 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Print
-          xywh {0 140 115 20} box NO_BOX labelsize 12 align 24
-        }
+      Fl_Box {} {
+        image {icons/replyall.xpm} compress_image 1 xywh {2 61 29 18} align 20
       }
-      Fl_Group {} {
-        xywh {0 160 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/openbook.xpm} compress_image 1 xywh {0 160 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Address
-          xywh {0 160 115 20} box NO_BOX labelsize 12 align 24
-        }
+    }
+    Fl_Group {} {
+      xywh {0 80 115 20}
+    } {
+      Fl_Button {} {
+        label Fwd
+        callback cb_forward
+        xywh {0 80 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
-      Fl_Group {} {open
-        xywh {0 180 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/configure.xpm} compress_image 1 xywh {0 180 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Config
-          xywh {0 180 115 20} box NO_BOX labelsize 12 align 24
-        }
+      Fl_Box {} {
+        image {icons/forward.xpm} compress_image 1 xywh {2 81 29 18} align 20
       }
-      Fl_Group {} {open
-        xywh {0 200 115 20} box UP_BOX
-      } {
-        Fl_Button {} {
-          image {icons/contents.xpm} compress_image 1 xywh {0 200 115 20} box NO_BOX align 20
-        }
-        Fl_Button {} {
-          label Help
-          xywh {0 200 115 20} box NO_BOX labelsize 12 align 24
-        }
+    }
+    Fl_Group {} {
+      xywh {0 100 115 20}
+    } {
+      Fl_Button {} {
+        label Redir
+        callback cb_redirect
+        xywh {0 100 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/move.xpm} compress_image 1 xywh {2 101 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 120 115 20}
+    } {
+      Fl_Button {} {
+        label Delete
+        callback cb_delete
+        xywh {0 120 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/delete.xpm} compress_image 1 xywh {2 121 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 140 115 20}
+    } {
+      Fl_Button {} {
+        label Mark
+        callback cb_mark
+        xywh {0 140 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/stamp.xpm} compress_image 1 xywh {2 141 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 160 115 20}
+    } {
+      Fl_Button {} {
+        label Print
+        callback cb_print
+        xywh {0 160 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/fileprint.xpm} compress_image 1 xywh {2 161 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 180 115 20}
+    } {
+      Fl_Button {} {
+        label Addr
+        xywh {0 180 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24 deactivate
+      }
+      Fl_Box {} {
+        image {icons/openbook.xpm} compress_image 1 xywh {2 181 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 200 115 20}
+    } {
+      Fl_Button {} {
+        label Config
+        callback cb_configure
+        xywh {0 200 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/configure.xpm} compress_image 1 xywh {2 201 29 18} align 20
+      }
+    }
+    Fl_Group {} {
+      xywh {0 220 115 20}
+    } {
+      Fl_Button {} {
+        label Stop
+        callback cb_stop
+        xywh {0 220 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
+      }
+      Fl_Box {} {
+        image {icons/stop.xpm} compress_image 1 xywh {2 221 29 18} align 20
       }
     }
   }
@@ -2367,52 +2401,15 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
           Fl_Group {} {open
-            xywh {30 155 575 20}
+            xywh {30 140 575 20}
           } {
-            Fl_Input {} {
-              xywh {230 155 375 20} labelsize 12 textsize 12 deactivate
+            Fl_Input in_prefs_printcmd {
+              callback cb_prefs_printcmd
+              tooltip {The command that prints a message (its headers and text, as a plain text file). $ stands for the file. lpr works with CUPS and with the BSD print spooler; add -P and a printer name for another printer than the default.} xywh {230 140 375 20} labelsize 12 when 1 textsize 12
             }
             Fl_Button {} {
-              label {MySQL Host}
-              xywh {30 155 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
-            }
-          }
-          Fl_Group {} {open
-            xywh {30 125 470 20}
-          } {
-            Fl_Button {} {
-              label {Directory Service}
-              xywh {30 125 105 20} box NO_BOX labelsize 12 align 20
-              code0 {xloc(o, "directory_service");}
-            }
-            Fl_Group {} {open
-              xywh {230 125 235 20} box BORDER_FRAME color 0
-            } {
-              Fl_Choice ch_prefs_directoryservice {open
-                xywh {231 126 234 19} down_box BORDER_BOX labelsize 12 textsize 12
-              } {
-                MenuItem {} {
-                  label {User Homedir}
-                  xywh {15 15 100 20} labelsize 12
-                  code0 {xloc(o, "homedir");}
-                }
-                MenuItem {} {
-                  label {Post Office MySQL directory}
-                  xywh {25 25 100 20} labelsize 12 deactivate
-                  code0 {xloc(o, "mysql_dir");}
-                }
-              }
-            }
-          }
-          Fl_Group {} {open
-            xywh {30 185 575 20}
-          } {
-            Fl_Button {} {
-              label {MySQL Database}
-              xywh {30 185 120 20} box NO_BOX color 48 labelsize 12 align 20 deactivate
-            }
-            Fl_Input {} {
-              xywh {230 185 375 20} labelsize 12 textsize 12 deactivate
+              label {Print command}
+              xywh {30 140 120 20} box NO_BOX labelsize 12 align 20
             }
           }
         }
