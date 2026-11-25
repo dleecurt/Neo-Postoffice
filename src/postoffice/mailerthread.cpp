@@ -156,6 +156,15 @@ void *MailerThread::MailerMain (void *_box)
 					}
 					break;
 
+				case CLASS_SEARCH:
+					if (M->Message->Count >= 3)
+					{
+						Box->Handler->Lock.LockOnce();
+						Box->Search (atoi (M->Message->Get(0)), M->Message->Get(1), M->Message->Get(2));
+						Box->Handler->Lock.UnlockOnce();
+					}
+					break;
+
 				case CLASS_REFILTER:
 					Box->Handler->Lock.LockOnce();
 					Box->Refilter ();

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
-  VERSION 0.9.1
+  VERSION 0.9.2
   DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 
@@ -162,7 +162,7 @@ configure_file(src/postoffice/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated
 set(PO_GUI_SOURCES
   composer.cpp filereq.cpp filereq-main.cpp helpdesk.cpp helpdesk-main.cpp
   ht.cpp iconbrowser.cpp initexitthread.cpp listviewtree.cpp maccheck.cpp
-  mailboxtree.cpp attachments.cpp flowed.cpp redirect.cpp print.cpp mdi.cpp prefpanel.cpp style.cpp)
+  mailboxtree.cpp attachments.cpp flowed.cpp redirect.cpp print.cpp search.cpp mdi.cpp prefpanel.cpp style.cpp)
 
 set(PO_BACKEND_SOURCES
   base64.cpp btree.cpp buffer.cpp ccache.cpp checksum.cpp chop.cpp
@@ -175,7 +175,7 @@ set(PO_BACKEND_SOURCES
   imap4handler.cpp outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtpclient.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
-  var2.cpp version.cpp wizard.cpp wordlist.cpp)
+  var2.cpp version.cpp wizard.cpp wordlist.cpp searchcore.cpp)
 
 list(TRANSFORM PO_GUI_SOURCES PREPEND src/postoffice/)
 list(TRANSFORM PO_BACKEND_SOURCES PREPEND src/postoffice/)

@@ -128,6 +128,7 @@ void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
 void redirect_queue (const char *raw, const char *from, const char *to);
+void search_done (WordList *W);
 void clear_folder_index (void);
 void update_tree_counts (void);
 
@@ -337,7 +338,7 @@ static bool choose_target_folder (const char *title, MailBox *&box, std::string 
 		std::vector<std::string> names;
 		B->VLock->LockR();
 		for (MailView *V = B->VFirst; V; V = V->Next)
-			if (!(B == currentmailbox && strcmp (V->Name, currentfolder) == 0)) names.push_back (V->Name);
+			if (!V->IsSearch && !(B == currentmailbox && strcmp (V->Name, currentfolder) == 0)) names.push_back (V->Name);
 		B->VLock->UnlockR();
 		if (!names.empty()) boxes.push_back ({ B, names });
 	}
@@ -1143,6 +1144,10 @@ int main (int argc, char *argv[])
 						PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (B->Name)->Get_collection ("folders")->Delete (M->Message->Get(1));
 						break;
 					}
+					break;
+
+				case CLASS_SEARCHED:
+					search_done (M->Message);
 					break;
 
 				case CLASS_REDIRECTED:

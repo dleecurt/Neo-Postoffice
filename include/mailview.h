@@ -68,6 +68,9 @@ class MailView
 		int				 	 GetNextMutation (void);
 
 		int					 NewCount;
+		// A "Search results" folder (Neo-PostOffice): filled by a search,
+		// not by the filters, and not a folder of the mailbox itself.
+		bool				 IsSearch = false;
 		
 	private:
 		int					_CachePos;

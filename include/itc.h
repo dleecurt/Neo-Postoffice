@@ -26,6 +26,7 @@
 #define CLASS_FOLDEROP		0x100B // [3] "create"/"rename"/"delete", name, new name
 #define CLASS_REDIRECT		0x100C // [3] msgid, Resent-From, Resent-To (Neo-PostOffice)
 #define CLASS_REFILTER		0x100D // [0] sort the messages into the folders again (Neo-PostOffice)
+#define CLASS_SEARCH		0x100E // [3] field (0-4), text, folder ("" = all): search (Neo-PostOffice)
 #define CLASS_URGENT		0x8000
 #define CLASS_DIE			0x8008 // [0]
 #define CLASS_STOP			0x8001 // [0]
@@ -41,6 +42,7 @@
 #define CLASS_NEWFOLDER		0x2007 // [2] arg1 = mailbox     arg2 = "" (folders or counts changed: redraw the tree)
 #define CLASS_GONE			0x2008 // [2] arg1 = mailbox     arg2 = intmsgid (deleted on the server)
 #define CLASS_FOLDERGONE	0x2009 // [2] arg1 = mailbox     arg2 = foldername (removed at the source)
+#define CLASS_SEARCHED		0x200C // [5+] mailbox, field (-1: failed), text, folder, note, Message-IDs...
 #define CLASS_REDIRECTED	0x200B // [3] raw message, Resent-From, Resent-To: queue it in the OutBox
 #define CLASS_FOLDERLIST	0x200A // [1+3n] arg1 = mailbox, then per folder: "1"/"0" subscribed, name here, server name
 

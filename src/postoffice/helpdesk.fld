@@ -51,7 +51,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         }
         MenuItem {} {
           label {New Query}
-          xywh {10 10 100 20} labelsize 12 deactivate
+          callback cb_search_m
+          xywh {10 10 100 20} labelsize 12
           code0 {xloc(o, "new_query");}
         }
         MenuItem {} {
@@ -310,9 +311,10 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           xywh {10 20 845 20}
         } {
           Fl_Group {} {open
-            xywh {78 20 68 20} deactivate
+            xywh {78 20 68 20}
           } {
             Fl_Button {} {
+              callback cb_search
               xywh {78 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
@@ -512,7 +514,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/send.xpm} compress_image 1 xywh {10 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/search.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20 deactivate
+            callback cb_search
+            image {icons/search.xpm} compress_image 1 xywh {40 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
             callback cb_reply
@@ -802,7 +805,8 @@ Function {make_menuwindow()} {} {
     } {
       Fl_Button {} {
         label Search
-        xywh {0 20 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24 deactivate
+        callback cb_search
+        xywh {0 20 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
       Fl_Box {} {
         image {icons/search.xpm} compress_image 1 xywh {2 21 29 18} align 20
@@ -1351,60 +1355,59 @@ Function {make_splash_screen()} {} {
 }
 
 Function {make_query_window()} {} {
-  Fl_Window {} {
-    label {Search Messages} open
-    xywh {173 326 339 100} type Single selection_color 15 hide
+  Fl_Window win_search {
+    label {Search Messages}
+    callback cb_search_window
+    xywh {173 326 440 170} type Single hide
   } {
-    Fl_Button bt_query_execute {
-      image {icons/kfind.xpm} compress_image 1 xywh {5 5 45 45} box NO_BOX
+    Fl_Box {} {
+      image {icons/kfind.xpm} compress_image 1 xywh {8 8 45 45}
     }
-    Fl_Group {} {
-      label Mailbox open
-      xywh {130 5 200 20} box FLAT_BOX color 0 labelsize 12 align 4
+    Fl_Input in_search_text {
+      label Find
+      tooltip {The text to look for: part of a word is enough, and capitals do not matter} xywh {130 10 300 22} labelsize 12 textsize 12
+    }
+    Fl_Choice ch_search_field {
+      label In open
+      tooltip {Where in the messages to look} xywh {130 38 200 22} down_box BORDER_BOX labelsize 12 textsize 12
     } {
-      Fl_Choice {} {open
-        xywh {131 6 199 19} down_box BORDER_BOX labelsize 12 textsize 12
-      } {}
-    }
-    Fl_Input {} {
-      label {Query Text}
-      xywh {130 30 200 20} labelsize 12 textsize 12
-    }
-    Fl_Group {} {open
-      xywh {260 55 70 20} box BORDER_BOX color 0
-    } {
-      Fl_Button {} {
-        label Search
-        xywh {261 56 69 19} labelsize 12
+      MenuItem {} {
+        label From
+        xywh {0 0 100 20} labelsize 12
+      }
+      MenuItem {} {
+        label {To or CC}
+        xywh {0 0 100 20} labelsize 12
+      }
+      MenuItem {} {
+        label Subject
+        xywh {0 0 100 20} labelsize 12
+      }
+      MenuItem {} {
+        label {Message text}
+        xywh {0 0 100 20} labelsize 12
+      }
+      MenuItem {} {
+        label Anywhere
+        tooltip {The headers and the text} xywh {0 0 100 20} labelsize 12
       }
     }
-    Fl_Group {} {
-      label Field open
-      xywh {130 55 125 20} box FLAT_BOX color 0 labelsize 12 align 4
-    } {
-      Fl_Choice {} {open
-        xywh {131 56 124 19} down_box BORDER_BOX labelsize 12 textsize 12
-      } {
-        MenuItem {} {
-          label From
-          xywh {0 0 100 20} labelsize 12
-        }
-        MenuItem {} {
-          label To
-          xywh {10 10 100 20} labelsize 12
-        }
-        MenuItem {} {
-          label Subject
-          xywh {20 20 100 20} labelsize 12
-        }
-        MenuItem {} {
-          label Body
-          xywh {30 30 100 20} labelsize 12
-        }
-      }
+    Fl_Choice ch_search_scope {
+      label Where open
+      tooltip {The folder that was open when the search window opened, or all folders of its mailbox} xywh {130 66 300 22} down_box BORDER_BOX labelsize 12 textsize 12
+    } {}
+    Fl_Box bx_search_status {
+      xywh {10 98 420 30} labelsize 12 align 213
     }
-    Fl_Slider {} {
-      xywh {0 80 340 20} type {Horz Fill} color 48 maximum 100 value 20
+    Fl_Button {} {
+      label Close
+      callback cb_search_close
+      xywh {230 136 95 24} labelsize 12
+    }
+    Fl_Return_Button bt_search_go {
+      label Search
+      callback cb_search_go
+      xywh {335 136 95 24} labelsize 12
     }
   }
 }

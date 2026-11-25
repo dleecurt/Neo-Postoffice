@@ -9,6 +9,7 @@ extern void cb_exit(Fl_Window*, void*);
 extern Fl_Window *win_main;
 #include <FL/Fl_Menu_Bar.H>
 extern void cb_compose(Fl_Menu_*, void*);
+extern void cb_search_m(Fl_Menu_*, void*);
 extern void cb_expire(Fl_Menu_*, void*);
 extern void cb_check_mail_m(Fl_Menu_*, void*);
 extern void cb_print_m(Fl_Menu_*, void*);
@@ -51,6 +52,7 @@ extern void cb_menu_tearoff(Fl_Button*, void*);
 extern Fl_Button *bt_tear;
 extern Fl_Group *gr_buttons;
 extern Fl_Group *gr_bigbuttons;
+extern void cb_search(Fl_Button*, void*);
 #include <FL/Fl_Box.H>
 extern void cb_check_mail(Fl_Button*, void*);
 extern void cb_forward(Fl_Button*, void*);
@@ -186,9 +188,18 @@ Fl_Window* make_folderlist_window();
 extern Fl_Window *win_splash;
 extern Fl_Slider *sl_splash;
 Fl_Window* make_splash_screen();
-extern Fl_Button *bt_query_execute;
+extern void cb_search_window(Fl_Window*, void*);
+extern Fl_Window *win_search;
+extern Fl_Input *in_search_text;
+extern Fl_Choice *ch_search_field;
+extern Fl_Choice *ch_search_scope;
+extern Fl_Box *bx_search_status;
+extern void cb_search_close(Fl_Button*, void*);
+#include <FL/Fl_Return_Button.H>
+extern void cb_search_go(Fl_Return_Button*, void*);
+extern Fl_Return_Button *bt_search_go;
 Fl_Window* make_query_window();
-extern Fl_Menu_Item menu_2[];
+extern Fl_Menu_Item menu_ch_search_field[];
 extern void cb_prefs_window(Fl_Window*, void*);
 extern Fl_Window *win_prefs;
 #include <FL/Fl_Tabs.H>

@@ -2734,4 +2734,100 @@ void IMAP4Handler::FolderOp (const char *op, const char *a, const char *b)
 	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, "");
 }
 
+
+//===============================================================================
+// Search (Neo-PostOffice): UID SEARCH in each folder, the server matching
+// without regard to case (FROM, TO or CC, SUBJECT, BODY, TEXT); the UIDs
+// found become the messages' Message-IDs here. Only messages the client
+// has listed are returned.
+//===============================================================================
+
+int IMAP4Handler::Search (const std::vector<std::string> &folders, int field, const std::string &text,
+						  std::vector<std::string> &ids, std::string &error)
+{
+	if (!StateLoaded) LoadState ();
+	int jid = JOBQ.NewJob (Parent->Name);
+	if (!Session (jid))
+	{
+		JOBQ.EndJob (jid);
+		error = "Cannot reach the IMAP server " + Host + " to search" +
+				(LastError.empty () ? std::string (".") : ": " + LastError);
+		LastError.clear ();
+		return 0;
+	}
+	bool ascii = true;
+	for (unsigned char c : text) if (c >= 0x80) ascii = false;
+	// CHARSET UTF-8 only when needed: some servers know no charsets.
+	const char *charset = ascii ? NULL : "UTF-8";
+	int done = 0;
+	size_t k = 0;
+	for (const std::string &client : folders)
+	{
+		++k;
+		std::string server;
+		for (const Folder &f : Folders) if (f.Client == client) { server = f.Server; break; }
+		if (server.empty ()) server = ServerName (client, NameDelim, Prefix);
+		auto st = State.find (server);
+		if (st == State.end ()) continue;
+		ShowStatus (jid, "Searching " + client + " (" + std::to_string (k) + " of " + std::to_string (folders.size ()) + ")");
+		if (!Examine (server))
+		{
+			if (Broken) break;
+			continue;
+		}
+		if (SelValidity != st->second.Validity) continue;
+
+		auto key = [&] (int f) -> struct mailimap_search_key * {
+			char *t = strdup (text.c_str ());
+			switch (f)
+			{
+				case 0: return mailimap_search_key_new_from (t);
+				case 2: return mailimap_search_key_new_subject (t);
+				case 3: return mailimap_search_key_new_body (t);
+				case 4: return mailimap_search_key_new_text (t);
+				case 1:
+				{
+					char *t2 = strdup (text.c_str ());
+					return mailimap_search_key_new_or (mailimap_search_key_new_to (t),
+													   mailimap_search_key_new_cc (t2));
+				}
+			}
+			free (t);
+			return NULL;
+		};
+		struct mailimap_search_key *sk = key (field);
+		if (!sk) break;
+		clist *res = NULL;
+		int r = mailimap_uid_search (Imap, charset, sk, &res);
+		mailimap_search_key_free (sk);
+		if (r != MAILIMAP_NO_ERROR)
+		{
+			if (res) mailimap_search_result_free (res);
+			if (r == MAILIMAP_ERROR_STREAM || r == MAILIMAP_ERROR_PARSE || !Net->IsOpen ()) { Broken = true; break; }
+			error = "The IMAP server " + Host + " could not search " + client + ": " + Why (r) + ".";
+			continue;
+		}
+		++done;
+		for (clistiter *it = res ? clist_begin (res) : NULL; it; it = clist_next (it))
+		{
+			uint32_t uid = *(uint32_t *) clist_content (it);
+			std::string id = MakeMsgID (st->second.Hash, st->second.Validity, uid);
+			if (Parent->Find ((char *) id.c_str ())) ids.push_back (id);
+		}
+		if (res) mailimap_search_result_free (res);
+	}
+	bool broken = Broken;
+	if (Broken) EndSession (false);
+	JOBQ.EndJob (jid);
+	Parent->ToUI->PostMessage (CLASS_STATUS, NO_SUBCLASS, Parent->Name, "");
+	if (broken)
+	{
+		error = "The connection to " + Host + " was lost during the search.";
+		return 0;
+	}
+	if (!done && !folders.empty () && !error.empty ()) return 0;
+	error.clear ();
+	return 1;
+}
+
 #endif // PO_HAVE_LIBETPAN

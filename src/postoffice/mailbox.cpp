@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include "mailbox.h"
+#include "search.h"
 #include "mailheaders.h"
 #include "wordlist.h"
 #include "var.h"
@@ -604,7 +605,7 @@ void MailBox::Deliver (MailMessage *M)
 
     while ((V)&&(!delivered))
     {
-        delivered = V->ProcessRules (M);
+        if (!V->IsSearch) delivered = V->ProcessRules (M);
         V = V->Next;
     }
 
@@ -614,6 +615,7 @@ void MailBox::Deliver (MailMessage *M)
         V = GetView (fld);
         if (!V) V = GetView ("Inbox");
         if (!V) V = VFirst;
+        if (V && V->IsSearch) V = NULL;
         if (V) V->Associate (M);
     }
 
@@ -1102,11 +1104,96 @@ void MailBox::RedirectMessage (const char *msgid, const char *from, const char *
 void MailBox::Refilter (void)
 {
     VLock->LockR();
-    for (MailView *V = VFirst; V; V = V->Next) V->UnassociateAll ();
+    for (MailView *V = VFirst; V; V = V->Next) if (!V->IsSearch) V->UnassociateAll ();
     VLock->UnlockR();
     Lock->LockR();
     for (MailMessage *M = (MailMessage *) Root->BNext; M && M != Root; M = (MailMessage *) M->BNext)
         Deliver (M);
     Lock->UnlockR();
     ToUI->PostMessage (CLASS_NEWFOLDER, NO_SUBCLASS, Name, "");
+}
+
+// Search (Neo-PostOffice): the messages of one folder ("" = all of the
+// mailbox's folders) that match; the results go to the window, which
+// shows them in a "Search results" folder. The server searches IMAP
+// folders; otherwise the stored messages are searched here, their text
+// read without marking them read.
+void MailBox::Search (int field, const char *text, const char *folder)
+{
+    std::vector<std::string> folders;
+    VLock->LockR();
+    for (MailView *V = VFirst; V; V = V->Next)
+        if (!V->IsSearch && (!*folder || strcmp (V->Name, folder) == 0)) folders.push_back (V->Name);
+    VLock->UnlockR();
+
+    std::vector<std::string> ids;
+    std::string error, note;
+    int r = Handler->Search (folders, field, text, ids, error);
+    if (r == 0)
+    {
+        ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, "Search", error.c_str());
+        WordList *W = new WordList;
+        W->Add (Name); W->Add ((char *) "-1"); W->Add (text); W->Add (folder); W->Add ("");
+        ToUI->PostMessage (CLASS_SEARCHED, NO_SUBCLASS, W);
+        return;
+    }
+    if (r < 0)
+    {
+        std::string needle = search::Fold (text);
+        int unread = 0;
+        std::vector<std::string> cand;
+        for (const std::string &f : folders)
+        {
+            MailView *V = GetView (f.c_str());
+            if (!V) continue;
+            for (int i = 0; i < V->Count(); ++i)
+            {
+                MailMessage *M = V->GetMessage (i);
+                if (M && M->MsgID) cand.push_back (M->MsgID);
+            }
+        }
+        for (const std::string &id : cand)
+        {
+            MailMessage *M = Find ((char *) id.c_str());
+            if (!M) continue;
+            bool body = field == SEARCH_BODY || field == SEARCH_ANYWHERE;
+            if (!body || (M->Flags & MMFL_INRAM))
+            {
+                if (search::Matches (M, (SearchField) field, needle)) ids.push_back (id);
+                continue;
+            }
+            // The text from the store, freed again afterwards; else the
+            // original (Maildir, MH), read without marking it read.
+            if ((M->Flags & MMFL_HAVEBODY) && (M->Flags & MMFL_ONDISK))
+            {
+                M->LoadBody ();
+                if (M->Flags & MMFL_INRAM)
+                {
+                    if (search::Matches (M, (SearchField) field, needle)) ids.push_back (id);
+                    M->Flush ();
+                    continue;
+                }
+            }
+            std::string raw, flags;
+            if (Handler->ExportRaw ((char *) id.c_str(), raw, flags))
+            {
+                if (search::Matches (M, (SearchField) field, needle, &raw)) ids.push_back (id);
+            }
+            else
+            {
+                // Headers only (text never fetched): the headers still count
+                // for Anywhere.
+                std::string none;
+                if (field == SEARCH_ANYWHERE && search::Matches (M, SEARCH_ANYWHERE, needle, &none)) ids.push_back (id);
+                ++unread;
+            }
+        }
+        if (unread)
+            note = std::to_string (unread) + (unread == 1 ? " message has" : " messages have") +
+                   " no text stored here and could not be searched.";
+    }
+    WordList *W = new WordList;
+    W->Add (Name); W->Add (std::to_string (field).c_str()); W->Add (text); W->Add (folder); W->Add (note.c_str());
+    for (const std::string &id : ids) W->Add (id.c_str());
+    ToUI->PostMessage (CLASS_SEARCHED, NO_SUBCLASS, W);
 }

@@ -18,7 +18,7 @@ static void cb_Configure(Fl_Menu_*, void*) {
 Fl_Menu_Item menu_[] = {
  {"File", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"New Message", FL_ALT|'n',  (Fl_Callback*)cb_compose, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"New Query", 0,  0, 0, 1, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"New Query", 0,  (Fl_Callback*)cb_search_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Expire", 0,  (Fl_Callback*)cb_expire, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Check Mail", FL_ALT|'l',  (Fl_Callback*)cb_check_mail_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Print Message", FL_CTRL|'p',  (Fl_Callback*)cb_print_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -779,10 +779,10 @@ Fl_Window* make_window() {
       { gr_buttons = new Fl_Group(10, 20, 845, 20);
         { gr_bigbuttons = new Fl_Group(10, 20, 845, 20);
           { Fl_Group* o = new Fl_Group(78, 20, 68, 20);
-            o->deactivate();
             { Fl_Button* o = new Fl_Button(78, 20, 68, 20);
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
+              o->callback((Fl_Callback*)cb_search);
             } // Fl_Button* o
             { Fl_Box* o = new Fl_Box(79, 21, 29, 18);
               o->image( image_search() );
@@ -1005,8 +1005,8 @@ Fl_Window* make_window() {
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_search() );
+            o->callback((Fl_Callback*)cb_search);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-            o->deactivate();
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(70, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
@@ -1375,8 +1375,8 @@ Fl_Window* make_menuwindow() {
         o->box(FL_THIN_UP_BOX);
         o->down_box(FL_THIN_DOWN_BOX);
         o->labelsize(12);
+        o->callback((Fl_Callback*)cb_search);
         o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
-        o->deactivate();
       } // Fl_Button* o
       { Fl_Box* o = new Fl_Box(2, 21, 29, 18);
         o->image( image_search() );
@@ -4873,7 +4873,7 @@ Fl_Window* make_splash_screen() {
   return win_splash;
 }
 
-Fl_Button *bt_query_execute=(Fl_Button *)0;
+Fl_Window *win_search=(Fl_Window *)0;
 
 static const char *idata_kfind[] = {
 "32 32 8 1",
@@ -4925,69 +4925,65 @@ static Fl_Image *image_kfind() {
   return image;
 }
 
-Fl_Menu_Item menu_2[] = {
+Fl_Input *in_search_text=(Fl_Input *)0;
+
+Fl_Choice *ch_search_field=(Fl_Choice *)0;
+
+Fl_Menu_Item menu_ch_search_field[] = {
  {"From", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"To", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"To or CC", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Subject", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
- {"Body", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Message text", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Anywhere", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
 
+Fl_Choice *ch_search_scope=(Fl_Choice *)0;
+
+Fl_Box *bx_search_status=(Fl_Box *)0;
+
+Fl_Return_Button *bt_search_go=(Fl_Return_Button *)0;
+
 Fl_Window* make_query_window() {
-  Fl_Window* w;
-  { Fl_Window* o = new Fl_Window(339, 100, "Search Messages");
-    w = o; (void)w;
-    o->selection_color(FL_SELECTION_COLOR);
-    { bt_query_execute = new Fl_Button(5, 5, 45, 45);
-      bt_query_execute->box(FL_NO_BOX);
-      bt_query_execute->image( image_kfind() );
-    } // Fl_Button* bt_query_execute
-    { Fl_Group* o = new Fl_Group(130, 5, 200, 20, "Mailbox");
-      o->box(FL_FLAT_BOX);
-      o->color(FL_FOREGROUND_COLOR);
+  { win_search = new Fl_Window(440, 170, "Search Messages");
+    win_search->callback((Fl_Callback*)cb_search_window);
+    { Fl_Box* o = new Fl_Box(8, 8, 45, 45);
+      o->image( image_kfind() );
+    } // Fl_Box* o
+    { in_search_text = new Fl_Input(130, 10, 300, 22, "Find");
+      in_search_text->tooltip("The text to look for: part of a word is enough, and capitals do not matter");
+      in_search_text->labelsize(12);
+      in_search_text->textsize(12);
+    } // Fl_Input* in_search_text
+    { ch_search_field = new Fl_Choice(130, 38, 200, 22, "In");
+      ch_search_field->tooltip("Where in the messages to look");
+      ch_search_field->down_box(FL_BORDER_BOX);
+      ch_search_field->labelsize(12);
+      ch_search_field->textsize(12);
+      ch_search_field->menu(menu_ch_search_field);
+    } // Fl_Choice* ch_search_field
+    { ch_search_scope = new Fl_Choice(130, 66, 300, 22, "Where");
+      ch_search_scope->tooltip("The folder that was open when the search window opened, or all folders of its"
+" mailbox");
+      ch_search_scope->down_box(FL_BORDER_BOX);
+      ch_search_scope->labelsize(12);
+      ch_search_scope->textsize(12);
+    } // Fl_Choice* ch_search_scope
+    { bx_search_status = new Fl_Box(10, 98, 420, 30);
+      bx_search_status->labelsize(12);
+      bx_search_status->align(Fl_Align(197|FL_ALIGN_INSIDE));
+    } // Fl_Box* bx_search_status
+    { Fl_Button* o = new Fl_Button(230, 136, 95, 24, "Close");
       o->labelsize(12);
-      o->align(Fl_Align(FL_ALIGN_LEFT));
-      { Fl_Choice* o = new Fl_Choice(131, 6, 199, 19);
-        o->down_box(FL_BORDER_BOX);
-        o->labelsize(12);
-        o->textsize(12);
-      } // Fl_Choice* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Input* o = new Fl_Input(130, 30, 200, 20, "Query Text");
-      o->labelsize(12);
-      o->textsize(12);
-    } // Fl_Input* o
-    { Fl_Group* o = new Fl_Group(260, 55, 70, 20);
-      o->box(FL_BORDER_BOX);
-      o->color(FL_FOREGROUND_COLOR);
-      { Fl_Button* o = new Fl_Button(261, 56, 69, 19, "Search");
-        o->labelsize(12);
-      } // Fl_Button* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Group* o = new Fl_Group(130, 55, 125, 20, "Field");
-      o->box(FL_FLAT_BOX);
-      o->color(FL_FOREGROUND_COLOR);
-      o->labelsize(12);
-      o->align(Fl_Align(FL_ALIGN_LEFT));
-      { Fl_Choice* o = new Fl_Choice(131, 56, 124, 19);
-        o->down_box(FL_BORDER_BOX);
-        o->labelsize(12);
-        o->textsize(12);
-        o->menu(menu_2);
-      } // Fl_Choice* o
-      o->end();
-    } // Fl_Group* o
-    { Fl_Slider* o = new Fl_Slider(0, 80, 340, 20);
-      o->type(3);
-      o->color((Fl_Color)48);
-      o->maximum(100);
-      o->value(20);
-    } // Fl_Slider* o
-    o->end();
-  } // Fl_Window* o
-  return w;
+      o->callback((Fl_Callback*)cb_search_close);
+    } // Fl_Button* o
+    { bt_search_go = new Fl_Return_Button(335, 136, 95, 24, "Search");
+      bt_search_go->labelsize(12);
+      bt_search_go->callback((Fl_Callback*)cb_search_go);
+    } // Fl_Return_Button* bt_search_go
+    win_search->end();
+  } // Fl_Window* win_search
+  return win_search;
 }
 
 Fl_Window *win_prefs=(Fl_Window *)0;

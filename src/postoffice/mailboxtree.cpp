@@ -165,8 +165,15 @@ void folder_new (MailBox *box, const char *parent)
 	post_folder_op (box, "create", name.c_str(), "");
 }
 
+void close_search_results (MailBox *box);
+
 void folder_rename (MailBox *box, const char *folder)
 {
+	if (folder && *folder && box->GetView (folder) && box->GetView (folder)->IsSearch)
+	{
+		fl_message ("The search results cannot be renamed; search again for other results.");
+		return;
+	}
 	if (!can_manage_folders (box)) return;
 	if (!folder || !*folder || !box->GetView (folder) || box->Handler->IsFixedFolder (folder))
 	{
@@ -183,6 +190,11 @@ void folder_rename (MailBox *box, const char *folder)
 
 void folder_delete (MailBox *box, const char *folder)
 {
+	if (folder && *folder && box->GetView (folder) && box->GetView (folder)->IsSearch)
+	{
+		close_search_results (box);
+		return;
+	}
 	if (!can_manage_folders (box)) return;
 	if (!folder || !*folder || !box->GetView (folder) || box->Handler->IsFixedFolder (folder))
 	{
@@ -324,6 +336,16 @@ static void tree_context_menu (Fl_Toggle_Node *n)
 	BoxData *B = (BoxData *) n->data();
 	MailBox *box = B->mailbox;
 	if (!box) return;
+	// A search's results (Neo-PostOffice): only closing it makes sense.
+	if (B->foldername && box->GetView (B->foldername) && box->GetView (B->foldername)->IsSearch)
+	{
+		Fl_Menu_Item sitems[] = {
+			{ "Close search results", 0, 0, 0, 0, 0, 0, 12, 0 },
+			{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+		};
+		if (sitems[0].popup (Fl::event_x(), Fl::event_y(), box->Name)) close_search_results (box);
+		return;
+	}
 	bool is_folder = B->foldername && box->GetView (B->foldername);
 	bool fixed = !is_folder || (box->Handler && box->Handler->IsFixedFolder (B->foldername));
 	bool manage = box->Handler && box->Handler->CanManageFolders();
@@ -504,6 +526,35 @@ void update_tree (Fl_Scroll *scr)
 	scr->scroll_to (scr->xposition(), std::max (0, std::min (scroll_y, max_y)));
 	scr->redraw();
 	Fl::flush();
+}
+
+// Selects a folder in the tree and shows it (Neo-PostOffice: the search
+// opens its results this way).
+void tree_select_folder (MailBox *box, const char *folder)
+{
+	update_tree (current_boxlist);
+	if (!TREE) return;
+	// The mailbox open, so its folders show.
+	for (Fl_Toggle_Node_Base *nb = TREE->first (); nb; nb = nb->next_node ())
+	{
+		BoxData *B = (BoxData *) ((Fl_Toggle_Node *) nb)->data();
+		if (B && B->mailbox == box && !*B->foldername && !nb->is_open ()) TREE->open ((Fl_Toggle_Node *) nb);
+	}
+	int depth = 0;
+	for (Fl_Toggle_Node_Base *nb = TREE->traverse_start (); nb; nb = TREE->traverse_forward (0, depth))
+	{
+		Fl_Toggle_Node *n = (Fl_Toggle_Node *) nb;
+		BoxData *B = (BoxData *) n->data();
+		if (B && B->mailbox == box && strcmp (B->foldername, folder) == 0)
+		{
+			TREE->select_only (n);
+			break;
+		}
+	}
+	snprintf (currentfolder, sizeof (currentfolder), "%s", folder);
+	currentmailbox = box;
+	update_folder ();
+	TREE->redraw ();
 }
 
 // Updates the message counts next to the mailbox names without rebuilding

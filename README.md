@@ -33,6 +33,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
   characters and sent as format=flowed
 - Redirect (resend a message unchanged), printing through lpr (CUPS or
   the BSD print spooler), Refilter
+- Search in a folder or a whole mailbox (on the server for IMAP), with
+  the hits in a "Search results" folder
 
 ## Building
 
@@ -286,6 +288,31 @@ every line; a word longer than a line, such as a link, is kept whole on
 a line of its own. **Edit Draft** joins a draft's paragraphs again so
 they re-wrap as you edit.
 
+## Searching
+
+**File → New Query** or the **Search** button opens the search window:
+
+- **Find**: the text to look for. Part of a word is enough, and capitals
+  do not matter (also for accented, Greek and Cyrillic letters).
+- **In**: From, To or CC, Subject, Message text, or Anywhere (the headers
+  and the text).
+- **Where**: the folder that was open, or all folders of its mailbox.
+
+The messages found are shown in a **Search results** folder of that
+mailbox, which opens by itself. They can be read, answered, forwarded,
+moved and deleted there as in their own folders. A new search replaces
+the results; right-click the folder → **Close search results** (or
+Folder → Delete folder while it is shown) removes it. It exists only in
+Neo-PostOffice, not on the server or on disk, and is gone after a
+restart.
+
+IMAP folders are searched by the server (IMAP SEARCH), so nothing is
+downloaded. Whether the server decodes subjects and names written in
+other character sets (`=?UTF-8?...?=`) when it searches depends on the
+server: Dovecot does, some others do not. Local mailboxes (POP3, Maildir,
+MH, mbox) are searched here, including text encoded as base64 or
+quoted-printable; searching does not mark messages as read.
+
 ## Printing
 
 **File → Print Message** (Ctrl+P) or the **Print** button prints the
@@ -304,8 +331,8 @@ The striped handle at the left of the toolbar, and the one at the left of
 the Mailboxes bar, move the toolbar or the folder list into a window of
 its own. Close that window to put it back, or use **View → Toolbar in
 Own Window** and **View → Folder List in Own Window**, which are ticked
-while they are separate. Search and Addr are greyed out until they are
-finished (0.9.2 and 0.9.3).
+while they are separate. Addr is greyed out until the address book is
+finished (0.9.3).
 
 ## Filters and Refilter
 
@@ -765,6 +792,7 @@ See the git history for details. In summary:
   - 0.9.1: Redirect, printing, Refilter; the separate toolbar window
     works and View menu items put separated windows back; the unused
     MySQL directory setting is removed.
+  - 0.9.2: Search.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.

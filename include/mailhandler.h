@@ -62,6 +62,13 @@ public:
 	// Subscriptions (IMAP): FolderOp "list" answers with CLASS_FOLDERLIST,
 	// "subscriptions" takes "+name" / "-name" lines of server names.
 	virtual bool			 CanSubscribe (void) { return false; }
+	// Search on the server (Neo-PostOffice): the Message-IDs of the
+	// messages in the given folders that match. -1 when the mailbox has no
+	// server search (the mailbox then searches its own copies); 0 with
+	// error set when the search failed; 1 when it was done.
+	virtual int				 Search (const std::vector<std::string> & /*folders*/, int /*field*/,
+									 const std::string & /*text*/, std::vector<std::string> & /*ids*/,
+									 std::string & /*error*/) { return -1; }
 
 		
 	char					 ConnectionOpen;
@@ -139,6 +146,8 @@ public:
 	bool					 CanManageFolders (void) { return true; }
 	void					 FolderOp (const char *op, const char *a, const char *b);
 	std::string				 CheckFolderName (const std::string &);
+	int						 Search (const std::vector<std::string> &folders, int field, const std::string &text,
+									 std::vector<std::string> &ids, std::string &error);
 	bool					 IsFixedFolder (const char *name);
 	bool					 FolderDeleteIsFinal (void) { return true; }
 	bool					 CanSubscribe (void) { return true; }
