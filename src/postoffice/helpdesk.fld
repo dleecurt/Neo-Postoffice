@@ -1293,9 +1293,9 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
         tooltip {Clear the fields to enter a new entry} xywh {315 330 75 22} labelsize 12
       }
       Fl_Return_Button bt_ab_save {
-        label Save
+        label Add
         callback cb_ab_save
-        tooltip {Store the entry: changes the selected entry, or adds a new one} xywh {395 330 75 22} labelsize 12
+        tooltip {Add the fields as a new entry} xywh {395 330 75 22} labelsize 12
       }
       Fl_Button bt_ab_delete {
         label Delete

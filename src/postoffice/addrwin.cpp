@@ -54,7 +54,7 @@ namespace
 
 	void status (const std::string &s)
 	{
-		bx_ab_status->copy_label (s.c_str ());
+		bx_ab_status->copy_label (esc_at (s).c_str ());
 		bx_ab_status->redraw ();
 	}
 
@@ -70,8 +70,17 @@ namespace
 				+ "  (double-click: " + FIELDNAMES[ab_field] + ")";
 		}
 		else t = "To, CC and BCC start a new message";
-		bx_ab_target->copy_label (t.c_str ());
+		bx_ab_target->copy_label (esc_at (t).c_str ());
 		bx_ab_target->redraw ();
+	}
+
+	// Add for a new entry, Save for changes to the entry chosen in the list.
+	void save_label (void)
+	{
+		bt_ab_save->label (ab_editing.empty () ? "Add" : "Save");
+		bt_ab_save->tooltip (ab_editing.empty () ? "Add the fields as a new entry"
+												  : "Store the changes to the entry chosen in the list");
+		bt_ab_save->redraw ();
 	}
 
 	void fill_fields (const addrbook::Entry &E)
@@ -80,6 +89,7 @@ namespace
 		in_ab_name->value (E.Name.c_str ());
 		in_ab_email->value (E.Email.c_str ());
 		ab_editing = E.Id;
+		save_label ();
 	}
 
 	void update_buttons (void)
@@ -88,6 +98,9 @@ namespace
 		for (int i = 1; i <= br_addresses->size (); ++i)
 			if (br_addresses->selected (i)) any = true;
 		if (any) bt_ab_delete->activate (); else bt_ab_delete->deactivate ();
+		// No entry chosen: the fields make a new entry.
+		if (!any) ab_editing = "";
+		save_label ();
 	}
 
 	void refresh (const std::string &select = "")
@@ -359,10 +372,16 @@ void cb_ab_save (Fl_Return_Button */*b*/, void */*v*/)
 			break;
 		}
 	}
-	ab_editing = addrbook::Save (E);
-	refresh (ab_editing);
-	for (auto &S : ab_entries) if (S.Id == ab_editing) fill_fields (S);
-	status (E.Id.empty () ? "Added." : "Saved.");
+	// The entry is done: the fields are cleared for the next one, so what
+	// is typed next becomes a new entry rather than replacing this one.
+	std::string id = addrbook::Save (E);
+	refresh (id);
+	br_addresses->deselect ();
+	fill_fields (addrbook::Entry ());
+	update_buttons ();
+	in_ab_nickname->take_focus ();
+	std::string who = E.Nickname.find_first_not_of (' ') != std::string::npos ? E.Nickname : E.Email;
+	status ((E.Id.empty () ? "Added " : "Saved ") + who + ".");
 }
 
 void cb_ab_delete (Fl_Button */*b*/, void */*v*/)

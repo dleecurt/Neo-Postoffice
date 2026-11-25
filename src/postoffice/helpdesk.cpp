@@ -2505,8 +2505,8 @@ Fl_Double_Window* make_address_window() {
         o->labelsize(12);
         o->callback((Fl_Callback*)cb_ab_new);
       } // Fl_Button* o
-      { bt_ab_save = new Fl_Return_Button(395, 330, 75, 22, "Save");
-        bt_ab_save->tooltip("Store the entry: changes the selected entry, or adds a new one");
+      { bt_ab_save = new Fl_Return_Button(395, 330, 75, 22, "Add");
+        bt_ab_save->tooltip("Add the fields as a new entry");
         bt_ab_save->labelsize(12);
         bt_ab_save->callback((Fl_Callback*)cb_ab_save);
       } // Fl_Return_Button* bt_ab_save

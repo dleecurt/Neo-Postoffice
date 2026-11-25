@@ -323,9 +323,12 @@ are writing opens the address book. Each entry has a **nickname**, a
 **full name** and an **e-mail address**; addresses are put in messages
 as `Full Name <address>` (or just the address when there is no name).
 
-- **New** clears the fields; fill them in and press **Save** (or Enter).
-  Click an entry to change it, change the fields and press Save.
-  Without a nickname, the first word of the name (or the part of the
+- To add an entry, fill in the fields and press **Add** (or Enter).
+  The fields are then cleared for the next entry.
+- To change an entry, click it in the list: the button becomes **Save**.
+  Change the fields and press Save. **New** (or clicking the chosen
+  entry again with Ctrl) clears the fields for a new entry instead.
+- Without a nickname, the first word of the name (or the part of the
   address before the @) is used. Nicknames must be different.
 - **Delete** removes the selected entries, after asking. Ctrl+click or
   Shift+click selects several.
