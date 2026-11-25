@@ -56,6 +56,11 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           code0 {xloc(o, "new_query");}
         }
         MenuItem {} {
+          label {Address Book}
+          callback cb_addressbook_m
+          tooltip {Open the address book} xywh {0 0 100 20} shortcut 0x80062 labelsize 12
+        }
+        MenuItem {} {
           label Expire
           callback cb_expire
           xywh {0 0 100 20} labelsize 12
@@ -146,6 +151,11 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
           callback cb_redirect_m
           tooltip {Send the message on unchanged to someone else} xywh {30 30 100 20} labelsize 12
           code0 {xloc(o, "redirect");}
+        }
+        MenuItem {} {
+          label {Add Sender to Address Book}
+          callback cb_add_sender_m
+          tooltip {Open the address book with the sender of the message shown filled in} xywh {0 0 100 20} labelsize 12
         }
         MenuItem {} {
           label {Save all attachments...}
@@ -455,10 +465,11 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             }
           }
           Fl_Group {} {open
-            xywh {622 20 68 20} deactivate
+            xywh {622 20 68 20}
           } {
             Fl_Button {} {
-              xywh {622 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
+              callback cb_addressbook
+              tooltip {Open the address book} xywh {622 20 68 20} box THIN_UP_FRAME down_box THIN_DOWN_FRAME
             }
             Fl_Box {} {
               image {icons/openbook.xpm} compress_image 1 xywh {623 21 23 18} align 20
@@ -546,7 +557,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             image {icons/fileprint.xpm} compress_image 1 xywh {250 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
-            image {icons/openbook.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20 deactivate
+            callback cb_addressbook
+            tooltip {Address book} image {icons/openbook.xpm} compress_image 1 xywh {280 20 30 20} box THIN_UP_BOX down_box THIN_DOWN_BOX align 20
           }
           Fl_Button {} {
             callback cb_configure
@@ -901,7 +913,8 @@ Function {make_menuwindow()} {} {
     } {
       Fl_Button {} {
         label Addr
-        xywh {0 180 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24 deactivate
+        callback cb_addressbook
+        tooltip {Open the address book} xywh {0 180 115 20} box THIN_UP_BOX down_box THIN_DOWN_BOX labelsize 12 align 24
       }
       Fl_Box {} {
         image {icons/openbook.xpm} compress_image 1 xywh {2 181 29 18} align 20
@@ -1062,6 +1075,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             label To
             xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "to");}
+            code1 {\#include "addrbook.h"}
+            class Fl_Address_Input
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
@@ -1079,6 +1094,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             label CC
             xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "cc");}
+            code1 {\#include "addrbook.h"}
+            class Fl_Address_Input
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
@@ -1096,6 +1113,8 @@ Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)-
             label BCC
             xywh {125 45 375 20} labelsize 12 textsize 12 resizable
             code0 {xloc(o, "bcc");}
+            code1 {\#include "addrbook.h"}
+            class Fl_Address_Input
           }
           Fl_Group {} {open
             xywh {500 45 30 20} box BORDER_BOX color 0
@@ -1193,88 +1212,95 @@ Function {make_address_window()} {open
 char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
 Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");} {}
   Fl_Window {} {
-    label {Address Book} open
-    xywh {78 150 480 193} type Single hide resizable
-    code0 {xloc(o, "win_address");} modal
+    label {Address Book}
+    callback cb_ab_window open
+    xywh {78 150 560 360} type Double hide resizable
+    code0 {xloc(o, "win_address");}
   } {
     Fl_Group {} {open
-      xywh {0 0 480 195}
+      xywh {0 0 560 32}
     } {
-      Fl_Group {} {open
-        xywh {0 0 480 195} resizable
-      } {
-        Fl_Group {} {open
-          xywh {0 55 480 20}
-        } {
-          Fl_Group {} {open
-            xywh {0 55 480 20}
-          } {
-            Fl_Button bt_address_nickname {
-              label Nickname
-              xywh {0 55 120 20} box THIN_UP_BOX labelsize 12 align 20
-              code0 {xloc(o, "nickname");}
-            }
-            Fl_Button bt_address_email {
-              label {Email Address}
-              xywh {120 55 360 20} box THIN_UP_BOX labelsize 12 align 20
-              code0 {xloc(o, "email_address");}
-            }
-          }
-        }
-        Fl_Browser br_addresses {
-          xywh {0 75 480 120} type Hold labelsize 12 textsize 12 resizable
-        }
+      Fl_Button bt_ab_to {
+        label To
+        user_data {(void *) 0}
+        callback cb_ab_add
+        tooltip {Address the selected entries in To: of the message they were picked for, or of a new message} xywh {5 5 60 22} labelsize 12
       }
-      Fl_Group {} {open
-        xywh {0 0 470 55}
-      } {
-        Fl_Group {} {open
-          xywh {115 0 355 55} resizable
-        } {
-          Fl_Group {} {open
-            xywh {115 30 355 25}
-          } {
-            Fl_Input in_address_nickname {
-              label Nickname
-              xywh {135 30 225 20} labelsize 12 textsize 12 resizable
-              code0 {xloc(o, "nickname");}
-            }
-            Fl_Group {} {open
-              xywh {420 30 50 20} box FLAT_BOX color 0
-            } {
-              Fl_Button bt_address_new {
-                label New
-                callback cb_address_new
-                xywh {421 31 49 19} labelsize 12
-              }
-            }
-            Fl_Group {} {open
-              xywh {365 30 50 20} box FLAT_BOX color 0
-            } {
-              Fl_Button bt_address_delete {
-                label Delete
-                callback cb_address_delete
-                xywh {366 31 49 19} labelsize 12
-              }
-            }
-          }
-          Fl_Input in_address_email {
-            label Email
-            xywh {135 5 335 20} labelsize 12 when 1 textsize 12
-            code0 {xloc(o, "email");}
-          }
-        }
-        Fl_Group {} {open
-          xywh {0 0 55 55}
-        } {
-          Fl_Group {} {open
-            xywh {5 5 45 45} box FLAT_BOX color 0
-          } {
-            Fl_Button bt_address_execute {
-              image {icons/filer.xpm} compress_image 1 xywh {6 6 43 43} box THIN_UP_BOX
-            }
-          }
-        }
+      Fl_Button bt_ab_cc {
+        label CC
+        user_data {(void *) 1}
+        callback cb_ab_add
+        tooltip {Address the selected entries in CC:} xywh {70 5 60 22} labelsize 12
+      }
+      Fl_Button bt_ab_bcc {
+        label BCC
+        user_data {(void *) 2}
+        callback cb_ab_add
+        tooltip {Address the selected entries in BCC:} xywh {135 5 60 22} labelsize 12
+      }
+      Fl_Box bx_ab_target {
+        xywh {200 5 290 22} labelsize 11 align 84 resizable
+      }
+      Fl_Button {} {
+        label Close
+        callback cb_ab_close
+        xywh {495 5 60 22} labelsize 12
+      }
+    }
+    Fl_Group {} {open
+      xywh {5 32 550 205} resizable
+    } {
+      Fl_Box {} {
+        label Nickname
+        xywh {5 32 120 20} box THIN_UP_BOX labelsize 12 align 84
+        code0 {xloc(o, "nickname");}
+      }
+      Fl_Box {} {
+        label Name
+        xywh {125 32 180 20} box THIN_UP_BOX labelsize 12 align 84
+      }
+      Fl_Box {} {
+        label {Email Address}
+        xywh {305 32 250 20} box THIN_UP_BOX labelsize 12 align 84
+        code0 {xloc(o, "email_address");}
+      }
+      Fl_Browser br_addresses {
+        callback cb_ab_select
+        tooltip {Click to edit an entry; Ctrl or Shift + click to select several. Double-click addresses the entry in the field the address book was opened from.} xywh {5 52 550 185} type Multi labelsize 12 when 3 textsize 12 resizable
+      }
+    }
+    Fl_Group {} {open
+      xywh {0 240 560 120}
+    } {
+      Fl_Input in_ab_nickname {
+        label Nickname
+        tooltip {A short name to find the entry by when you type it in To or CC} xywh {90 245 160 22} labelsize 12 textsize 12
+      }
+      Fl_Input in_ab_name {
+        label {Full name}
+        xywh {90 272 465 22} labelsize 12 textsize 12
+      }
+      Fl_Input in_ab_email {
+        label Email
+        xywh {90 299 465 22} labelsize 12 textsize 12
+      }
+      Fl_Box bx_ab_status {
+        xywh {5 330 300 22} labelsize 11 align 84
+      }
+      Fl_Button {} {
+        label New
+        callback cb_ab_new
+        tooltip {Clear the fields to enter a new entry} xywh {315 330 75 22} labelsize 12
+      }
+      Fl_Return_Button bt_ab_save {
+        label Save
+        callback cb_ab_save
+        tooltip {Store the entry: changes the selected entry, or adds a new one} xywh {395 330 75 22} labelsize 12
+      }
+      Fl_Button bt_ab_delete {
+        label Delete
+        callback cb_ab_delete
+        tooltip {Delete the selected entries} xywh {480 330 75 22} labelsize 12 deactivate
       }
     }
   }

@@ -35,6 +35,8 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
   the BSD print spooler), Refilter
 - Search in a folder or a whole mailbox (on the server for IMAP), with
   the hits in a "Search results" folder
+- An address book with full names, Add Sender, and addresses completed
+  while you type
 
 ## Building
 
@@ -313,6 +315,40 @@ server: Dovecot does, some others do not. Local mailboxes (POP3, Maildir,
 MH, mbox) are searched here, including text encoded as base64 or
 quoted-printable; searching does not mark messages as read.
 
+## Address book
+
+**Addr** on the toolbar (or in the Mail Menu window), **File → Address
+Book** (Alt+B), or the book button beside To, CC or BCC in a message you
+are writing opens the address book. Each entry has a **nickname**, a
+**full name** and an **e-mail address**; addresses are put in messages
+as `Full Name <address>` (or just the address when there is no name).
+
+- **New** clears the fields; fill them in and press **Save** (or Enter).
+  Click an entry to change it, change the fields and press Save.
+  Without a nickname, the first word of the name (or the part of the
+  address before the @) is used. Nicknames must be different.
+- **Delete** removes the selected entries, after asking. Ctrl+click or
+  Shift+click selects several.
+- **To**, **CC** and **BCC** put the selected entries in that field of
+  the message the address book was opened from, or of a new message
+  when it was opened from the toolbar or the menu. A double-click puts
+  one entry in the field whose book button opened the address book (To
+  otherwise). The window can stay open while you write.
+
+**Message → Add Sender to Address Book**, or right-click a message →
+**Add sender to address book**, opens the address book with the sender
+filled in as a new entry: check it and press Save. If the address is in
+the address book already, its entry is shown instead.
+
+While you type in To, CC or BCC, entries whose nickname, a word of the
+name or the address start with what you typed (two letters or more)
+are listed under the field. Up and Down choose, Enter or Tab (or a
+click) puts the entry in, and Escape closes the list.
+
+The address book is kept with the settings (`postoffice/contacts` in
+`~/.postoffice/resource.rc`). The address book of PostOffice 0.7.3
+(nickname and address only) is moved there when it is first opened.
+
 ## Printing
 
 **File → Print Message** (Ctrl+P) or the **Print** button prints the
@@ -331,8 +367,7 @@ The striped handle at the left of the toolbar, and the one at the left of
 the Mailboxes bar, move the toolbar or the folder list into a window of
 its own. Close that window to put it back, or use **View → Toolbar in
 Own Window** and **View → Folder List in Own Window**, which are ticked
-while they are separate. Addr is greyed out until the address book is
-finished (0.9.3).
+while they are separate.
 
 ## Filters and Refilter
 
@@ -793,6 +828,10 @@ See the git history for details. In summary:
     works and View menu items put separated windows back; the unused
     MySQL directory setting is removed.
   - 0.9.2: Search.
+  - 0.9.3: the address book: full names, editing, Add Sender, and
+    addresses completed while typing in To, CC and BCC; the Search
+    results folder is no longer saved with the settings, and From, To
+    and Subject searches in POP3 mailboxes find messages not yet opened.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.

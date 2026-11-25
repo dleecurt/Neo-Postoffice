@@ -66,18 +66,14 @@ extern WordList		 currentmessage[8];
 extern int			 currentbodystart[8];
 extern int			 currentsigstart[8];
 
-extern int			 adr_widths[2];
 
 extern Var			 PREFERENCES;
 
-extern Fl_Window	*address;
 
 void doforward (bool);
 
 void cb_compose_header_expand (Fl_Widget *, struct Composer_Window *);
 void cb_compose_header_shrink (Fl_Widget *, struct Composer_Window *);
-void cb_selectaddress (Fl_Browser *, void *);
-void cb_pasteaddress (Fl_Button *, void *);
 void cb_sendmessage (Fl_Window *, struct Composer_Window *);
 void cb_discardmessage (Fl_Window *, struct Composer_Window *);
 
@@ -1284,95 +1280,56 @@ void cb_compose_header_shrink (Fl_Widget */*x*/, Composer_Window *W)
 	composer_layout (W, false);
 }
 
-void cb_address (Fl_Button */*b*/, void *d)
+// The address book buttons beside To, CC and BCC (Neo-PostOffice): the
+// address book opens for this composer; a double-click there addresses the
+// entry in the field whose button was pressed.
+void addressbook_open (void *composer, int field);
+
+void cb_address (Fl_Button *b, void */*d*/)
 {
-	int i;
-	char buf[256];
-	WordList *W = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("addressbook");
-	
-	if (!address)
-	{
-		address = make_address_window();
-	}
-	br_addresses->clear();
-	br_addresses->column_widths (adr_widths);
-	for (i=0;i<W->Count;++i)
-	{
-		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
-		br_addresses->add (buf, NULL);
-	}
-	br_addresses->callback ((Fl_Callback *) cb_selectaddress, (void *) d);
-	bt_address_execute->callback ((Fl_Callback *) cb_pasteaddress, (void *) d);
-	bt_address_delete->deactivate();
-	address->show();
+	Composer_Window *W = composer_of (b);
+	int field = 0;
+	Fl_Group *row = (b && b->parent ()) ? b->parent ()->parent () : NULL;
+	if (W && row == W->gr_cc) field = 1;
+	else if (W && row == W->gr_bcc) field = 2;
+	addressbook_open (W, field);
 }
 
-void cb_address_new (Fl_Button */*b*/, void */*d*/)
+// For the address book window (addrwin.cpp).
+bool composer_is_open (void *composer)
 {
-	char buf[256];
-
-	PREFERENCES.Get_collection ("postoffice")->Get_collection ("addressbook")
-		->Set_char (in_address_nickname->value(), in_address_email->value());
-
-
-	WordList *W = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("addressbook");
-
-	br_addresses->clear();
-	br_addresses->column_widths (adr_widths);
-	for (int i=0;i<W->Count;++i)
-	{
-		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
-		br_addresses->add (buf, NULL);
-	}
-	bt_address_delete->deactivate();
+	return composer && std::find (open_composers.begin (), open_composers.end (), (Composer_Window *) composer) != open_composers.end ();
 }
 
-void cb_address_delete (Fl_Button */*b*/, void */*d*/)
+Fl_Input *composer_field (void *composer, int field)
 {
-	if (br_addresses->value()<0) return;
-
-	char buf[256];
-	WordList L;
-	char *tmp = (char *) br_addresses->text (br_addresses->value());
-	
-	L.MakeGeneric (tmp, '\t');
-	PREFERENCES.Get_collection("postoffice")->Get_collection("addressbook")->Delete(L.Get(0));
-
-	WordList *W = PREFERENCES.Get_collection ("postoffice")->Get_wordlist ("addressbook");
-
-	br_addresses->clear();
-	br_addresses->column_widths (adr_widths);
-	for (int i=0;i<W->Count;++i)
-	{
-		snprintf (buf, sizeof (buf), "%s\t%s", W->Get(i), PREFERENCES.Get_char_tree (3, "postoffice","addressbook",W->Get(i)));
-		br_addresses->add (buf, NULL);
-	}
-	bt_address_delete->deactivate();
+	Composer_Window *W = (Composer_Window *) composer;
+	if (!composer_is_open (W)) return NULL;
+	return field == 0 ? W->in_to : field == 1 ? W->in_cc : W->in_bcc;
 }
 
-void cb_selectaddress (Fl_Browser *b, void */*d*/)
+Fl_Window *composer_window (void *composer)
 {
-	if (b->value() < 0)
-	{
-		bt_address_delete->deactivate();
-		return;
-	}
-	
-	bt_address_delete->activate();
-	
-	char *selected = (char *) b->text (b->value());
-	WordList *W = new WordList;
-	W->MakeGeneric (selected, '\t');
-	in_address_nickname->value (W->Get(0));
-	in_address_email->value (W->Get(1));
+	return composer_is_open (composer) ? ((Composer_Window *) composer)->comp : NULL;
 }
 
-void cb_pasteaddress (Fl_Button */*b*/, void *d)
+// A new, empty message (File -> New Message).
+void *composer_new (void)
 {
-	Fl_Input *I = (Fl_Input *) d;
-	dprintf ("[addressbook] callback window: %p\n", (void *) d);
-	if (I) I->value (in_address_email->value());
-	address->hide();
+	Composer_Window *W = create_composer_window ();
+	W->msgid[0]		= 0;
+	W->references	= strdupp ("");
+	return W;
+}
+
+// Shows the CC or BCC field (the full header view), so an address put
+// there can be seen.
+void composer_show_field (void *composer, int field)
+{
+	Composer_Window *W = (Composer_Window *) composer;
+	if (!composer_is_open (W) || field == 0) return;
+	if (!W->gr_cc->visible () || !W->gr_bcc->visible ())
+		composer_layout (W, true);
 }
 
 

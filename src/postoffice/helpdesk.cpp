@@ -19,6 +19,7 @@ Fl_Menu_Item menu_[] = {
  {"File", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"New Message", FL_ALT|'n',  (Fl_Callback*)cb_compose, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"New Query", 0,  (Fl_Callback*)cb_search_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Address Book", FL_ALT|'b',  (Fl_Callback*)cb_addressbook_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Expire", 0,  (Fl_Callback*)cb_expire, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Check Mail", FL_ALT|'l',  (Fl_Callback*)cb_check_mail_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Print Message", FL_CTRL|'p',  (Fl_Callback*)cb_print_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -37,6 +38,7 @@ Fl_Menu_Item menu_[] = {
  {"Forward", FL_ALT|'f',  (Fl_Callback*)cb_forward_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Forward full headers", FL_ALT|'F',  (Fl_Callback*)cb_forwardfull_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Redirect", 0,  (Fl_Callback*)cb_redirect_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
+ {"Add Sender to Address Book", 0,  (Fl_Callback*)cb_add_sender_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Save all attachments...", 0,  (Fl_Callback*)cb_save_attachments_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Edit Draft", 0,  (Fl_Callback*)cb_edit_draft_m, 0, 128, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"Delete", 0xffff,  (Fl_Callback*)cb_delete_m, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -705,64 +707,64 @@ Fl_Window* make_window() {
       { Fl_Menu_Item* o = &menu_[2];
         xloc(o, "new_query");
       }
-      { Fl_Menu_Item* o = &menu_[4];
+      { Fl_Menu_Item* o = &menu_[5];
         xloc(o, "check_mail");
       }
-      { Fl_Menu_Item* o = &menu_[6];
+      { Fl_Menu_Item* o = &menu_[7];
         xloc(o, "configure");
       }
-      { Fl_Menu_Item* o = &menu_[7];
+      { Fl_Menu_Item* o = &menu_[8];
         xloc(o, "quit");
       }
-      { Fl_Menu_Item* o = &menu_[9];
+      { Fl_Menu_Item* o = &menu_[10];
         xloc(o, "edit");
       }
-      { Fl_Menu_Item* o = &menu_[10];
+      { Fl_Menu_Item* o = &menu_[11];
         xloc(o, "cut");
       }
-      { Fl_Menu_Item* o = &menu_[11];
+      { Fl_Menu_Item* o = &menu_[12];
         xloc(o, "copy");
       }
-      { Fl_Menu_Item* o = &menu_[12];
+      { Fl_Menu_Item* o = &menu_[13];
         xloc(o, "paste");
       }
-      { Fl_Menu_Item* o = &menu_[15];
+      { Fl_Menu_Item* o = &menu_[16];
         xloc(o, "message");
       }
-      { Fl_Menu_Item* o = &menu_[16];
+      { Fl_Menu_Item* o = &menu_[17];
         xloc(o, "reply");
       }
-      { Fl_Menu_Item* o = &menu_[17];
+      { Fl_Menu_Item* o = &menu_[18];
         xloc(o, "reply_all");
       }
-      { Fl_Menu_Item* o = &menu_[18];
+      { Fl_Menu_Item* o = &menu_[19];
         xloc(o, "forward");
       }
-      { Fl_Menu_Item* o = &menu_[20];
+      { Fl_Menu_Item* o = &menu_[21];
         xloc(o, "redirect");
       }
-      { Fl_Menu_Item* o = &menu_[23];
+      { Fl_Menu_Item* o = &menu_[25];
         xloc(o, "delete");
       }
-      { Fl_Menu_Item* o = &menu_[36];
+      { Fl_Menu_Item* o = &menu_[38];
         xloc(o, "view");
       }
-      { Fl_Menu_Item* o = &menu_[38];
+      { Fl_Menu_Item* o = &menu_[40];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[39];
+      { Fl_Menu_Item* o = &menu_[41];
         xloc(o, "unread_messages");
       }
-      { Fl_Menu_Item* o = &menu_[42];
+      { Fl_Menu_Item* o = &menu_[44];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[43];
+      { Fl_Menu_Item* o = &menu_[45];
         xloc(o, "unread_messages");
       }
-      { Fl_Menu_Item* o = &menu_[46];
+      { Fl_Menu_Item* o = &menu_[48];
         xloc(o, "all_messages");
       }
-      { Fl_Menu_Item* o = &menu_[47];
+      { Fl_Menu_Item* o = &menu_[49];
         xloc(o, "unread_messages");
       }
       o->menu(menu_);
@@ -935,10 +937,11 @@ Fl_Window* make_window() {
             o->end();
           } // Fl_Group* o
           { Fl_Group* o = new Fl_Group(622, 20, 68, 20);
-            o->deactivate();
             { Fl_Button* o = new Fl_Button(622, 20, 68, 20);
+              o->tooltip("Open the address book");
               o->box(FL_THIN_UP_FRAME);
               o->down_box(FL_THIN_DOWN_FRAME);
+              o->callback((Fl_Callback*)cb_addressbook);
             } // Fl_Button* o
             { Fl_Box* o = new Fl_Box(623, 21, 23, 18);
               o->image( image_openbook() );
@@ -1060,11 +1063,12 @@ Fl_Window* make_window() {
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(280, 20, 30, 20);
+            o->tooltip("Address book");
             o->box(FL_THIN_UP_BOX);
             o->down_box(FL_THIN_DOWN_BOX);
             o->image( image_openbook() );
+            o->callback((Fl_Callback*)cb_addressbook);
             o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-            o->deactivate();
           } // Fl_Button* o
           { Fl_Button* o = new Fl_Button(310, 20, 30, 20);
             o->box(FL_THIN_UP_BOX);
@@ -1484,11 +1488,12 @@ Fl_Window* make_menuwindow() {
     } // Fl_Group* o
     { Fl_Group* o = new Fl_Group(0, 180, 115, 20);
       { Fl_Button* o = new Fl_Button(0, 180, 115, 20, "Addr");
+        o->tooltip("Open the address book");
         o->box(FL_THIN_UP_BOX);
         o->down_box(FL_THIN_DOWN_BOX);
         o->labelsize(12);
+        o->callback((Fl_Callback*)cb_addressbook);
         o->align(Fl_Align(FL_ALIGN_RIGHT|FL_ALIGN_INSIDE));
-        o->deactivate();
       } // Fl_Button* o
       { Fl_Box* o = new Fl_Box(2, 181, 29, 18);
         o->image( image_openbook() );
@@ -2032,19 +2037,19 @@ Fl_Choice *compose_ch_personality=(Fl_Choice *)0;
 
 Fl_Group *gr_compose_to=(Fl_Group *)0;
 
-Fl_Input *compose_in_to=(Fl_Input *)0;
+Fl_Address_Input *compose_in_to=(Fl_Address_Input *)0;
 
 Fl_Button *compose_bt_address=(Fl_Button *)0;
 
 Fl_Group *gr_compose_cc=(Fl_Group *)0;
 
-Fl_Input *compose_in_cc=(Fl_Input *)0;
+Fl_Address_Input *compose_in_cc=(Fl_Address_Input *)0;
 
 Fl_Button *compose_bt_address2=(Fl_Button *)0;
 
 Fl_Group *gr_compose_bcc=(Fl_Group *)0;
 
-Fl_Input *compose_in_bcc=(Fl_Input *)0;
+Fl_Address_Input *compose_in_bcc=(Fl_Address_Input *)0;
 
 Fl_Button *compose_bt_address4=(Fl_Button *)0;
 
@@ -2186,12 +2191,20 @@ Fl_Window* make_compose_window() {
           compose_gr_personality->end();
         } // Fl_Group* compose_gr_personality
         { gr_compose_to = new Fl_Group(125, 45, 405, 20);
-          { Fl_Input* o = compose_in_to = new Fl_Input(125, 45, 375, 20, "To");
+          { Fl_Address_Input* o = compose_in_to = new Fl_Address_Input(125, 45, 375, 20, "To");
+            compose_in_to->box(FL_DOWN_BOX);
+            compose_in_to->color(FL_BACKGROUND2_COLOR);
+            compose_in_to->selection_color(FL_SELECTION_COLOR);
+            compose_in_to->labeltype(FL_NORMAL_LABEL);
+            compose_in_to->labelfont(0);
             compose_in_to->labelsize(12);
+            compose_in_to->labelcolor(FL_FOREGROUND_COLOR);
             compose_in_to->textsize(12);
+            compose_in_to->align(Fl_Align(FL_ALIGN_LEFT));
+            compose_in_to->when(FL_WHEN_RELEASE);
             Fl_Group::current()->resizable(compose_in_to);
             xloc(o, "to");
-          } // Fl_Input* compose_in_to
+          } // Fl_Address_Input* compose_in_to
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
             o->box(FL_BORDER_BOX);
             o->color(FL_FOREGROUND_COLOR);
@@ -2207,12 +2220,20 @@ Fl_Window* make_compose_window() {
         } // Fl_Group* gr_compose_to
         { gr_compose_cc = new Fl_Group(125, 45, 405, 20);
           gr_compose_cc->hide();
-          { Fl_Input* o = compose_in_cc = new Fl_Input(125, 45, 375, 20, "CC");
+          { Fl_Address_Input* o = compose_in_cc = new Fl_Address_Input(125, 45, 375, 20, "CC");
+            compose_in_cc->box(FL_DOWN_BOX);
+            compose_in_cc->color(FL_BACKGROUND2_COLOR);
+            compose_in_cc->selection_color(FL_SELECTION_COLOR);
+            compose_in_cc->labeltype(FL_NORMAL_LABEL);
+            compose_in_cc->labelfont(0);
             compose_in_cc->labelsize(12);
+            compose_in_cc->labelcolor(FL_FOREGROUND_COLOR);
             compose_in_cc->textsize(12);
+            compose_in_cc->align(Fl_Align(FL_ALIGN_LEFT));
+            compose_in_cc->when(FL_WHEN_RELEASE);
             Fl_Group::current()->resizable(compose_in_cc);
             xloc(o, "cc");
-          } // Fl_Input* compose_in_cc
+          } // Fl_Address_Input* compose_in_cc
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
             o->box(FL_BORDER_BOX);
             o->color(FL_FOREGROUND_COLOR);
@@ -2227,12 +2248,20 @@ Fl_Window* make_compose_window() {
         } // Fl_Group* gr_compose_cc
         { gr_compose_bcc = new Fl_Group(125, 45, 405, 20);
           gr_compose_bcc->hide();
-          { Fl_Input* o = compose_in_bcc = new Fl_Input(125, 45, 375, 20, "BCC");
+          { Fl_Address_Input* o = compose_in_bcc = new Fl_Address_Input(125, 45, 375, 20, "BCC");
+            compose_in_bcc->box(FL_DOWN_BOX);
+            compose_in_bcc->color(FL_BACKGROUND2_COLOR);
+            compose_in_bcc->selection_color(FL_SELECTION_COLOR);
+            compose_in_bcc->labeltype(FL_NORMAL_LABEL);
+            compose_in_bcc->labelfont(0);
             compose_in_bcc->labelsize(12);
+            compose_in_bcc->labelcolor(FL_FOREGROUND_COLOR);
             compose_in_bcc->textsize(12);
+            compose_in_bcc->align(Fl_Align(FL_ALIGN_LEFT));
+            compose_in_bcc->when(FL_WHEN_RELEASE);
             Fl_Group::current()->resizable(compose_in_bcc);
             xloc(o, "bcc");
-          } // Fl_Input* compose_in_bcc
+          } // Fl_Address_Input* compose_in_bcc
           { Fl_Group* o = new Fl_Group(500, 45, 30, 20);
             o->box(FL_BORDER_BOX);
             o->color(FL_FOREGROUND_COLOR);
@@ -2364,197 +2393,134 @@ Fl_Window* make_compose_window() {
   return w;
 }
 
-Fl_Button *bt_address_nickname=(Fl_Button *)0;
+Fl_Button *bt_ab_to=(Fl_Button *)0;
 
-Fl_Button *bt_address_email=(Fl_Button *)0;
+Fl_Button *bt_ab_cc=(Fl_Button *)0;
+
+Fl_Button *bt_ab_bcc=(Fl_Button *)0;
+
+Fl_Box *bx_ab_target=(Fl_Box *)0;
 
 Fl_Browser *br_addresses=(Fl_Browser *)0;
 
-Fl_Input *in_address_nickname=(Fl_Input *)0;
+Fl_Input *in_ab_nickname=(Fl_Input *)0;
 
-Fl_Button *bt_address_new=(Fl_Button *)0;
+Fl_Input *in_ab_name=(Fl_Input *)0;
 
-Fl_Button *bt_address_delete=(Fl_Button *)0;
+Fl_Input *in_ab_email=(Fl_Input *)0;
 
-Fl_Input *in_address_email=(Fl_Input *)0;
+Fl_Box *bx_ab_status=(Fl_Box *)0;
 
-Fl_Button *bt_address_execute=(Fl_Button *)0;
+Fl_Return_Button *bt_ab_save=(Fl_Return_Button *)0;
 
-static const char *idata_filer[] = {
-"32 32 38 1",
-" \tc None",
-".\tc #000000000000",
-"X\tc #104010401040",
-"o\tc #30C230C230C2",
-"O\tc #410341034103",
-"+\tc #EFBEEFBEEFBE",
-"@\tc #208120812081",
-"#\tc #DF7DDF7DDF7D",
-"$\tc #CF3CCF3CCF3C",
-"%\tc #FFFFCF3C9E79",
-"&\tc #618530C20000",
-"*\tc #AEBAAEBAAEBA",
-"=\tc #FFFFFFFFFFFF",
-"-\tc #CF3CB6DAA699",
-";\tc #C71BAEBA9E79",
-":\tc #71C671C671C6",
-">\tc #BEFBA6998E38",
-",\tc #BEFB9E798617",
-"<\tc #B6DA965879E7",
-"1\tc #B6DA965871C6",
-"2\tc #B6DA8E3869A6",
-"3\tc #AEBA8E386185",
-"4\tc #AEBA86175965",
-"5\tc #618561856185",
-"6\tc #DF7DCF3CBEFB",
-"7\tc #AEBA79E75144",
-"8\tc #DF7DC71BAEBA",
-"9\tc #DF7DC71BB6DA",
-"0\tc #A69979E74924",
-"q\tc #DF7DBEFBA699",
-"w\tc #A69971C64924",
-"e\tc #D75CB6DA9658",
-"r\tc #DF7DB6DA9E79",
-"t\tc #9E7969A64103",
-"y\tc #D75CAEBA8E38",
-"u\tc #9E7969A638E3",
-"i\tc #D75CAEBA8617",
-"p\tc #9E79618530C2",
-"               .X               ",
-"             oO+@               ",
-"           Oo+##@.X             ",
-"         OO+###oO#@             ",
-"       oO####Oo+#+@.X           ",
-"     .O+###Oo+###oO+@           ",
-"    ..##+oO#+$+Oo+##@.X         ",
-"  ..%.#.O####Oo+###oO#@         ",
-" .%%&.*.###Oo#+$+oO##+@@X       ",
-" .%&&.*.+.o++##oO+###OO=@       ",
-" .-%&.*.*.+##Oo+###Oo==+@@X     ",
-" .;;%.:.*.#.O+###Oo==##oO=@     ",
-" .;;>%:.*.*.###Oo==##Oo===@     ",
-" .;>>>%.:.*.#.o==+#Oo==+#=X.    ",
-" .>>>,<%:.*.*.=##Oo==####=@%.   ",
-" .>>,<<1%.:.*.+.o==+###$$*@&%.  ",
-"  .,<1122%:.*.*.=####$$**:X%%.  ",
-"   .<12334%.:.*.###$$**5:%%66.  ",
-"    .233477%:.*.#$$**::%%8996.  ",
-"     .347700%.:.$**::%%qq8996.  ",
-"      .770www%:.*::%%erqq&&96.  ",
-"       .0wtttt%.:%%yeer&&>&96.  ",
-"        .wtuuut%:7iye&&,>>&96.  ",
-"         .tuputw%7iy%1<,>>&96.  ",
-"          .uuutw07iy%1<,>%%96.  ",
-"           .tttw07iy%1<%%8996.  ",
-"            .ww077iy%%%qq89..   ",
-"             .0774yeeerqq..     ",
-"              .743yeerq..       ",
-"               .33eer..         ",
-"                .2e..           ",
-"                 ..             "
-};
-static Fl_Image *image_filer() {
-  static Fl_Image *image = NULL;
-  if (!image)
-    image = new Fl_Pixmap(idata_filer);
-  return image;
-}
+Fl_Button *bt_ab_delete=(Fl_Button *)0;
 
-Fl_Window* make_address_window() {
-  Fl_Window* w;
+Fl_Double_Window* make_address_window() {
+  Fl_Double_Window* w;
   int USELOCALE = atoi (PREFERENCES.Get_char_tree ("postoffice/international/uselocale"));
   char *LANGUAGE = PREFERENCES.Get_char_tree ("postoffice/international/language");
   Var *CLOCALE = PREFERENCES.Get_collection ("locale")->Get_collection (LANGUAGE)->Get_collection ("postoffice");
-  { Fl_Window* o = new Fl_Window(480, 193, "Address Book");
+  { Fl_Double_Window* o = new Fl_Double_Window(560, 360, "Address Book");
     w = o; (void)w;
-    { Fl_Group* o = new Fl_Group(0, 0, 480, 195);
-      { Fl_Group* o = new Fl_Group(0, 0, 480, 195);
-        { Fl_Group* o = new Fl_Group(0, 55, 480, 20);
-          { Fl_Group* o = new Fl_Group(0, 55, 480, 20);
-            { Fl_Button* o = bt_address_nickname = new Fl_Button(0, 55, 120, 20, "Nickname");
-              bt_address_nickname->box(FL_THIN_UP_BOX);
-              bt_address_nickname->labelsize(12);
-              bt_address_nickname->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-              xloc(o, "nickname");
-            } // Fl_Button* bt_address_nickname
-            { Fl_Button* o = bt_address_email = new Fl_Button(120, 55, 360, 20, "Email Address");
-              bt_address_email->box(FL_THIN_UP_BOX);
-              bt_address_email->labelsize(12);
-              bt_address_email->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-              xloc(o, "email_address");
-            } // Fl_Button* bt_address_email
-            o->end();
-          } // Fl_Group* o
-          o->end();
-        } // Fl_Group* o
-        { br_addresses = new Fl_Browser(0, 75, 480, 120);
-          br_addresses->type(2);
-          br_addresses->labelsize(12);
-          br_addresses->textsize(12);
-          Fl_Group::current()->resizable(br_addresses);
-        } // Fl_Browser* br_addresses
-        o->end();
-        Fl_Group::current()->resizable(o);
-      } // Fl_Group* o
-      { Fl_Group* o = new Fl_Group(0, 0, 470, 55);
-        { Fl_Group* o = new Fl_Group(115, 0, 355, 55);
-          { Fl_Group* o = new Fl_Group(115, 30, 355, 25);
-            { Fl_Input* o = in_address_nickname = new Fl_Input(135, 30, 225, 20, "Nickname");
-              in_address_nickname->labelsize(12);
-              in_address_nickname->textsize(12);
-              Fl_Group::current()->resizable(in_address_nickname);
-              xloc(o, "nickname");
-            } // Fl_Input* in_address_nickname
-            { Fl_Group* o = new Fl_Group(420, 30, 50, 20);
-              o->box(FL_FLAT_BOX);
-              o->color(FL_FOREGROUND_COLOR);
-              { bt_address_new = new Fl_Button(421, 31, 49, 19, "New");
-                bt_address_new->labelsize(12);
-                bt_address_new->callback((Fl_Callback*)cb_address_new);
-              } // Fl_Button* bt_address_new
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(365, 30, 50, 20);
-              o->box(FL_FLAT_BOX);
-              o->color(FL_FOREGROUND_COLOR);
-              { bt_address_delete = new Fl_Button(366, 31, 49, 19, "Delete");
-                bt_address_delete->labelsize(12);
-                bt_address_delete->callback((Fl_Callback*)cb_address_delete);
-              } // Fl_Button* bt_address_delete
-              o->end();
-            } // Fl_Group* o
-            o->end();
-          } // Fl_Group* o
-          { Fl_Input* o = in_address_email = new Fl_Input(135, 5, 335, 20, "Email");
-            in_address_email->labelsize(12);
-            in_address_email->textsize(12);
-            in_address_email->when(FL_WHEN_CHANGED);
-            xloc(o, "email");
-          } // Fl_Input* in_address_email
-          o->end();
-          Fl_Group::current()->resizable(o);
-        } // Fl_Group* o
-        { Fl_Group* o = new Fl_Group(0, 0, 55, 55);
-          { Fl_Group* o = new Fl_Group(5, 5, 45, 45);
-            o->box(FL_FLAT_BOX);
-            o->color(FL_FOREGROUND_COLOR);
-            { bt_address_execute = new Fl_Button(6, 6, 43, 43);
-              bt_address_execute->box(FL_THIN_UP_BOX);
-              bt_address_execute->image( image_filer() );
-            } // Fl_Button* bt_address_execute
-            o->end();
-          } // Fl_Group* o
-          o->end();
-        } // Fl_Group* o
-        o->end();
-      } // Fl_Group* o
+    o->callback((Fl_Callback*)cb_ab_window);
+    { Fl_Group* o = new Fl_Group(0, 0, 560, 32);
+      { bt_ab_to = new Fl_Button(5, 5, 60, 22, "To");
+        bt_ab_to->tooltip("Address the selected entries in To: of the message they were picked for, or o"
+"f a new message");
+        bt_ab_to->labelsize(12);
+        bt_ab_to->callback((Fl_Callback*)cb_ab_add, (void*)((void *) 0));
+      } // Fl_Button* bt_ab_to
+      { bt_ab_cc = new Fl_Button(70, 5, 60, 22, "CC");
+        bt_ab_cc->tooltip("Address the selected entries in CC:");
+        bt_ab_cc->labelsize(12);
+        bt_ab_cc->callback((Fl_Callback*)cb_ab_add, (void*)((void *) 1));
+      } // Fl_Button* bt_ab_cc
+      { bt_ab_bcc = new Fl_Button(135, 5, 60, 22, "BCC");
+        bt_ab_bcc->tooltip("Address the selected entries in BCC:");
+        bt_ab_bcc->labelsize(12);
+        bt_ab_bcc->callback((Fl_Callback*)cb_ab_add, (void*)((void *) 2));
+      } // Fl_Button* bt_ab_bcc
+      { bx_ab_target = new Fl_Box(200, 5, 290, 22);
+        bx_ab_target->labelsize(11);
+        bx_ab_target->align(Fl_Align(68|FL_ALIGN_INSIDE));
+        Fl_Group::current()->resizable(bx_ab_target);
+      } // Fl_Box* bx_ab_target
+      { Fl_Button* o = new Fl_Button(495, 5, 60, 22, "Close");
+        o->labelsize(12);
+        o->callback((Fl_Callback*)cb_ab_close);
+      } // Fl_Button* o
       o->end();
     } // Fl_Group* o
-    o->set_modal();
-    o->resizable(o);
+    { Fl_Group* o = new Fl_Group(5, 32, 550, 205);
+      { Fl_Box* o = new Fl_Box(5, 32, 120, 20, "Nickname");
+        o->box(FL_THIN_UP_BOX);
+        o->labelsize(12);
+        o->align(Fl_Align(68|FL_ALIGN_INSIDE));
+        xloc(o, "nickname");
+      } // Fl_Box* o
+      { Fl_Box* o = new Fl_Box(125, 32, 180, 20, "Name");
+        o->box(FL_THIN_UP_BOX);
+        o->labelsize(12);
+        o->align(Fl_Align(68|FL_ALIGN_INSIDE));
+      } // Fl_Box* o
+      { Fl_Box* o = new Fl_Box(305, 32, 250, 20, "Email Address");
+        o->box(FL_THIN_UP_BOX);
+        o->labelsize(12);
+        o->align(Fl_Align(68|FL_ALIGN_INSIDE));
+        xloc(o, "email_address");
+      } // Fl_Box* o
+      { br_addresses = new Fl_Browser(5, 52, 550, 185);
+        br_addresses->tooltip("Click to edit an entry; Ctrl or Shift + click to select several. Double-click"
+" addresses the entry in the field the address book was opened from.");
+        br_addresses->type(3);
+        br_addresses->labelsize(12);
+        br_addresses->textsize(12);
+        br_addresses->callback((Fl_Callback*)cb_ab_select);
+        br_addresses->when(FL_WHEN_CHANGED | FL_WHEN_NOT_CHANGED);
+        Fl_Group::current()->resizable(br_addresses);
+      } // Fl_Browser* br_addresses
+      o->end();
+      Fl_Group::current()->resizable(o);
+    } // Fl_Group* o
+    { Fl_Group* o = new Fl_Group(0, 240, 560, 120);
+      { in_ab_nickname = new Fl_Input(90, 245, 160, 22, "Nickname");
+        in_ab_nickname->tooltip("A short name to find the entry by when you type it in To or CC");
+        in_ab_nickname->labelsize(12);
+        in_ab_nickname->textsize(12);
+      } // Fl_Input* in_ab_nickname
+      { in_ab_name = new Fl_Input(90, 272, 465, 22, "Full name");
+        in_ab_name->labelsize(12);
+        in_ab_name->textsize(12);
+      } // Fl_Input* in_ab_name
+      { in_ab_email = new Fl_Input(90, 299, 465, 22, "Email");
+        in_ab_email->labelsize(12);
+        in_ab_email->textsize(12);
+      } // Fl_Input* in_ab_email
+      { bx_ab_status = new Fl_Box(5, 330, 300, 22);
+        bx_ab_status->labelsize(11);
+        bx_ab_status->align(Fl_Align(68|FL_ALIGN_INSIDE));
+      } // Fl_Box* bx_ab_status
+      { Fl_Button* o = new Fl_Button(315, 330, 75, 22, "New");
+        o->tooltip("Clear the fields to enter a new entry");
+        o->labelsize(12);
+        o->callback((Fl_Callback*)cb_ab_new);
+      } // Fl_Button* o
+      { bt_ab_save = new Fl_Return_Button(395, 330, 75, 22, "Save");
+        bt_ab_save->tooltip("Store the entry: changes the selected entry, or adds a new one");
+        bt_ab_save->labelsize(12);
+        bt_ab_save->callback((Fl_Callback*)cb_ab_save);
+      } // Fl_Return_Button* bt_ab_save
+      { bt_ab_delete = new Fl_Button(480, 330, 75, 22, "Delete");
+        bt_ab_delete->tooltip("Delete the selected entries");
+        bt_ab_delete->labelsize(12);
+        bt_ab_delete->callback((Fl_Callback*)cb_ab_delete);
+        bt_ab_delete->deactivate();
+      } // Fl_Button* bt_ab_delete
+      o->end();
+    } // Fl_Group* o
     xloc(o, "win_address");
     o->end();
-  } // Fl_Window* o
+  } // Fl_Double_Window* o
   return w;
 }
 

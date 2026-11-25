@@ -180,6 +180,21 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 
     WordList *Views = PREFROOT->Get_wordlist ("folders");
 
+    // 0.9.2 saved the temporary Search results folder in the settings (a
+    // folder with nothing but an empty filter): it is removed.
+    std::vector<std::string> stale;
+    for (i=0;i<Views->Count;++i)
+    {
+        const char *v = Views->Get(i);
+        if (strncmp (v, "Search results", 14) != 0 || (v[14] && strncmp (v + 14, " (", 2) != 0)) continue;
+        WordList *Keys = PREFROOT->Get_collection ("folders")->Get_wordlist (v);
+        if (Keys->Count == 1 && strcmp (Keys->Get(0), "filters") == 0
+            && !*PREFROOT->Get_collection ("folders")->Get_collection (v)->Get_char ("filters"))
+            stale.push_back (v);
+    }
+    for (const std::string &v : stale) PREFROOT->Get_collection ("folders")->Delete (v.c_str());
+    Views = PREFROOT->Get_wordlist ("folders");
+
     for (i=0;i<Views->Count;++i)
     {
         CreateMailView (Views->Get(i));
@@ -1156,6 +1171,9 @@ void MailBox::Search (int field, const char *text, const char *folder)
         {
             MailMessage *M = Find ((char *) id.c_str());
             if (!M) continue;
+            // Headers are read from the store when a message is first shown;
+            // until then From, To and Subject are not in memory.
+            if (field != SEARCH_BODY && M->HeaderNames->Count == 0) M->LoadHeaders ();
             bool body = field == SEARCH_BODY || field == SEARCH_ANYWHERE;
             if (!body || (M->Flags & MMFL_INRAM))
             {

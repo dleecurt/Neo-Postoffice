@@ -85,7 +85,9 @@ int MailView::ProcessRules (MailMessage *M)
 	int			i;
 	int			x;
 
-	//printf ("processing filter: %s\n", PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Parent->Name)->Get_collection ("folders")->Get_collection (Name)->Get_char ("filters"));
+	// Search results have no settings: looking them up would create a
+	// folder in the settings, which came back after a restart (0.9.2).
+	if (IsSearch) return 0;
 	WordList *Rules = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Parent->Name)->Get_collection ("folders")->Get_collection (Name)->Get_wordlist ("filters");
 	if (Rules)
 	{
@@ -183,7 +185,9 @@ int MailView::ProcessScore (MailMessage *M)
 	int			i;
 	int			x;
 
-	//printf ("processing filter: %s\n", PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Parent->Name)->Get_collection ("folders")->Get_collection (Name)->Get_char ("filters"));
+	// Search results have no settings: looking them up would create a
+	// folder in the settings, which came back after a restart (0.9.2).
+	if (IsSearch) return 1;
 	WordList *Rules = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes")->Get_collection (Parent->Name)->Get_collection ("folders")->Get_collection (Name)->Get_wordlist ("filters");
 	if (Rules)
 	{

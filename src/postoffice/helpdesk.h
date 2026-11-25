@@ -10,6 +10,7 @@ extern Fl_Window *win_main;
 #include <FL/Fl_Menu_Bar.H>
 extern void cb_compose(Fl_Menu_*, void*);
 extern void cb_search_m(Fl_Menu_*, void*);
+extern void cb_addressbook_m(Fl_Menu_*, void*);
 extern void cb_expire(Fl_Menu_*, void*);
 extern void cb_check_mail_m(Fl_Menu_*, void*);
 extern void cb_print_m(Fl_Menu_*, void*);
@@ -23,6 +24,7 @@ extern void cb_reply_all_m(Fl_Menu_*, void*);
 extern void cb_forward_m(Fl_Menu_*, void*);
 extern void cb_forwardfull_m(Fl_Menu_*, void*);
 extern void cb_redirect_m(Fl_Menu_*, void*);
+extern void cb_add_sender_m(Fl_Menu_*, void*);
 extern void cb_save_attachments_m(Fl_Menu_*, void*);
 extern void cb_edit_draft_m(Fl_Menu_*, void*);
 extern void cb_delete_m(Fl_Menu_*, void*);
@@ -62,6 +64,7 @@ extern void cb_delete(Fl_Button*, void*);
 extern void cb_redirect(Fl_Button*, void*);
 extern void cb_mark(Fl_Button*, void*);
 extern void cb_print(Fl_Button*, void*);
+extern void cb_addressbook(Fl_Button*, void*);
 extern void cb_configure(Fl_Button*, void*);
 extern void cb_stop(Fl_Button*, void*);
 extern void cb_menu_shrink(Fl_Button*, void*);
@@ -119,13 +122,13 @@ extern void cb_sortby_date(Fl_Button*, void*);
 extern Fl_Button *bt_date;
 Fl_Window* make_window();
 extern Fl_Menu_Item menu_[];
-#define mi_edit_cut (menu_+10)
-#define mi_edit_copy (menu_+11)
-#define mi_edit_paste (menu_+12)
-#define rad_viewall (menu_+38)
-#define rad_viewunread (menu_+39)
-#define mi_view_menuwin (menu_+49)
-#define mi_view_folderwin (menu_+50)
+#define mi_edit_cut (menu_+11)
+#define mi_edit_copy (menu_+12)
+#define mi_edit_paste (menu_+13)
+#define rad_viewall (menu_+40)
+#define rad_viewunread (menu_+41)
+#define mi_view_menuwin (menu_+51)
+#define mi_view_folderwin (menu_+52)
 extern Fl_Menu_Item menu_popup_msgwin[];
 #define mi_popup_copy (menu_popup_msgwin+3)
 extern Fl_Window *win_menu;
@@ -151,16 +154,17 @@ extern Fl_Group *compose_gr_personality;
 #include <FL/Fl_Choice.H>
 extern Fl_Choice *compose_ch_personality;
 extern Fl_Group *gr_compose_to;
-#include <FL/Fl_Input.H>
-extern Fl_Input *compose_in_to;
+#include "addrbook.h"
+extern Fl_Address_Input *compose_in_to;
 extern void cb_address(Fl_Button*, void*);
 extern Fl_Button *compose_bt_address;
 extern Fl_Group *gr_compose_cc;
-extern Fl_Input *compose_in_cc;
+extern Fl_Address_Input *compose_in_cc;
 extern Fl_Button *compose_bt_address2;
 extern Fl_Group *gr_compose_bcc;
-extern Fl_Input *compose_in_bcc;
+extern Fl_Address_Input *compose_in_bcc;
 extern Fl_Button *compose_bt_address4;
+#include <FL/Fl_Input.H>
 extern Fl_Input *compose_in_subject;
 extern Fl_Button *compose_bt_resizeheader;
 extern Fl_Group *gr_compose_bigbuttons;
@@ -172,17 +176,27 @@ extern Fl_Button *bt_compose_menu_shrink;
 extern Fl_FancyEditor *compose_in_message;
 Fl_Window* make_compose_window();
 extern Fl_Menu_Item menu_1[];
-extern Fl_Button *bt_address_nickname;
-extern Fl_Button *bt_address_email;
+#include <FL/Fl_Double_Window.H>
+extern void cb_ab_window(Fl_Double_Window*, void*);
+extern void cb_ab_add(Fl_Button*, void*);
+extern Fl_Button *bt_ab_to;
+extern Fl_Button *bt_ab_cc;
+extern Fl_Button *bt_ab_bcc;
+extern Fl_Box *bx_ab_target;
+extern void cb_ab_close(Fl_Button*, void*);
+extern void cb_ab_select(Fl_Browser*, void*);
 extern Fl_Browser *br_addresses;
-extern Fl_Input *in_address_nickname;
-extern void cb_address_new(Fl_Button*, void*);
-extern Fl_Button *bt_address_new;
-extern void cb_address_delete(Fl_Button*, void*);
-extern Fl_Button *bt_address_delete;
-extern Fl_Input *in_address_email;
-extern Fl_Button *bt_address_execute;
-Fl_Window* make_address_window();
+extern Fl_Input *in_ab_nickname;
+extern Fl_Input *in_ab_name;
+extern Fl_Input *in_ab_email;
+extern Fl_Box *bx_ab_status;
+extern void cb_ab_new(Fl_Button*, void*);
+#include <FL/Fl_Return_Button.H>
+extern void cb_ab_save(Fl_Return_Button*, void*);
+extern Fl_Return_Button *bt_ab_save;
+extern void cb_ab_delete(Fl_Button*, void*);
+extern Fl_Button *bt_ab_delete;
+Fl_Double_Window* make_address_window();
 extern Fl_Scroll *br_winfolderlist;
 Fl_Window* make_folderlist_window();
 extern Fl_Window *win_splash;
@@ -195,7 +209,6 @@ extern Fl_Choice *ch_search_field;
 extern Fl_Choice *ch_search_scope;
 extern Fl_Box *bx_search_status;
 extern void cb_search_close(Fl_Button*, void*);
-#include <FL/Fl_Return_Button.H>
 extern void cb_search_go(Fl_Return_Button*, void*);
 extern Fl_Return_Button *bt_search_go;
 Fl_Window* make_query_window();

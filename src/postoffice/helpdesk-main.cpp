@@ -121,8 +121,6 @@ void cb_selectfolder2 (Fl_Button *, void *);
 void cb_selectmessage (Fl_Widget *, void *);
 void cb_sendmessage (Fl_Window *, struct Composer_Window *);
 void cb_discardmessage (Fl_Window *, struct Composer_Window *);
-void cb_selectaddress (Fl_Browser *, void *);
-void cb_pasteaddress (Fl_Button *, void *);
 void cb_viewall (Fl_Menu_ *, void *);
 void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
@@ -178,14 +176,12 @@ void tree_new_messages (MailBox *, const char *);
 int mysort (Fl_Toggle_Node_Base *, Fl_Toggle_Node_Base *);
 
 Fl_Window 		*menu = (Fl_Window *) NULL;
-Fl_Window 		*address = (Fl_Window *) NULL;
 Fl_Toggle_Tree	*TREE = (Fl_Toggle_Tree *) NULL;
 Fl_Toggle_Tree	*br_folderindex = (Fl_Toggle_Tree *) NULL;
 CCache			 CCACHE;
 
 JobList			 JOBQ;
 
-int				  adr_widths[2] = {120,0};
 
 //===============================================================================
 // CALLBACK		cb_viewunread
@@ -415,6 +411,8 @@ bool attachment_bytes (const MailPart *, std::string &);
 void cb_delete (Fl_Button *, void *);
 void cb_mark (Fl_Button *, void *);
 
+void addressbook_add_sender_of (const char *);
+
 // Right-click in the message list: the message commands for the selection
 // (the clicked message becomes the selection if it was not part of it).
 static void message_context_menu (Fl_Toggle_Node *n)
@@ -432,6 +430,7 @@ static void message_context_menu (Fl_Toggle_Node *n)
 		{ "Copy to folder...", 0, 0, 0, FL_MENU_DIVIDER, 0, 0, 12, 0 },
 		{ "Flag / unflag",     0, 0, 0, maildir ? 0 : FL_MENU_INACTIVE, 0, 0, 12, 0 },
 		{ "Mark as unread",    0, 0, 0, FL_MENU_DIVIDER, 0, 0, 12, 0 },
+		{ "Add sender to address book", 0, 0, 0, FL_MENU_DIVIDER, 0, 0, 12, 0 },
 		{ "Delete",            0, 0, 0, 0, 0, 0, 12, 0 },
 		{ 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 	};
@@ -440,7 +439,8 @@ static void message_context_menu (Fl_Toggle_Node *n)
 	else if (m == &items[1]) move_or_copy_menu (true);
 	else if (m == &items[2]) cb_mark (NULL, NULL);
 	else if (m == &items[3]) cb_markunread_m (NULL, NULL);
-	else if (m == &items[4]) cb_delete (NULL, NULL);
+	else if (m == &items[4]) addressbook_add_sender_of (id.c_str ());
+	else if (m == &items[5]) cb_delete (NULL, NULL);
 }
 
 // Flag / unflag the selected messages (Maildir F flag, IMAP \Flagged).
