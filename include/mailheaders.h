@@ -3,7 +3,7 @@
 //===============================================================================
 // Neo-PostOffice: helpers for reading e-mail header fields
 // ---------------------------------------------------------
-// Shared by the Maildir mailbox and po-sqldeliver.
+// Used by the Maildir and MH mailboxes, search and the composer.
 //===============================================================================
 
 #include <time.h>

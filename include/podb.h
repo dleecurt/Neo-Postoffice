@@ -4,7 +4,7 @@
 // Neo-PostOffice database layer
 // -----------------------------
 // A small driver-independent interface to SQL databases, used by the
-// PostgreSQL mail storage and the SQL mailbox.
+// PostgreSQL mail storage.
 //
 // Statements use numbered placeholders, $1, $2, ..., with every driver.
 // Values are always passed as parameters, never pasted into the SQL text.

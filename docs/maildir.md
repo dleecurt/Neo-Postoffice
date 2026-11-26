@@ -56,7 +56,7 @@ ending in `Maildir/`).
   - Within one Maildir a move is a rename of the file.
   - Into another Maildir the message is copied exactly and, for a move,
     then deleted from where it was.
-  - From a POP3, IMAP, mbox or SQL mailbox the message is fetched again
+  - From a POP3, IMAP or mbox mailbox the message is fetched again
     from its source, stored in the Maildir, and for a move deleted from
     the source as the Delete button does. If the source no longer has it
     (for example it was deleted from a POP3 server after downloading),

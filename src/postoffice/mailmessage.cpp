@@ -56,13 +56,26 @@ MailPart::~MailPart (void)
 
 // The stored content type of a part: its type, plus "; x-neo-cte=..."
 // when it is base64 or quoted-printable (Neo-PostOffice).
-static std::string part_type (const std::string &type, const std::string &encoding)
+// And "; x-neo-mp=..." when it was inside multiparts (0.9.4): the chain of
+// multiparts around it, for rebuilding a copy with the same nesting.
+static std::string part_type (const std::string &type, const std::string &encoding, const std::string &chain = "")
 {
 	std::string out = type.empty() ? "text/plain" : type;
 	while (!out.empty() && (out.back() == ' ' || out.back() == ';' || out.back() == '\r')) out.pop_back();
 	if (strcasestr (encoding.c_str(), "base64")) out += "; x-neo-cte=base64";
 	else if (strcasestr (encoding.c_str(), "quoted-printable")) out += "; x-neo-cte=quoted-printable";
+	if (!chain.empty()) out += "; x-neo-mp=\"" + chain + "\"";
 	return out;
+}
+
+// "mixed" from "multipart/mixed; boundary=...", for the chain.
+static std::string mp_link (int number, const std::string &ctype)
+{
+	std::string sub;
+	for (size_t i = 10; i < ctype.size() && (isalnum ((unsigned char) ctype[i]) || ctype[i] == '-' || ctype[i] == '.'); ++i)
+		sub += (char) tolower ((unsigned char) ctype[i]);
+	if (sub.empty()) sub = "mixed";
+	return std::to_string (number) + ":" + sub;
 }
 
 void MailPart::Set (const char *contenttype, const char *filename, const char *description, unsigned long contentsize, const char *contents)
@@ -411,7 +424,8 @@ void MailMessage::ProcessBody (char *body)
 	if (strncasecmp (ctype.c_str(), "multipart/", 10) == 0)
 	{
 		std::string boundary = mailheaders::Param (ctype, "boundary");
-		if (!boundary.empty()) didmultipart = SplitMultipart (boundary.c_str(), body, 0);
+		MimeCount = 0;
+		if (!boundary.empty()) didmultipart = SplitMultipart (boundary.c_str(), body, 0, mp_link (++MimeCount, ctype));
 	}
 
 	// A single-part message that is not plain text, or is encoded, is one
@@ -548,7 +562,7 @@ MailPart *MailMessage::GetPart (int cnt)
 // "--boundary" and ends before the line break in front of the next one;
 // "--boundary--" closes it. Text before the first and after the last
 // boundary line is ignored.
-bool MailMessage::SplitMultipart (const char *boundary, const char *body, int depth)
+bool MailMessage::SplitMultipart (const char *boundary, const char *body, int depth, const std::string &chain)
 {
 	std::string delim = std::string ("--") + boundary;
 	const char *p = body, *start = NULL;
@@ -571,7 +585,7 @@ bool MailMessage::SplitMultipart (const char *boundary, const char *body, int de
 					if (end > start && end[-1] == '\n') --end;
 					if (end > start && end[-1] == '\r') --end;
 					std::string part (start, end);
-					AddPart (part.c_str(), depth);
+					AddPart (part.c_str(), depth, chain);
 					any = true;
 				}
 				if (close) return any;
@@ -583,7 +597,7 @@ bool MailMessage::SplitMultipart (const char *boundary, const char *body, int de
 	}
 	if (start && *start)		// no closing line: the last part runs to the end
 	{
-		AddPart (start, depth);
+		AddPart (start, depth, chain);
 		any = true;
 	}
 	return any;
@@ -591,7 +605,7 @@ bool MailMessage::SplitMultipart (const char *boundary, const char *body, int de
 
 // Adds one part of a multipart message: its headers, then its body.
 // Nested multiparts are split in turn.
-void MailMessage::AddPart (const char *part, int depth)
+void MailMessage::AddPart (const char *part, int depth, const std::string &chain)
 {
 	// Where the headers end: a part that starts with an empty line has none.
 	const char *body;
@@ -625,7 +639,8 @@ void MailMessage::AddPart (const char *part, int depth)
 	if (strncasecmp (ctype.c_str(), "multipart/", 10) == 0 && depth < 8)
 	{
 		std::string boundary = mailheaders::Param (ctype, "boundary");
-		if (!boundary.empty() && SplitMultipart (boundary.c_str(), body, depth + 1)) return;
+		if (!boundary.empty() && SplitMultipart (boundary.c_str(), body, depth + 1,
+												  (chain.empty() ? "" : chain + ",") + mp_link (++MimeCount, ctype))) return;
 	}
-	AddPart (part_type (ctype, cte).c_str(), desc.c_str(), filename.c_str(), body);
+	AddPart (part_type (ctype, cte, chain).c_str(), desc.c_str(), filename.c_str(), body);
 }

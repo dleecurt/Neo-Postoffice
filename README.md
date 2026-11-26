@@ -23,10 +23,9 @@ Neo-PostOffice runs on Linux and the BSDs. The code for other systems
 - Local mbox files, Maildir (with Maildir++ folders) and MH folders
   (nmh) as mailboxes; read state, flags, moves and deletions are shared
   with other programs
-- SQL mailboxes (experimental, on hold): mail read from a shared
-  PostgreSQL database over SSL
 - Mail storage in GDBM files or, per mailbox, in PostgreSQL
 - Filter rules that sort incoming mail into folders
+- HTML-only messages shown as readable text (no remote content loaded)
 - Inline display of JPEG attachments, clickable links; saving and
   opening received attachments, sending attachments
 - Multiple message views, composer with quoting, lines wrapped at 72
@@ -68,7 +67,7 @@ FLTK, put its `bin` directory first in `PATH`, or pass
 
 | Option | Default | Meaning |
 |---|---|---|
-| `WITH_POSTGRESQL` | `AUTO` | PostgreSQL support: SQL mailboxes, PostgreSQL storage and `po-sqldeliver` (needs `libpq-dev`). `AUTO` uses it when libpq is found |
+| `WITH_POSTGRESQL` | `AUTO` | PostgreSQL mail storage (needs `libpq-dev`). `AUTO` uses it when libpq is found |
 | `WITH_LIBETPAN` | `AUTO` | IMAP4 support (needs `libetpan-dev`). Without it, IMAP4 mailboxes keep their settings and show a note |
 | `PO_WARNINGS` | `ON` | Compile with `-Wall -Wextra` |
 
@@ -89,6 +88,12 @@ On first start a wizard asks for your name and e-mail address and,
 optionally, a POP3 server. Settings live in
 `~/.postoffice/resource.rc`. Remove or rename `~/.postoffice` to start
 over.
+
+Settings are saved a moment after anything changes: Config, the address
+book, folders that a check adds or removes, the main window's size and
+place. The file is written to `resource.rc.tmp` and then renamed, so a
+crash or a full disk never leaves half a settings file. If it cannot be
+written, you are told once, and it is tried again with the next change.
 
 ## POP3 mailboxes
 
@@ -486,6 +491,20 @@ Clicking a link runs the command in the preference
 is `xdg-open $`. The URL is passed to the shell as a separate argument,
 so links in messages cannot inject commands.
 
+## HTML messages
+
+A message that has only an HTML version is shown as plain text made
+from the HTML: paragraphs, headings (the first two underlined), lists,
+quotes as `> ` lines, tables as rows of cells, preformatted text, and
+the alt text of pictures as `[alt]`. Links are numbered `[1]`, `[2]`
+in the text and listed at the end, where they can be clicked. Scripts,
+styles and hidden text are left out, and nothing is loaded from the
+network, so remote pictures and trackers are never fetched. The HTML
+itself keeps an *Attachment* line, to save it or open it in a browser.
+
+A message with both a text and an HTML version shows the text version.
+Replies, Print and Search use the same text.
+
 ## Attachments
 
 Each attachment of the message shown has an *Attachment* line (in the
@@ -588,26 +607,6 @@ Deleting works like `rmm` (the profile's `rmmproc`, or a rename to
 Maildir, and folders can be managed the same way. See
 [docs/mh.md](docs/mh.md).
 
-## SQL mailboxes
-
-*Development of the SQL mailbox is on hold* (too little is known about
-how the original was used); Maildir is the recommended way to read mail
-fetched by getmail. The code below works as described but may change.
-
-
-The *SQL mailbox (PostgreSQL)* protocol reads mail from a table in a
-PostgreSQL database, usually on another machine, over SSL with full
-certificate checking. A fetcher such as getmail collects the mail over
-TLS and hands it to `po-sqldeliver`, which stores it in the table.
-Several people can share the database: each logs in as their own
-PostgreSQL user and row-level security shows them only their own mail.
-Folders are created automatically from the database, and read state and
-deletions are shared between computers.
-
-Setup (database, roles, SSL, getmail and the client) is described in
-[docs/sql-mailbox.md](docs/sql-mailbox.md); the schema is
-`docs/sql-mailbox-postgresql.sql`.
-
 ## Source layout
 
 | Path | Contents |
@@ -615,8 +614,7 @@ Setup (database, roles, SSL, getmail and the client) is described in
 | `src/postoffice/` | The application |
 | `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
 | `src/postoffice/icons/` | XPM icons and banner artwork |
-| `src/tools/po-sqldeliver.cpp` | Delivery tool for SQL mailboxes |
-| `docs/` | Maildir, MH and SQL mailbox guides, database schemas |
+| `docs/` | IMAP, Maildir, MH and SMTP guides, the PostgreSQL storage schema |
 | `include/` | Application headers |
 | `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
 | `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
@@ -660,10 +658,10 @@ See the git history for details. In summary:
   File → Configure doing nothing.
 - JPEG attachments are decoded with FLTK's image support instead of
   libjpeg through a temporary file.
-- PostgreSQL support: mail storage, and the SQL mailbox rebuilt for
-  PostgreSQL (multi-user with row-level security, SSL, automatic
-  folders) with the `po-sqldeliver` delivery tool. MySQL support was
-  removed; the original MySQL table layout is not supported.
+- PostgreSQL mail storage. The SQL (MySQL) mailbox of 0.7.3 was rebuilt
+  for PostgreSQL during the beta and then removed in 0.9.4 (too much
+  work for too little use); mailboxes of that kind are removed from the
+  settings, with a notice, when 0.9.4 starts. MySQL support was removed.
 - Maildir mailboxes with Maildir++ folders and two-way flag sync;
   moving messages by drag and drop or the Message menu; flagged,
   replied and passed flags; folders deleted on disk leave the list.
@@ -674,7 +672,7 @@ See the git history for details. In summary:
   a mailbox itself makes it the current mailbox for Check.
 - Replies use the original's Message-ID header for In-Reply-To and
   References (they used the internal id, which is not a Message-ID for
-  Maildir and SQL messages).
+  Maildir messages).
 - Edit → Select All (Alt+A, or Ctrl+A in the main window when no text
   field has the focus) selects every message in the list, also those in
   closed threads, for Move, Copy, Delete or Mark. It was an empty stub.
@@ -835,6 +833,9 @@ See the git history for details. In summary:
     addresses completed while typing in To, CC and BCC; the Search
     results folder is no longer saved with the settings, and From, To
     and Subject searches in POP3 mailboxes find messages not yet opened.
+  - 0.9.4: settings saved whenever they change (safely); HTML-only
+    messages shown as readable text; copies rebuilt from the local copy
+    keep nested multiparts; the SQL mailbox is removed.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.
@@ -862,18 +863,10 @@ mail is still shown, and filters can still match it.
 
 Found while modernizing and left for later:
 
-- Settings (including folders added or removed by a check) are saved
-  when you quit through File → Quit; if the program is killed instead,
-  they are as at the last save, and the next check puts the folders
-  right again.
 - The built-in SMTP client and IMAP do not support OAuth2 logins.
-- HTML-only messages show only an attachment line (which can be saved
-  or opened in a browser); there is no HTML to text view.
-- SQL mailbox: messages cannot be moved between folders from the client.
 - Copies rebuilt from the local copy (when the source no longer has the
-  original) flatten nested multiparts into one `multipart/mixed`.
-- `~MailMessage()` contains a store-on-destroy that never ran in the
-  original (see the comment there); it stays disabled until reviewed.
+  original) keep the nesting of multiparts only for messages downloaded
+  by 0.9.4 or later; older ones are rebuilt as one `multipart/mixed`.
 
 ## License
 

@@ -141,7 +141,7 @@ void Var::Load (FILE *F)
 			else if (strchr (Buffer, '{'))
 			{
 				// Neo-PostOffice: the name is everything before the opening
-				// brace, so names may contain spaces (folders from an SQL mailbox).
+				// brace, so names may contain spaces (folders named after IMAP or Maildir folders).
 				ps = 0;
 				while ((Buffer[ps])&&(Buffer[ps]<=' ')) ++ps;
 				char *brace = strrchr (Buffer, '{');

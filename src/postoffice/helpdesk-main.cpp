@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include "mailheaders.h"
+#include "htmltext.h"
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -411,6 +412,10 @@ bool attachment_bytes (const MailPart *, std::string &);
 void cb_delete (Fl_Button *, void *);
 void cb_mark (Fl_Button *, void *);
 
+bool prefs_save_now (void);
+void prefs_autosave_start (void);
+void prefs_autosave_stop (void);
+extern Fl_Window *main_window;
 void addressbook_add_sender_of (const char *);
 
 // Right-click in the message list: the message commands for the selection
@@ -785,47 +790,67 @@ void ti_widthcheck (void */*x*/)
 	}
 }
 
-// Usenet (NNTP) support is gone: news mailboxes from PostOffice 0.7 are
-// removed from the settings (saved at once, so this is said only once),
-// and the user is told when the window is up. Their files are left.
-static std::string usenet_note;
+// Mailbox types that are no longer supported -- Usenet (NNTP) news, and the
+// SQL mailbox (0.9.4) -- are removed from the settings (saved at once, so
+// this is said only once), and the user is told when the window is up.
+// Their files, and the mail in an SQL database, are left alone.
+static std::string removed_note;
 
-static void show_usenet_note (void *)
+static void show_removed_note (void *)
 {
-	fl_message ("%s", usenet_note.c_str ());
+	std::string t;
+	for (char c : removed_note) { t += c; if (c == '@') t += '@'; }		// not an FLTK symbol
+	fl_message ("%s", t.c_str ());
 }
 
-static void drop_usenet_mailboxes (void)
+static void drop_unsupported_mailboxes (void)
 {
 	Var *VBoxes = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes");
 	WordList *names = VBoxes->GatherNames ();
-	std::vector<std::string> gone, where;
+	std::vector<std::string> news, newsdir, sql;
 	for (int i = 0; i < names->Count; ++i)
 	{
 		Var *B = VBoxes->Get_collection (names->Get (i));
-		if (strcasecmp (B->Get_char ("protocol"), "nntp") != 0) continue;
-		gone.push_back (names->Get (i));
+		const char *proto = B->Get_char ("protocol");
+		if (strcasecmp (proto, "sql") == 0 || strcasecmp (proto, "mysql") == 0)
+		{
+			sql.push_back (names->Get (i));
+			continue;
+		}
+		if (strcasecmp (proto, "nntp") != 0) continue;
+		news.push_back (names->Get (i));
 		std::string dir = B->Get_char ("prefix");
 		if (dir.empty ()) dir = std::string (getenv ("HOME") ? getenv ("HOME") : "~") + "/.postoffice/" + names->Get (i) + ".box";
-		where.push_back (dir);
+		newsdir.push_back (dir);
 	}
 	delete names;
-	if (gone.empty ()) return;
-	for (const std::string &n : gone) VBoxes->Delete ((char *) n.c_str ());
-	char path[512];
-	snprintf (path, sizeof (path), "%s/.postoffice/resource.rc", getenv ("HOME"));
-	PREFERENCES.Save (path);
+	if (news.empty () && sql.empty ()) return;
+	for (const std::string &n : news) VBoxes->Delete ((char *) n.c_str ());
+	for (const std::string &n : sql) VBoxes->Delete ((char *) n.c_str ());
+	prefs_save_now ();
 
-	usenet_note = "Usenet (NNTP) news is no longer supported, so ";
-	if (gone.size () == 1)
-		usenet_note += "the news mailbox \"" + gone[0] + "\" was removed from your settings.\n\n"
-					   "The articles it had saved are still in " + where[0] + ".";
-	else
+	if (news.size () == 1)
+		removed_note += "Usenet (NNTP) news is no longer supported, so the news mailbox \"" + news[0]
+					  + "\" was removed from your settings.\n\nThe articles it had saved are still in " + newsdir[0] + ".\n";
+	else if (news.size () > 1)
 	{
-		usenet_note += "these news mailboxes were removed from your settings:\n";
-		for (size_t i = 0; i < gone.size (); ++i) usenet_note += "  " + gone[i] + "  (articles still in " + where[i] + ")\n";
+		removed_note += "Usenet (NNTP) news is no longer supported, so these news mailboxes were removed from your settings:\n";
+		for (size_t i = 0; i < news.size (); ++i) removed_note += "  " + news[i] + "  (articles still in " + newsdir[i] + ")\n";
 	}
-	Fl::add_timeout (1.0, show_usenet_note);
+	if (!sql.empty ())
+	{
+		if (!removed_note.empty ()) removed_note += "\n";
+		removed_note += "SQL mailboxes are no longer supported, so ";
+		if (sql.size () == 1) removed_note += "the mailbox \"" + sql[0] + "\" was";
+		else
+		{
+			removed_note += "the mailboxes";
+			for (size_t i = 0; i < sql.size (); ++i) removed_note += (i ? ", \"" : " \"") + sql[i] + "\"";
+			removed_note += " were";
+		}
+		removed_note += " removed from your settings.\n\nThe mail is still in the database.\n";
+	}
+	Fl::add_timeout (1.0, show_removed_note);
 }
 
 
@@ -904,7 +929,7 @@ int main (int argc, char *argv[])
 
    	//br_message->column_widths (hdrwidths);
 	
-	drop_usenet_mailboxes ();
+	drop_unsupported_mailboxes ();
 
 	Var *VBoxes = PREFERENCES.Get_collection ("postoffice")->Get_collection ("mailboxes");
 	WordList *MBoxes = VBoxes->GatherNames();
@@ -987,6 +1012,7 @@ int main (int argc, char *argv[])
 	{
 		W->resize (Gm->GetInt(0), Gm->GetInt(1), Gm->GetInt(2), Gm->GetInt(3));
 	}
+	main_window = W;
 
 	br_folderindex_->begin();
 	br_folderindex = new Fl_Toggle_Tree (br_folderindex_->x()+2,br_folderindex_->y()+2,br_folderindex_->w()-22,12);
@@ -1008,6 +1034,7 @@ int main (int argc, char *argv[])
 	Fl::event_dispatch (edit_dispatch);
 	update_edit_menu ();
 	attachments_init ();
+	prefs_autosave_start ();		// settings saved whenever they change
 
 	o = br_folderindex;
     	o->column_widths (xwidths);
@@ -1513,6 +1540,23 @@ void displaymessage (MailMessage *M)
 	// clickable line after the message, to save or open them.
 	std::vector<int> inline_attachments;
 
+	// A message with only an HTML version is shown as text made from the
+	// HTML (Neo-PostOffice); the HTML part keeps its line to open it in a
+	// browser. With a text/plain version, that is shown as before.
+	int html_body = -1;
+	{
+		bool has_text = false;
+		for (int ik = 0; ik < M->Count; ++ik)
+		{
+			MailPart *Q = M->GetPart (ik);
+			if (!Q || !Q->ContentType) continue;
+			bool named = Q->FileName && *Q->FileName;
+			if (strncasecmp (Q->ContentType, "text/plain", 10) == 0 && !named) has_text = true;
+			if (html_body < 0 && strncasecmp (Q->ContentType, "text/html", 9) == 0 && !named) html_body = ik;
+		}
+		if (has_text) html_body = -1;
+	}
+
 	for (int ik=0;ik<M->Count;++ik)
 	{
 		P = M->GetPart (ik);
@@ -1545,16 +1589,18 @@ void displaymessage (MailMessage *M)
 				}
 			}
 			
-			if (strcasecmp (CTH.Get(0), "text/plain") == 0)
+			if (strcasecmp (CTH.Get(0), "text/plain") == 0 || ik == html_body)
 			{
-				if (P->FileName && *P->FileName) inline_attachments.push_back (ik);
+				if ((P->FileName && *P->FileName) || ik == html_body) inline_attachments.push_back (ik);
 				// Undo the transfer encoding and convert the charset to UTF-8
 				// (Neo-PostOffice: 0.7 showed the stored text as it was, so
 				// quoted-printable showed =20 and 8-bit text showed ?).
 				std::string ptype = P->ContentType ? P->ContentType : "";
-				text_utf8 = mailheaders::ToUTF8 (
-					mailheaders::DecodeBody (std::string (P->Contents, P->ContentSize), mailheaders::Param (ptype, "x-neo-cte")),
-					mailheaders::Param (ptype, "charset"));
+				std::string decoded = mailheaders::DecodeBody (std::string (P->Contents, P->ContentSize), mailheaders::Param (ptype, "x-neo-cte"));
+				std::string charset = mailheaders::Param (ptype, "charset");
+				if (ik == html_body && charset.empty ()) charset = htmltext::MetaCharset (decoded);
+				text_utf8 = mailheaders::ToUTF8 (decoded, charset);
+				if (ik == html_body) text_utf8 = htmltext::ToText (text_utf8);
 				for (char &c : text_utf8) if (c == 0) c = ' ';
 				body = (char *) text_utf8.c_str();
 				dprintf ("currentmessage.Clear()\n");
@@ -1719,7 +1765,7 @@ void displaymessage (MailMessage *M)
 					// The part number, its name and type (without the stored
 					// encoding parameter).
 					std::string shown_type = P->ContentType ? P->ContentType : "";
-					size_t cut = shown_type.find ("; x-neo-cte=");
+					size_t cut = shown_type.find ("; x-neo-");
 					if (cut != std::string::npos) shown_type.erase (cut);
 					// The size of the file itself, not of its encoded form.
 					std::string bytes;
@@ -1744,8 +1790,8 @@ void displaymessage (MailMessage *M)
 		std::string shown_type = P->ContentType ? P->ContentType : "";
 		size_t cut = shown_type.find (';');
 		if (cut != std::string::npos) shown_type.erase (cut);
-		snprintf (buf, sizeof (buf), "%i: \"%s\" %s (shown above)", ik + 1,
-				  attachment_file_name (P, ik).c_str(), shown_type.c_str());
+		snprintf (buf, sizeof (buf), "%i: \"%s\" %s (shown above%s)", ik + 1,
+				  attachment_file_name (P, ik).c_str(), shown_type.c_str(), ik == html_body ? " as text" : "");
 		mdi_views[mdi_current]->add_attachment ((char *) locs("Attachment","attachment"), buf, ik);
 	}
 
@@ -2029,7 +2075,6 @@ void cb_exit (Fl_Window *w, void *v)
 
 void cb_quit (Fl_Window */*b*/, void */*v*/)
 {
-	char buf[256];
 	char tag[256];
 	int i=0;
 
@@ -2042,25 +2087,22 @@ void cb_quit (Fl_Window */*b*/, void */*v*/)
 	e->show();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
 	
-	snprintf (tag, sizeof (tag), "Making safety backup of preferences");
+	snprintf (tag, sizeof (tag), "Saving preferences");
 	bt_exitline->label (tag);
 	bt_exitline->value (10);
 	bt_exitline->redraw();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
 
-	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
-	PREFERENCES.Save (buf);
+	// Saved safely (a temp file renamed over the old one), so no separate
+	// backup is needed (Neo-PostOffice).
+	prefs_autosave_stop ();
+	prefs_save_now ();
 
 	snprintf (tag, sizeof (tag), "Saving preferences");
 	bt_exitline->label (tag);
 	bt_exitline->value (20);
 	bt_exitline->redraw();
 	Fl::flush(); Fl::wait (0.1); Fl::flush(); Fl::wait (0.1);
-
-	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
-	PREFERENCES.Save (buf);
-	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.tmp", getenv ("HOME"));
-	unlink (buf);
 	
 	int mbc;
 	for (mbc=0; MailBoxList[mbc]; mbc++);

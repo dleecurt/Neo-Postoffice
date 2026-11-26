@@ -54,8 +54,13 @@ void UnavailableHandler::CheckGroup (const char * /*group*/)
 {
 	if (Told) return;
 	Told = true;
-	std::string note = std::string (Parent->Name) + " is an " + What + " mailbox, but this Neo-PostOffice"
-					   " was built without " + What + " support (libetpan was not found when it was built;"
-					   " install libetpan-dev and build again). The mailbox's settings are kept.";
+	std::string note;
+	if (What == "IMAP4")
+		note = std::string (Parent->Name) + " is an " + What + " mailbox, but this Neo-PostOffice"
+			   " was built without " + What + " support (libetpan was not found when it was built;"
+			   " install libetpan-dev and build again). The mailbox's settings are kept.";
+	else
+		note = std::string (Parent->Name) + " is a mailbox of a kind (\"" + What + "\") that this"
+			   " Neo-PostOffice does not support. Change its protocol in Config, or delete it there.";
 	Parent->ToUI->PostMessage (CLASS_ERROR, SUB_ERROR_CRITICAL, Parent->Name, note.c_str());
 }

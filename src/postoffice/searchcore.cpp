@@ -3,6 +3,7 @@
 // server cannot search (all but IMAP).
 
 #include "search.h"
+#include "htmltext.h"
 #include "mailbox.h"
 #include "mailheaders.h"
 
@@ -86,19 +87,6 @@ static bool has (const std::string &hay, const std::string &needle)
 	return Fold (hay).find (needle) != std::string::npos;
 }
 
-// The text of an HTML part, roughly: tags left out, entities kept.
-static std::string strip_tags (const std::string &html)
-{
-	std::string out;
-	bool tag = false;
-	for (char c : html)
-	{
-		if (c == '<') { tag = true; out += ' '; continue; }
-		if (c == '>') { tag = false; continue; }
-		if (!tag) out += c;
-	}
-	return out;
-}
 
 static std::string part_text (const std::string &type, const std::string &body, const std::string &cte)
 {
@@ -106,7 +94,7 @@ static std::string part_text (const std::string &type, const std::string &body, 
 	for (char &c : t) c = (char) tolower ((unsigned char) c);
 	if (t.compare (0, 5, "text/") != 0 && !t.empty ()) return "";
 	std::string text = mailheaders::ToUTF8 (mailheaders::DecodeBody (body, cte), mailheaders::Param (type, "charset"));
-	if (t.compare (0, 9, "text/html") == 0) text = strip_tags (text);
+	if (t.compare (0, 9, "text/html") == 0) text = htmltext::ToText (text, 0);
 	return text;
 }
 

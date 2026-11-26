@@ -97,9 +97,12 @@ class MailMessage : public BTreeNode
 		
 		MailPart		*GetPart (int);
 		void			 AddPart (const char *, const char *, const char *, const char *); // content-type, content-description, filename
-		void			 AddPart (const char *, int depth = 0);
+		void			 AddPart (const char *, int depth = 0, const std::string &chain = "");
 		// Splits a multipart body at its boundary lines; false if it has none.
-		bool			 SplitMultipart (const char *boundary, const char *body, int depth);
+		// chain: the multiparts it is in, as "1:mixed,2:alternative" (kept
+		// with each part as x-neo-mp, so copies can be rebuilt nested).
+		bool			 SplitMultipart (const char *boundary, const char *body, int depth, const std::string &chain = "");
+		int				 MimeCount = 0;		// multiparts numbered while parsing
 																											
 		char			*MsgID;
 		//unsigned long	 cMsgID;

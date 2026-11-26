@@ -296,30 +296,6 @@ private:
 	bool					 Told;
 };
 
-class SQLHandler : public MailHandler
-{
-public:
-	SQLHandler (MailBox *, Var *);
-	~SQLHandler (void);
-	
-	void					 OpenConnection (void);
-	void					 CloseConnection (void);
-	void					 GetBody (char *);
-	void					 CheckGroup (const char *);
-	void					 DeleteMessage (char *);
-	void					 Expire (void);
-	
-private:
-	
-	podb::Connection		*SQL;
-	int						 CheckError (bool ok);
-	std::string				 ConnInfo (void);
-	std::string				 Table (void);
-	std::string				 MsgID (long long);
-	long long				 MsgToSQL (const char *);
-	bool					 FoldersChanged;
-};
-
 // Neo-PostOffice: mailboxes kept as files on this computer, one file per
 // message, with real folders (Maildir, MH). The checking, reading and flag
 // handling are shared here; the formats supply scanning and file changes.

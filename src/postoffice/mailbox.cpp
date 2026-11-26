@@ -149,11 +149,6 @@ MailBox::MailBox (ITCPipe *ui, char *name)
     {
         Handler = new POP3Handler (this, PREFROOT);
     }
-    else if (strcasecmp (PREFROOT->Get_char ("protocol"), "sql") == 0 ||
-             strcasecmp (PREFROOT->Get_char ("protocol"), "mysql") == 0)
-    {
-        Handler = new SQLHandler (this, PREFROOT);
-    }
     else if (strcasecmp (PREFROOT->Get_char ("protocol"), "maildir") == 0)
     {
         Handler = new MaildirHandler (this, PREFROOT);
@@ -175,6 +170,11 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 		Handler = new UnavailableHandler (this, PREFROOT, "IMAP4");
 #endif
 	}
+    else
+    {
+        // A protocol this version does not have (or a damaged setting).
+        Handler = new UnavailableHandler (this, PREFROOT, PREFROOT->Get_char ("protocol"));
+    }
 	
     // Open all views
 
@@ -221,9 +221,9 @@ MailBox::MailBox (ITCPipe *ui, char *name)
 
     Collector->Run((void *) this);
 
-    // SQL, Maildir and MH mailboxes read their message list right away: that
+    // Maildir and MH mailboxes read their message list right away: that
     // creates their folders and brings in changes made elsewhere meanwhile.
-    if (dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<LocalMailHandler *> (Handler))
+    if (dynamic_cast<LocalMailHandler *> (Handler))
         ToCollector->PostMessage (CLASS_CHECKGROUP, NO_SUBCLASS, "*");
 }
 
@@ -382,7 +382,7 @@ void MailBox::LoadMailBox (void)
 #endif
     read_index_file (DirectoryPrefix, entries);
 
-    bool from_store = dynamic_cast<SQLHandler *> (Handler) || dynamic_cast<LocalMailHandler *> (Handler);
+    bool from_store = dynamic_cast<LocalMailHandler *> (Handler) != NULL;
 #ifdef PO_HAVE_LIBETPAN
     // IMAP folders come from the server the same way.
     if (dynamic_cast<IMAP4Handler *> (Handler)) from_store = true;
@@ -390,7 +390,7 @@ void MailBox::LoadMailBox (void)
 
     for (const IndexEntry &e : entries)
     {
-        // An entry in no folder cannot be shown. For SQL, Maildir, MH and IMAP it is
+        // An entry in no folder cannot be shown. For Maildir, MH and IMAP it is
         // left out: the first check finds the message in the store again and
         // files it in its folder.
         if (from_store && e.Folders.empty()) continue;
@@ -421,7 +421,7 @@ void MailBox::LoadMailBox (void)
         for (size_t i=0;i<e.Folders.size();++i)
         {
             V = GetView (e.Folders[i].c_str()); // Find the named view
-            // SQL, Maildir, MH and IMAP folders are made from what the store has, so
+            // Maildir, MH and IMAP folders are made from what the store has, so
             // one missing from the settings (not saved after a crash, say) is
             // made again here instead of the message being lost from view.
             if (!V && from_store)
@@ -937,69 +937,149 @@ void MailBox::ClearBiff (void)
 
 extern MailBox *MailBoxList[16];
 
+// One part for a multipart body: its MIME headers, a blank line and its
+// body. Each part gets its type, file name (RFC 2231 for non-ASCII) and
+// transfer encoding (kept in the x-neo-cte parameter); Neo-PostOffice's own
+// parameters (x-neo-...) are left out.
+static std::string mime_part (MailPart *P)
+{
+    std::string out;
+    std::string body (P->Contents, P->ContentSize);
+    // The 0.7.3 parser leaves the closing boundary's "--" at the end of
+    // the last part; drop it and trailing blank lines.
+    while (!body.empty() && (body.back() == '\n' || body.back() == '\r' || body.back() == ' ')) body.pop_back();
+    if (body.size() >= 2 && body.compare (body.size() - 2, 2, "--") == 0 &&
+        (body.size() == 2 || body[body.size() - 3] == '\n'))
+        body.erase (body.size() - 2);
+    while (!body.empty() && (body.back() == '\n' || body.back() == '\r')) body.pop_back();
+    body += "\n";
+    // Parts parsed by Neo-PostOffice carry their transfer encoding as
+    // the parameter x-neo-cte; older ones do not.
+    std::string type = P->ContentType && *P->ContentType ? P->ContentType : "text/plain";
+    std::string cte = mailheaders::Param (type, "x-neo-cte");
+    size_t cut = type.find ("; x-neo-");
+    if (cut != std::string::npos) type.erase (cut);
+    out += "Content-Type: " + type + "\n";
+    if (P->FileName && *P->FileName)
+    {
+        // Plain ASCII as is, anything else as UTF-8 (RFC 2231).
+        bool plain = true;
+        for (const char *c = P->FileName; *c; ++c)
+            if ((unsigned char) *c < 0x20 || (unsigned char) *c > 0x7e || *c == '"' || *c == '\\') plain = false;
+        if (plain)
+            out += std::string ("Content-Disposition: attachment; filename=\"") + P->FileName + "\"\n";
+        else
+        {
+            out += "Content-Disposition: attachment; filename*=utf-8''";
+            for (const char *c = P->FileName; *c; ++c)
+            {
+                unsigned char u = *c;
+                if (isalnum (u) || strchr ("-._~", u)) out += (char) u;
+                else { char hex[4]; snprintf (hex, sizeof (hex), "%%%02X", u); out += hex; }
+            }
+            out += "\n";
+        }
+    }
+    bool text = strncasecmp (type.c_str(), "text/", 5) == 0;
+    if (!cte.empty())
+        out += "Content-Transfer-Encoding: " + cte + "\n";
+    // A non-text part that is all base64 was base64 in the original.
+    else if (!text && !body.empty() &&
+        body.find_first_not_of ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n") == std::string::npos)
+        out += "Content-Transfer-Encoding: base64\n";
+    out += "\n" + body;
+    if (body.empty() || body.back() != '\n') out += "\n";
+    return out;
+}
+
+static std::string new_boundary (void)
+{
+    static unsigned serial = 0;
+    char boundary[80];
+    snprintf (boundary, sizeof (boundary), "neo-postoffice-%lx-%x-%u", (long) time (NULL), (unsigned) rand(), ++serial);
+    return boundary;
+}
+
 // The body of a multipart/mixed message made of M's parts, and the value
-// for its Content-Type header (with the boundary). Each part gets its type,
-// file name (RFC 2231 for non-ASCII) and transfer encoding (kept in the
-// x-neo-cte parameter). Used to rebuild copies and to send messages with
-// attachments.
+// for its Content-Type header (with the boundary). Used to send messages
+// with attachments.
 std::string mime_multipart_body (MailMessage *M, std::string &content_type)
 {
-    char boundary[64];
-    snprintf (boundary, sizeof (boundary), "neo-postoffice-%lx-%x", (long) time (NULL), (unsigned) rand());
+    std::string boundary = new_boundary ();
     content_type = std::string ("multipart/mixed; boundary=\"") + boundary + "\"";
     std::string out;
     for (int i = 0; i < M->Count; ++i)
     {
         MailPart *P = M->GetPart (i);
         if (!P) break;
-        std::string body (P->Contents, P->ContentSize);
-        // The 0.7.3 parser leaves the closing boundary's "--" at the end of
-        // the last part; drop it and trailing blank lines.
-        while (!body.empty() && (body.back() == '\n' || body.back() == '\r' || body.back() == ' ')) body.pop_back();
-        if (body.size() >= 2 && body.compare (body.size() - 2, 2, "--") == 0 &&
-            (body.size() == 2 || body[body.size() - 3] == '\n'))
-            body.erase (body.size() - 2);
-        while (!body.empty() && (body.back() == '\n' || body.back() == '\r')) body.pop_back();
-        body += "\n";
-        out += std::string ("--") + boundary + "\n";
-        // Parts parsed by Neo-PostOffice carry their transfer encoding as
-        // the parameter x-neo-cte; older ones do not.
-        std::string type = P->ContentType && *P->ContentType ? P->ContentType : "text/plain";
-        std::string cte = mailheaders::Param (type, "x-neo-cte");
-        size_t cut = type.find ("; x-neo-cte=");
-        if (cut != std::string::npos) type.erase (cut);
-        out += "Content-Type: " + type + "\n";
-        if (P->FileName && *P->FileName)
-        {
-            // Plain ASCII as is, anything else as UTF-8 (RFC 2231).
-            bool plain = true;
-            for (const char *c = P->FileName; *c; ++c)
-                if ((unsigned char) *c < 0x20 || (unsigned char) *c > 0x7e || *c == '"' || *c == '\\') plain = false;
-            if (plain)
-                out += std::string ("Content-Disposition: attachment; filename=\"") + P->FileName + "\"\n";
-            else
-            {
-                out += "Content-Disposition: attachment; filename*=utf-8''";
-                for (const char *c = P->FileName; *c; ++c)
-                {
-                    unsigned char u = *c;
-                    if (isalnum (u) || strchr ("-._~", u)) out += (char) u;
-                    else { char hex[4]; snprintf (hex, sizeof (hex), "%%%02X", u); out += hex; }
-                }
-                out += "\n";
-            }
-        }
-        bool text = strncasecmp (type.c_str(), "text/", 5) == 0;
-        if (!cte.empty())
-            out += "Content-Transfer-Encoding: " + cte + "\n";
-        // A non-text part that is all base64 was base64 in the original.
-        else if (!text && !body.empty() &&
-            body.find_first_not_of ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n") == std::string::npos)
-            out += "Content-Transfer-Encoding: base64\n";
-        out += "\n" + body;
-        if (body.empty() || body.back() != '\n') out += "\n";
+        out += std::string ("--") + boundary + "\n" + mime_part (P);
     }
     out += std::string ("--") + boundary + "--\n";
+    return out;
+}
+
+// The same, but with the multiparts the parts were in when the message came
+// in (mixed around alternative around text and HTML, and so on), as kept in
+// their x-neo-mp parameter since 0.9.4. Parts stored by older versions have
+// none and end up side by side in one multipart/mixed, as before.
+static std::string mime_nested_body (MailMessage *M, std::string &content_type)
+{
+    struct Level { std::string id, boundary; };
+    std::vector<Level> open;
+    std::string out;
+    for (int i = 0; i < M->Count; ++i)
+    {
+        MailPart *P = M->GetPart (i);
+        if (!P) break;
+        // The chain, "1:mixed,2:alternative": number and kind of each multipart.
+        std::vector<std::pair<std::string, std::string>> chain;
+        std::string c = mailheaders::Param (P->ContentType ? P->ContentType : "", "x-neo-mp");
+        for (size_t pos = 0; pos < c.size (); )
+        {
+            size_t e = c.find (',', pos);
+            if (e == std::string::npos) e = c.size ();
+            std::string link = c.substr (pos, e - pos);
+            size_t colon = link.find (':');
+            if (colon != std::string::npos && colon > 0)
+            {
+                std::string kind;
+                for (char k : link.substr (colon + 1))
+                    if (isalnum ((unsigned char) k) || k == '-' || k == '.') kind += k;
+                chain.push_back ({ link.substr (0, colon), kind.empty () ? "mixed" : kind });
+            }
+            pos = e + 1;
+        }
+        if (chain.empty ()) chain.push_back ({ "0", "mixed" });
+
+        if (open.empty ())
+        {
+            open.push_back ({ chain[0].first, new_boundary () });
+            content_type = "multipart/" + chain[0].second + "; boundary=\"" + open[0].boundary + "\"";
+        }
+        chain[0].first = open[0].id;		// one outermost multipart, whatever the parts say
+
+        // Close the multiparts this part is not in; open the ones it is in.
+        size_t common = 1;
+        while (common < open.size () && common < chain.size () && open[common].id == chain[common].first) ++common;
+        while (open.size () > common)
+        {
+            out += "--" + open.back ().boundary + "--\n";
+            open.pop_back ();
+        }
+        for (size_t k = common; k < chain.size (); ++k)
+        {
+            std::string b = new_boundary ();
+            out += "--" + open.back ().boundary + "\n";
+            out += "Content-Type: multipart/" + chain[k].second + "; boundary=\"" + b + "\"\n\n";
+            open.push_back ({ chain[k].first, b });
+        }
+        out += "--" + open.back ().boundary + "\n" + mime_part (P);
+    }
+    while (!open.empty ())
+    {
+        out += "--" + open.back ().boundary + "--\n";
+        open.pop_back ();
+    }
     return out;
 }
 
@@ -1014,7 +1094,10 @@ static std::string rebuild_raw (MailMessage *M)
     if (!(M->Flags & MMFL_INRAM)) return "";
     if (M->HeaderNames->Count == 0) M->LoadHeaders();
 
-    bool multi = M->Count > 1;
+    // A message that came in as a multipart (even with one part) is rebuilt
+    // as one (0.9.4 keeps the multiparts' nesting with the parts).
+    MailPart *first = M->GetPart (0);
+    bool multi = M->Count > 1 || (first && first->ContentType && strstr (first->ContentType, "; x-neo-mp="));
     std::string out = "X-Neo-PostOffice-Rebuilt: the original was no longer available; rebuilt from the local copy\n";
     for (int i = 0; i < M->HeaderNames->Count; ++i)
     {
@@ -1032,7 +1115,7 @@ static std::string rebuild_raw (MailMessage *M)
     }
 
     std::string ctype;
-    std::string body = mime_multipart_body (M, ctype);
+    std::string body = mime_nested_body (M, ctype);
     out += "MIME-Version: 1.0\n";
     out += "Content-Type: " + ctype + "\n\n";
     out += body;

@@ -125,7 +125,7 @@ PrefJournal JOURNAL;
 //extern Fl_Pixmap pixmap_radio_off;
 
 // The items of the protocol list (Config -> Mailboxes), in menu order.
-enum { PROTO_SQL = 0, PROTO_POP3, PROTO_MBOX, PROTO_IMAP4, PROTO_MAILDIR, PROTO_MH };
+enum { PROTO_POP3 = 0, PROTO_MBOX, PROTO_IMAP4, PROTO_MAILDIR, PROTO_MH };
 
 //===============================================================================
 // FUNCTION		func_view_protocol
@@ -191,7 +191,6 @@ void func_view_protocol (void)
 		in_prefs_interval->value (PREFS_CURRENTBOX->Get_char ("interval"));
 	}
 	
-	gr_prefs_protocol_sql->hide();
 	gr_prefs_protocol_pop3->hide();
 	gr_prefs_protocol_mbox->hide();
 	gr_prefs_protocol_imap4->hide();
@@ -200,25 +199,7 @@ void func_view_protocol (void)
 
 	switch (val)
 	{
-		case PROTO_SQL:
-			gr_prefs_protocol_sql->show();
-			gr_prefs_protocol_pop3->hide();
-			gr_prefs_protocol_mbox->hide();
-					gr_prefs_protocol_imap4->hide();
-			if (PREFS_CURRENTBOX)
-			{
-				PREFS_CURRENTBOX->Set_char ("protocol","sql");
-				if (!*PREFS_CURRENTBOX->Get_char ("table")) PREFS_CURRENTBOX->Set_char ("table", "po_mail");
-				in_prefs_protocol_sql_host->value   (PREFS_CURRENTBOX->Get_char ("host"));
-				in_prefs_protocol_sql_user->value   (PREFS_CURRENTBOX->Get_char ("user"));
-				in_prefs_protocol_sql_cafile->value (PREFS_CURRENTBOX->Get_char ("cafile"));
-				in_prefs_protocol_sql_db->value     (PREFS_CURRENTBOX->Get_char ("database"));
-				in_prefs_protocol_sql_tab->value    (PREFS_CURRENTBOX->Get_char ("table"));
-			}
-			break;
-
 		case PROTO_POP3:
-			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->show();
 			gr_prefs_protocol_mbox->hide();
 					gr_prefs_protocol_imap4->hide();
@@ -231,7 +212,6 @@ void func_view_protocol (void)
 			break;
 
 		case PROTO_MBOX:
-			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 					gr_prefs_protocol_mbox->show();
 			gr_prefs_protocol_imap4->hide();
@@ -251,7 +231,6 @@ void func_view_protocol (void)
 			break;
 			
 		case PROTO_IMAP4:
-			gr_prefs_protocol_sql->hide();
 			gr_prefs_protocol_pop3->hide();
 			gr_prefs_protocol_mbox->hide();
 		#ifdef PO_HAVE_LIBETPAN
@@ -404,7 +383,6 @@ void cb_configure (Fl_Button */*b*/, void */*d*/)
 	{
 		make_prefs_window();
 		// Grey out database features this build does not have.
-		if (!podb::HavePostgreSQL()) menu_ch_prefs_protocol[PROTO_SQL].deactivate();
 		if (!podb::HavePostgreSQL()) menu_ch_prefs_storage[1].deactivate();
 		// IMAP4: offered, or shown greyed out with the reason.
 		menu_ch_prefs_protocol[PROTO_IMAP4].show();
@@ -523,11 +501,7 @@ void cb_prefs_mailboxes (Fl_Iconbrowser */*b*/, void */*v*/)
 		in_prefs_mailboxname->value (br_prefs_mailboxes->text(val));
 		
 		proto = PREFS_CURRENTBOX->Get_char ("protocol");
-		if (strcasecmp (proto, "sql") == 0 || strcasecmp (proto, "mysql") == 0)
-		{
-			ch_prefs_protocol->value (PROTO_SQL);
-		}
-		else if (strcasecmp (proto, "pop3") == 0)
+		if (strcasecmp (proto, "pop3") == 0)
 		{
 			ch_prefs_protocol->value (PROTO_POP3);
 		}
@@ -1067,19 +1041,7 @@ void cb_prefs_protocol_maildir (Fl_Input */*i*/, void */*v*/)
 		PREFS_CURRENTBOX->Set_char ("path", (char *) in_prefs_protocol_maildir_path->value());
 }
 
-void cb_prefs_protocol_sql (Fl_Input */*i*/, void */*v*/)
-{
-	if (PREFS_CURRENTBOX)
-	{
-		PREFS_MBOX_CHANGE=1;
-		PREFS_CURRENTBOX->Set_char ("host", (char *) in_prefs_protocol_sql_host->value());
-		PREFS_CURRENTBOX->Set_char ("user", (char *) in_prefs_protocol_sql_user->value());
-		PREFS_CURRENTBOX->Set_char ("cafile", (char *) in_prefs_protocol_sql_cafile->value());
-		PREFS_CURRENTBOX->Set_char ("database", (char *) in_prefs_protocol_sql_db->value());
-		PREFS_CURRENTBOX->Set_char ("table", (char *) in_prefs_protocol_sql_tab->value());
-		JOURNAL.Add (_MAILBOX|_RECONFIG, br_prefs_mailboxes->text (br_prefs_mailboxes->value()));
-	}
-}
+
 
 void cb_prefs_protocol_pop3 (Fl_Input */*i*/, void */*v*/)
 {
@@ -1183,8 +1145,7 @@ void cb_prefs_mailbox_add (Fl_Button */*b*/, void */*v*/)
 	PREFS_CURRENTBOX = LPREFERENCES.Get_collection("postoffice")->Get_collection("mailboxes")->Get_collection("Untitled");
 	PREFS_CURRENTBOX->Set_char ("host","host.domain.com");
 	PREFS_CURRENTBOX->Set_char ("security","tls");	// for POP3 and IMAP
-	// A new mailbox starts as POP3, as in PostOffice 0.7 (without this it
-	// showed as the first menu entry, the experimental SQL mailbox).
+	// A new mailbox starts as POP3, as in PostOffice 0.7.
 	PREFS_CURRENTBOX->Set_char ("protocol","pop3");
 	cb_prefs_mailboxes(br_prefs_mailboxes, (void *) NULL);
 }
@@ -1578,6 +1539,8 @@ void cb_prefs_cancel (Fl_Button */*b*/, void */*v*/)
 		win_prefs->hide();
 }
 
+bool prefs_save_now (void);
+
 void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 {
 	store_signature ();
@@ -1591,8 +1554,6 @@ void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 	
 	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc.bak", getenv ("HOME"));
 	PREFERENCES.Save (buf);
-	snprintf (buf, sizeof (buf), "%s/.postoffice/resource.rc", getenv ("HOME"));
-	LPREFERENCES.Save (buf);
 	
 //	br_folderindex->clear();
 	br_message->clear();
@@ -1622,6 +1583,7 @@ void cb_prefs_apply (Fl_Button */*b*/, void */*v*/)
 	
 	PREFERENCES.Clear();
 	PREFERENCES.CopyFrom (&LPREFERENCES);
+	prefs_save_now ();		// written safely (temp file, then renamed)
 
 	if (PREFS_MBOX_CHANGE)
 	{

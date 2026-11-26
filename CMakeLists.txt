@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
-  VERSION 0.9.3
+  VERSION 0.9.4
   DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 
@@ -162,7 +162,7 @@ configure_file(src/postoffice/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated
 set(PO_GUI_SOURCES
   composer.cpp filereq.cpp filereq-main.cpp helpdesk.cpp helpdesk-main.cpp
   ht.cpp iconbrowser.cpp initexitthread.cpp listviewtree.cpp maccheck.cpp
-  mailboxtree.cpp attachments.cpp flowed.cpp redirect.cpp print.cpp search.cpp addrbook.cpp addrwin.cpp mdi.cpp prefpanel.cpp style.cpp)
+  mailboxtree.cpp attachments.cpp flowed.cpp redirect.cpp print.cpp search.cpp addrbook.cpp addrwin.cpp prefsave.cpp mdi.cpp prefpanel.cpp style.cpp)
 
 set(PO_BACKEND_SOURCES
   base64.cpp btree.cpp buffer.cpp ccache.cpp checksum.cpp chop.cpp
@@ -170,12 +170,11 @@ set(PO_BACKEND_SOURCES
   formatter.cpp gdbmstorage.cpp gdbmtools.cpp itc.cpp
   mailbox.cpp mailerthread.cpp mailmessage.cpp mailstorage.cpp mailview.cpp
   localmailhandler.cpp mailhandler.cpp maildirhandler.cpp netstream.cpp certstore.cpp sendpipe.cpp mhhandler.cpp mailheaders.cpp mboxhandler.cpp mboxstorage.cpp
-  sqlhandler.cpp
   podb.cpp podb_pgsql.cpp pgstorage.cpp
   imap4handler.cpp outboxhandler.cpp pop3handler.cpp posixthread.cpp prefjournal.cpp prefs.cpp
   reg.cpp scheduler.cpp semaphore.cpp smtpclient.cpp status.cpp storagelist.cpp
   strdupp.cpp stringtoken.cpp substr.cpp tolower.cpp usleep.cpp var.cpp
-  var2.cpp version.cpp wizard.cpp wordlist.cpp searchcore.cpp)
+  var2.cpp version.cpp wizard.cpp wordlist.cpp searchcore.cpp htmltext.cpp)
 
 list(TRANSFORM PO_GUI_SOURCES PREPEND src/postoffice/)
 list(TRANSFORM PO_BACKEND_SOURCES PREPEND src/postoffice/)
@@ -199,21 +198,3 @@ endif()
 
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-# ---------------------------------------------------------------------------
-# po-sqldeliver: delivers mail into the SQL mailbox (PostgreSQL)
-# ---------------------------------------------------------------------------
-
-if(PO_POSTGRESQL)
-  add_executable(po-sqldeliver
-    src/tools/po-sqldeliver.cpp
-    src/postoffice/mailheaders.cpp
-    src/postoffice/podb.cpp
-    src/postoffice/podb_pgsql.cpp)
-  target_include_directories(po-sqldeliver PRIVATE include ${PQ_INCLUDE_DIR})
-  target_compile_definitions(po-sqldeliver PRIVATE PO_HAVE_POSTGRESQL)
-  target_link_libraries(po-sqldeliver PRIVATE ${PQ_LIBRARY})
-  if(PO_WARNINGS)
-    target_compile_options(po-sqldeliver PRIVATE -Wall -Wextra)
-  endif()
-  install(TARGETS po-sqldeliver RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()

@@ -5080,7 +5080,6 @@ static Fl_Image *image_eraser() {
 Fl_Choice *ch_prefs_protocol=(Fl_Choice *)0;
 
 Fl_Menu_Item menu_ch_prefs_protocol[] = {
- {"SQL mailbox (PostgreSQL)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"POP3 Account", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"MBox File collection", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {"IMAP4 Account", 0,  0, 0, 16, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
@@ -5088,18 +5087,6 @@ Fl_Menu_Item menu_ch_prefs_protocol[] = {
  {"MH (nmh)", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 12, 0},
  {0,0,0,0,0,0,0,0,0}
 };
-
-Fl_Group *gr_prefs_protocol_sql=(Fl_Group *)0;
-
-Fl_Input *in_prefs_protocol_sql_host=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_sql_user=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_sql_cafile=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_sql_db=(Fl_Input *)0;
-
-Fl_Input *in_prefs_protocol_sql_tab=(Fl_Input *)0;
 
 Fl_Group *gr_prefs_protocol_pop3=(Fl_Group *)0;
 
@@ -5765,105 +5752,18 @@ Fl_Window* make_prefs_window() {
               ch_prefs_protocol->textsize(12);
               ch_prefs_protocol->callback((Fl_Callback*)cb_prefs_protocol);
               { Fl_Menu_Item* o = &menu_ch_prefs_protocol[0];
-                xloc(o, "proto_mysql");
-              }
-              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[1];
                 xloc(o, "proto_pop3");
               }
-              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[2];
+              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[1];
                 xloc(o, "proto_mbox");
               }
-              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[3];
+              { Fl_Menu_Item* o = &menu_ch_prefs_protocol[2];
                 xloc(o, "proto_imap4");
               }
               ch_prefs_protocol->menu(menu_ch_prefs_protocol);
             } // Fl_Choice* ch_prefs_protocol
             o->end();
           } // Fl_Group* o
-          { gr_prefs_protocol_sql = new Fl_Group(210, 75, 410, 160);
-            gr_prefs_protocol_sql->box(FL_ENGRAVED_BOX);
-            gr_prefs_protocol_sql->color((Fl_Color)51);
-            gr_prefs_protocol_sql->align(Fl_Align(FL_ALIGN_TOP_LEFT));
-            { Fl_Group* o = new Fl_Group(220, 85, 385, 21);
-              { in_prefs_protocol_sql_host = new Fl_Input(375, 85, 230, 21);
-                in_prefs_protocol_sql_host->labelsize(12);
-                in_prefs_protocol_sql_host->textsize(12);
-                in_prefs_protocol_sql_host->callback((Fl_Callback*)cb_prefs_protocol_sql);
-                in_prefs_protocol_sql_host->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_sql_host
-              { Fl_Button* o = new Fl_Button(225, 85, 80, 20, "Server");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "mysql_host");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(225, 115, 380, 20);
-              { in_prefs_protocol_sql_user = new Fl_Input(375, 115, 230, 20);
-                in_prefs_protocol_sql_user->labelsize(12);
-                in_prefs_protocol_sql_user->textsize(12);
-                in_prefs_protocol_sql_user->callback((Fl_Callback*)cb_prefs_protocol_sql);
-                in_prefs_protocol_sql_user->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_sql_user
-              { Fl_Button* o = new Fl_Button(225, 115, 90, 20, "Username");
-                o->box(FL_NO_BOX);
-                o->color((Fl_Color)48);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "username");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(225, 145, 380, 20);
-              { in_prefs_protocol_sql_cafile = new Fl_Input(375, 145, 230, 20);
-                in_prefs_protocol_sql_cafile->tooltip("Certificate (PEM) of the CA that signed the database server\'s certificate. E"
-"mpty: ~/.postgresql/root.crt");
-                in_prefs_protocol_sql_cafile->labelsize(12);
-                in_prefs_protocol_sql_cafile->textsize(12);
-                in_prefs_protocol_sql_cafile->callback((Fl_Callback*)cb_prefs_protocol_sql);
-                in_prefs_protocol_sql_cafile->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_sql_cafile
-              { Fl_Button* o = new Fl_Button(225, 145, 90, 20, "CA file");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "sql_cafile");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(225, 175, 380, 20);
-              { in_prefs_protocol_sql_db = new Fl_Input(375, 175, 230, 20);
-                in_prefs_protocol_sql_db->labelsize(12);
-                in_prefs_protocol_sql_db->textsize(12);
-                in_prefs_protocol_sql_db->callback((Fl_Callback*)cb_prefs_protocol_sql);
-                in_prefs_protocol_sql_db->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_sql_db
-              { Fl_Button* o = new Fl_Button(225, 175, 90, 20, "Database");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "database");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            { Fl_Group* o = new Fl_Group(225, 205, 380, 20);
-              { in_prefs_protocol_sql_tab = new Fl_Input(375, 205, 230, 20);
-                in_prefs_protocol_sql_tab->labelsize(12);
-                in_prefs_protocol_sql_tab->textsize(12);
-                in_prefs_protocol_sql_tab->callback((Fl_Callback*)cb_prefs_protocol_sql);
-                in_prefs_protocol_sql_tab->when(FL_WHEN_CHANGED);
-              } // Fl_Input* in_prefs_protocol_sql_tab
-              { Fl_Button* o = new Fl_Button(225, 205, 90, 20, "Table");
-                o->box(FL_NO_BOX);
-                o->labelsize(12);
-                o->align(Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE));
-                xloc(o, "table");
-              } // Fl_Button* o
-              o->end();
-            } // Fl_Group* o
-            gr_prefs_protocol_sql->end();
-          } // Fl_Group* gr_prefs_protocol_sql
           { gr_prefs_protocol_pop3 = new Fl_Group(230, 75, 390, 160);
             gr_prefs_protocol_pop3->box(FL_ENGRAVED_BOX);
             gr_prefs_protocol_pop3->color((Fl_Color)51);
