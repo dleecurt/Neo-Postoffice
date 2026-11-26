@@ -47,13 +47,37 @@ On Debian 13 (trixie):
     cmake --build build -j$(nproc)
     ./build/postoffice
 
-Install with `sudo cmake --install build` (default prefix `/usr/local`).
+Install with `sudo cmake --install build` (default prefix `/usr/local`;
+choose another with `-DCMAKE_INSTALL_PREFIX=/usr` when configuring).
+That installs:
+
+| File | What |
+|------|------|
+| `bin/postoffice` | the program (`postoffice --help`, `--version`) |
+| `share/man/man1/postoffice.1` | the manual page (`man postoffice`) |
+| `share/applications/neo-postoffice.desktop` | the desktop menu entry (Network / Email) |
+| `share/icons/hicolor/*/apps/neo-postoffice.*` | the icon, SVG and 16 to 256 pixel PNGs |
+| `share/doc/neo-postoffice/` | this README, the licence and `docs/` |
+
+For packages, stage the files with `DESTDIR=/tmp/pkg cmake --install
+build`. To uninstall, remove the files listed in
+`build/install_manifest.txt` (`xargs sudo rm < build/install_manifest.txt`).
+The icon is drawn in `data/neo-postoffice.svg`; after changing it, run
+`data/make-icon-header.sh` to render the PNGs and the built-in window
+icon again.
+
+Release tarballs (`neo-postoffice-X.Y.Z.tar.gz`, with a SHA-256
+checksum) are on the
+[Releases](https://github.com/dleecurt/Neo-Postoffice/releases) page.
+Every push is built by GitHub Actions on Debian 13 (normal, without
+libetpan, and with AddressSanitizer), FreeBSD and NetBSD.
 
 On the BSDs, install the same dependencies from packages or ports
 (FLTK must be 1.4 or newer) and build the same way. CMake looks in
 `/usr/local`; on NetBSD add `-DCMAKE_PREFIX_PATH=/usr/pkg`, and on
 OpenBSD also `-DCMAKE_PREFIX_PATH=/usr/X11R6` if X11 is not found. The
-BSD builds have not been tested yet.
+BSD builds are checked by GitHub Actions (FreeBSD's `fltk` package is
+still 1.3, so build FLTK 1.4 from source there; NetBSD's pkgsrc has 1.4).
 
 Requirements: a C++17 compiler, CMake 3.16+, FLTK 1.4 (with its image
 library) and GDBM; libpq for PostgreSQL; libetpan 1.9 or newer (found
@@ -615,6 +639,8 @@ Maildir, and folders can be managed the same way. See
 | `src/postoffice/helpdesk.fld`, `filereq.fld` | User interface, edited with FLUID |
 | `src/postoffice/icons/` | XPM icons and banner artwork |
 | `docs/` | IMAP, Maildir, MH and SMTP guides, the PostgreSQL storage schema |
+| `data/` | Icon (SVG and PNGs), desktop entry, manual page |
+| `.github/workflows/` | GitHub Actions: builds on every push, release tarballs from tags |
 | `include/` | Application headers |
 | `src/toggletree/` | Fl_Toggle_Tree widget (Maarten de Boer, James Dean Palmer), patched |
 | `src/fl_editor/` | Fl_Editor text editor widget and librcl (Robert Kesterson) |
@@ -836,6 +862,10 @@ See the git history for details. In summary:
   - 0.9.4: settings saved whenever they change (safely); HTML-only
     messages shown as readable text; copies rebuilt from the local copy
     keep nested multiparts; the SQL mailbox is removed.
+  - 0.9.5: packaging: `make install` puts in a man page, a desktop menu
+    entry and an icon (also the window icon); `--help` and `--version`;
+    GitHub Actions builds on Debian, FreeBSD and NetBSD, and release
+    tarballs made automatically from version tags.
 - **1.0.0**: after 0.9.x has been in daily use for a while without
   serious bugs. From then on, 1.0.1 and so on for fixes, 1.1.0 for new
   features.

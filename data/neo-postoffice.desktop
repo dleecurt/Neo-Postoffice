@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Neo-PostOffice
+GenericName=Mail Client
+Comment=Read and write e-mail: POP3, IMAP, Maildir, MH and mbox
+Exec=postoffice
+Icon=neo-postoffice
+Terminal=false
+Categories=Network;Email;
+Keywords=mail;e-mail;email;pop3;imap;maildir;
+StartupWMClass=postoffice

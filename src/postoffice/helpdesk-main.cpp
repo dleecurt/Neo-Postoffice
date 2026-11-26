@@ -3,6 +3,9 @@
 #include <signal.h>
 #include "mailheaders.h"
 #include "htmltext.h"
+#include "window_icon.h"
+#include "version.h"
+#include <FL/Fl_PNG_Image.H>
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -859,6 +862,24 @@ ITCPipe *PIPE;
 int __ARGC;
 char **__ARGV;
 
+// The program's icon (data/neo-postoffice.svg) for every window, so window
+// managers and task bars show it (0.9.5).
+static void set_window_icons (void)
+{
+	const Fl_RGB_Image *icons[8];
+	int n = 0;
+	for (const auto &w : window_icons)
+	{
+		Fl_PNG_Image *img = new Fl_PNG_Image (NULL, w.data, w.size);
+		if (img->fail ()) { delete img; continue; }
+		icons[n++] = img;
+		if (n == 8) break;
+	}
+	if (n) Fl_Window::default_icons (icons, n);		// copies them
+	for (int k = 0; k < n; ++k) delete icons[k];
+	Fl_Window::default_xclass ("postoffice");
+}
+
 int main (int argc, char *argv[])
 {
 	__ARGC = argc;
@@ -873,8 +894,36 @@ int main (int argc, char *argv[])
 	MailMessage *Ms;
 	struct stat mystat;
 
+	// --version and --help (0.9.5); everything else is left to FLTK
+	// (-display, -geometry, -name, -scheme, ...).
+	for (int a = 1; a < argc; ++a)
+	{
+		if (strcmp (argv[a], "--version") == 0 || strcmp (argv[a], "-V") == 0)
+		{
+			printf ("Neo-PostOffice %s\n", __RELEASE);
+			return 0;
+		}
+		if (strcmp (argv[a], "--help") == 0 || strcmp (argv[a], "-h") == 0)
+		{
+			printf ("Usage: %s [options]\n\n"
+					"Neo-PostOffice %s, an X11 mail client.\n\n"
+					"  -h, --help         show this help and exit\n"
+					"  -V, --version      show the version and exit\n\n"
+					"FLTK's standard options also work, among them:\n"
+					"  -display host:n.s  the X display to use\n"
+					"  -geometry WxH+X+Y  size and place of the main window\n"
+					"  -name name         the window class name\n"
+					"  -scheme name       FLTK look: none, plastic, gtk+, gleam, oxy\n\n"
+					"Settings are kept in ~/.postoffice/resource.rc. See postoffice(1).\n",
+					argv[0], __RELEASE);
+			return 0;
+		}
+	}
+
 	char *vrb = getenv ("VERBOSE");
 	if (vrb) VERBOSE = atoi (vrb);
+
+	set_window_icons ();
 
 	signal (SIGPIPE, SIG_IGN);
 	//Fl::visual(FL_RGB);

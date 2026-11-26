@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(NeoPostOffice
-  VERSION 0.9.4
+  VERSION 0.9.5
   DESCRIPTION "X11 mail client, modernized from PostOffice 0.7.3"
   LANGUAGES C CXX)
 
 include(GNUInstallDirs)
+# Documentation goes in share/doc/neo-postoffice (GNUInstallDirs would name
+# it after the CMake project, NeoPostOffice).
+set(PO_DOCDIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/neo-postoffice" CACHE PATH "Where README.md and docs/ are installed")
+if(IS_ABSOLUTE "${PO_DOCDIR}")
+  set(PO_FULL_DOCDIR "${PO_DOCDIR}")
+else()
+  set(PO_FULL_DOCDIR "${CMAKE_INSTALL_PREFIX}/${PO_DOCDIR}")
+endif()
 
 set(WITH_POSTGRESQL AUTO CACHE STRING
     "PostgreSQL mail storage: AUTO (if libpq is found), ON or OFF")
@@ -196,5 +204,29 @@ if(PO_LIBETPAN)
   target_link_libraries(postoffice PRIVATE PkgConfig::LIBETPAN)
 endif()
 
+# ---------------------------------------------------------------------------
+# Installing (0.9.5): the program, its man page, the desktop menu entry and
+# icon, and the documentation. DESTDIR works for packages:
+#   DESTDIR=/tmp/pkg cmake --install build
+# ---------------------------------------------------------------------------
+
 install(TARGETS postoffice RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# The date in the man page is the build date (SOURCE_DATE_EPOCH is honoured
+# for reproducible builds).
+string(TIMESTAMP PO_MAN_DATE "%Y-%m-%d")
+configure_file(data/postoffice.1 ${CMAKE_CURRENT_BINARY_DIR}/postoffice.1 @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/postoffice.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+install(FILES data/neo-postoffice.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES data/neo-postoffice.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+foreach(size 16 22 24 32 48 64 128 256)
+  install(FILES data/icons/neo-postoffice-${size}.png
+          DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps
+          RENAME neo-postoffice.png)
+endforeach()
+
+install(FILES README.md LICENSE DESTINATION ${PO_DOCDIR})
+install(DIRECTORY docs/ DESTINATION ${PO_DOCDIR})
 

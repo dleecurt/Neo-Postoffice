@@ -1,0 +1,129 @@
+# Neo-PostOffice: builds on every push and pull request.
+#   debian   Debian 13: a normal build with IMAP, one without libetpan, and a
+#            memory-checking build (ASan + UBSan); each starts the program
+#            under Xvfb, and the first also checks the install.
+#   freebsd  FreeBSD in a VM. Its fltk package is still 1.3, so FLTK 1.4 is
+#            built from source first.
+#   netbsd   NetBSD in a VM, with FLTK 1.4 from pkgsrc.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  debian:
+    name: Debian 13 (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: release
+            cmake: -DWITH_LIBETPAN=ON -DWITH_POSTGRESQL=ON
+            install: true
+          - name: no libetpan
+            cmake: -DWITH_LIBETPAN=OFF
+            install: false
+          - name: ASan + UBSan
+            cmake: >-
+              -DWITH_LIBETPAN=ON -DCMAKE_BUILD_TYPE=Debug
+              "-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+              "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined"
+            install: false
+    steps:
+      - name: Install build tools and libraries
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config git ca-certificates \
+            libfltk1.4-dev libgdbm-dev libx11-dev libxext-dev libpq-dev libssl-dev libetpan-dev \
+            xvfb xauth xfonts-base desktop-file-utils mandoc
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build ${{ matrix.cmake }}
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Version
+        run: ./build/postoffice --version
+      - name: Start under Xvfb
+        # With an empty home the first-start wizard opens and waits, so the
+        # program is still running when timeout stops it (exit 124). Any
+        # crash or sanitizer report ends it earlier with another code.
+        env:
+          ASAN_OPTIONS: detect_leaks=0:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          export HOME="$(mktemp -d)"
+          set +e
+          timeout 15 xvfb-run -a ./build/postoffice
+          rc=$?
+          set -e
+          echo "exit code $rc"
+          test "$rc" -eq 124
+      - name: Install into a staging directory
+        if: matrix.install
+        run: |
+          DESTDIR="$PWD/stage" cmake --install build
+          find stage -type f | sort
+          desktop-file-validate stage/usr/local/share/applications/neo-postoffice.desktop
+          mandoc -T lint -W warning stage/usr/local/share/man/man1/postoffice.1
+
+  freebsd:
+    name: FreeBSD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build in a FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          prepare: |
+            pkg install -y cmake pkgconf git gdbm libetpan \
+              libX11 libXext libXft libXrender libXcursor libXinerama libXfixes \
+              fontconfig png jpeg-turbo
+          run: |
+            set -e
+            # FLTK 1.4 (the fltk package is 1.3).
+            git clone --depth 1 --branch release-1.4.5 https://github.com/fltk/fltk.git /tmp/fltk
+            cmake -S /tmp/fltk -B /tmp/fltk/build -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX=/usr/local/fltk14 -DFLTK_BACKEND_WAYLAND=OFF \
+              -DFLTK_BUILD_TEST=OFF -DFLTK_BUILD_EXAMPLES=OFF -DFLTK_BUILD_FLUID=OFF \
+              -DFLTK_BUILD_FLTK_OPTIONS=OFF
+            cmake --build /tmp/fltk/build -j"$(sysctl -n hw.ncpu)"
+            cmake --install /tmp/fltk/build
+            cmake -S . -B build -DWITH_LIBETPAN=ON -DFLTK_CONFIG=/usr/local/fltk14/bin/fltk-config
+            cmake --build build -j"$(sysctl -n hw.ncpu)"
+            ./build/postoffice --version
+            DESTDIR="$PWD/stage" cmake --install build
+
+  netbsd:
+    name: NetBSD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build in a NetBSD VM
+        uses: vmactions/netbsd-vm@v1
+        with:
+          usesh: true
+          prepare: |
+            /usr/sbin/pkg_info -e pkgin >/dev/null || /usr/sbin/pkg_add pkgin
+            /usr/pkg/bin/pkgin -y update
+            /usr/pkg/bin/pkgin -y install cmake pkgconf gdbm libetpan fltk
+          run: |
+            set -e
+            export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
+            cmake -S . -B build -DWITH_LIBETPAN=ON -DCMAKE_PREFIX_PATH=/usr/pkg
+            cmake --build build -j"$(sysctl -n hw.ncpu)"
+            ./build/postoffice --version
+            DESTDIR="$PWD/stage" cmake --install build

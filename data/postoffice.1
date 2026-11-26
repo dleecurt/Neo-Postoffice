@@ -1,0 +1,122 @@
+.\" Neo-PostOffice manual page. LGPL-2.1, like the program.
+.TH POSTOFFICE 1 "@PO_MAN_DATE@" "Neo-PostOffice @PROJECT_VERSION@" "User Commands"
+.SH NAME
+postoffice \- Neo-PostOffice, an X11 mail client
+.SH SYNOPSIS
+.B postoffice
+.RB [ \-h | \-\-help ]
+.RB [ \-V | \-\-version ]
+.RI [ "FLTK options" ]
+.SH DESCRIPTION
+.B Neo-PostOffice
+is a graphical e-mail client for X11, built with FLTK.
+It is the modernized continuation of Pim van Riezen's PostOffice 0.7.3.
+.PP
+It reads mail from
+.B POP3
+and
+.B IMAP4
+servers (over TLS, with its own certificate store),
+.B Maildir
+and
+.B MH
+(nmh) folders and
+.B mbox
+files, and sends mail through an SMTP server (STARTTLS or SMTPS, with
+login).
+Messages are sorted into folders by filter rules; it has threading, a
+search window, an address book that completes addresses while you type,
+replies and forwards, Redirect, format=flowed text, printing through
+.BR lpr (1),
+and readable text for HTML-only messages (nothing is fetched from the
+network).
+.PP
+On the first start a wizard asks for your name, e-mail address and,
+optionally, a POP3 server.
+Everything else is set in
+.BR Config .
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show a short help text and exit.
+.TP
+.BR \-V ", " \-\-version
+Show the version and exit.
+.PP
+The standard FLTK options are also understood, among them:
+.TP
+.BI \-display " host:display.screen"
+The X display to use.
+.TP
+.BI \-geometry " WxH+X+Y"
+Size and place of the main window (otherwise the last ones used).
+.TP
+.BI \-name " name"
+The window class name.
+.TP
+.BI \-scheme " name"
+The FLTK look:
+.BR none ", " plastic ", " gtk+ ", " gleam " or " oxy .
+.SH FILES
+.TP
+.I ~/.postoffice/resource.rc
+All settings: identities, mailboxes, folders and filters, the address
+book, window layout.
+Readable only by you, since it holds passwords.
+It is saved a moment after anything changes, through
+.I resource.rc.tmp
+and a rename, so it is never left half written.
+.TP
+.I ~/.postoffice/*.box/
+The local copy of each mailbox (messages, index, read state).
+.TP
+.I ~/.postoffice/certs/
+Server certificates you chose to trust, one PEM file each.
+.TP
+.I ~/.postoffice/tmp/
+Attachments opened from messages; emptied when the program starts and
+quits.
+.TP
+.I ~/.mh_profile
+Read for MH mailboxes without a directory of their own.
+.SH ENVIRONMENT
+.TP
+.B HOME
+Where
+.I .postoffice
+is kept.
+.TP
+.B MH
+Another MH profile instead of
+.IR ~/.mh_profile .
+.TP
+.B VERBOSE
+A number; 1 or more prints what the program does on standard output.
+.TP
+.B DISPLAY
+The X display, when
+.B \-display
+is not given.
+.SH NOTES
+Usenet (NNTP) news was removed in 0.8.1 and the SQL mailbox in 0.9.4;
+mailboxes of those kinds are removed from the settings, with a notice,
+when a newer version first starts.
+.PP
+The full documentation is the
+.I README.md
+installed with the program (in
+.IR @PO_FULL_DOCDIR@/ ).
+.SH BUGS
+Report them at
+.UR https://github.com/dleecurt/Neo-Postoffice/issues
+.UE ,
+or with Info \(-> Build Configuration \(-> Bug Report, which fills in the
+version details.
+.SH AUTHORS
+PostOffice was written by Pim van Riezen.
+Neo-PostOffice is maintained by dleecurt.
+.SH SEE ALSO
+.BR lpr (1),
+.BR mh-profile (5),
+.BR fetchmail (1),
+.BR getmail (1)

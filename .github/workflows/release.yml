@@ -1,0 +1,84 @@
+# Neo-PostOffice: release tarballs.
+# Pushing a tag v1.2.3 makes neo-postoffice-1.2.3.tar.gz (the source as
+# tagged, from git archive), checks that it builds and starts, and attaches
+# it with its SHA-256 checksum to a draft GitHub Release. Publish the draft
+# on GitHub when it looks right.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  tarball:
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - name: Install build tools and libraries
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config git ca-certificates gh \
+            libfltk1.4-dev libgdbm-dev libx11-dev libxext-dev libpq-dev libssl-dev libetpan-dev \
+            xvfb xauth xfonts-base
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check the tag against the version in CMakeLists.txt
+        id: version
+        run: |
+          git config --global --add safe.directory "$PWD"
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          project=$(sed -n '/^project(/,/)/s/^ *VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          echo "tag $tag, CMakeLists.txt $project"
+          if [ "$version" != "$project" ]; then
+            echo "::error::Tag $tag does not match VERSION $project in CMakeLists.txt"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Make the tarball
+        run: |
+          v=${{ steps.version.outputs.version }}
+          git archive --format=tar.gz --prefix="neo-postoffice-$v/" \
+            -o "neo-postoffice-$v.tar.gz" "$GITHUB_REF_NAME"
+          sha256sum "neo-postoffice-$v.tar.gz" > "neo-postoffice-$v.tar.gz.sha256"
+          cat "neo-postoffice-$v.tar.gz.sha256"
+      - name: Build and start the tarball
+        run: |
+          v=${{ steps.version.outputs.version }}
+          mkdir /tmp/t && tar -xzf "neo-postoffice-$v.tar.gz" -C /tmp/t
+          cd "/tmp/t/neo-postoffice-$v"
+          cmake -S . -B build -DWITH_LIBETPAN=ON -DWITH_POSTGRESQL=ON
+          cmake --build build -j"$(nproc)"
+          ./build/postoffice --version | grep -F "$v"
+          export HOME="$(mktemp -d)"
+          set +e
+          timeout 15 xvfb-run -a ./build/postoffice
+          rc=$?
+          set -e
+          test "$rc" -eq 124
+      - name: Draft the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=${{ steps.version.outputs.version }}
+          cat > notes.md <<NOTES
+          Neo-PostOffice $v. See the Versions section of README.md for what changed.
+
+          Build with:
+
+              tar -xzf neo-postoffice-$v.tar.gz
+              cd neo-postoffice-$v
+              cmake -S . -B build
+              cmake --build build -j\$(nproc)
+              sudo cmake --install build
+
+          Check the download with \`sha256sum -c neo-postoffice-$v.tar.gz.sha256\`.
+          NOTES
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Neo-PostOffice $v" --notes-file notes.md \
+            "neo-postoffice-$v.tar.gz" "neo-postoffice-$v.tar.gz.sha256"
