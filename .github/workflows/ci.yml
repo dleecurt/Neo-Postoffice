@@ -128,7 +128,7 @@ jobs:
                 ftp -o - "$sets/$set.tar.xz" | xz -dc | tar -xpf - -C /
               done
             fi
-            /usr/pkg/bin/pkgin -y install cmake pkgconf gdbm libetpan fltk
+            /usr/pkg/bin/pkgin -y install cmake pkgconf gdbm libetpan fltk png
           run: |
             set -e
             export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH

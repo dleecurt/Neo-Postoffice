@@ -94,6 +94,15 @@ else()
   set(PO_FLTK_LIBS po_fltk)
 endif()
 
+# iconv is in the C library on Linux and the BSDs, but where GNU libiconv is
+# also installed (FreeBSD ports often pull it in) its iconv.h, found in
+# /usr/local/include, renames the functions to libiconv_*: then its library
+# must be linked too. glibc systems have no separate libiconv.
+find_library(PO_ICONV_LIBRARY NAMES iconv)
+if(PO_ICONV_LIBRARY)
+  message(STATUS "Linking ${PO_ICONV_LIBRARY} for iconv")
+endif()
+
 # OpenSSL (or LibreSSL on OpenBSD) for TLS to mail servers (Debian: libssl-dev)
 find_package(OpenSSL 1.1 REQUIRED)
 
@@ -228,6 +237,9 @@ target_include_directories(postoffice PRIVATE
 target_link_libraries(postoffice PRIVATE
   po_settings toggletree rcledit
   ${GDBM_LIBRARY} OpenSSL::SSL OpenSSL::Crypto X11::X11 X11::Xext Threads::Threads ${CMAKE_DL_LIBS} m)
+if(PO_ICONV_LIBRARY)
+  target_link_libraries(postoffice PRIVATE ${PO_ICONV_LIBRARY})
+endif()
 if(PO_POSTGRESQL)
   target_include_directories(postoffice PRIVATE ${PQ_INCLUDE_DIR})
   target_link_libraries(postoffice PRIVATE ${PQ_LIBRARY})
