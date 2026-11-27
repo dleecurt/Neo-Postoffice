@@ -497,30 +497,49 @@ void cb_delete_m (Fl_Menu_*w, void *d)
 
 void cb_delete (Fl_Button */*w*/, void */*d*/)
 {
-	FolderData *D;
-	Fl_Toggle_Node *S;
-	
-/*	Fl_Multi_Browser *xbr = (Fl_Multi_Browser *) br_folderindex; */
+	if (!currentmailbox) return;
+	std::vector<std::string> ids = selected_msgids();
+	if (ids.empty()) return;
 
-	//int i;
-	// CLASS_DELETE
+	// The message to show next (0.9.5): the first one below the deleted
+	// ones in the list as shown, or, at the end of the list, the nearest
+	// one above them.
+	std::string next;
+	{
+		std::vector<std::string> shown;
+		int depth = 0;
+		for (Fl_Toggle_Node_Base *n = br_folderindex->traverse_start (); n; n = br_folderindex->traverse_forward (1, depth))
+			if (((Fl_Toggle_Node *) n)->data ())
+				shown.push_back (((FolderData *) ((Fl_Toggle_Node *) n)->data ())->msgid);
+		auto deleted = [&](const std::string &m) { return std::find (ids.begin(), ids.end(), m) != ids.end(); };
+		int last = -1, firstdel = -1;
+		for (int i = 0; i < (int) shown.size (); ++i)
+			if (deleted (shown[i])) { last = i; if (firstdel < 0) firstdel = i; }
+		for (int i = last + 1; last >= 0 && i < (int) shown.size () && next.empty (); ++i)
+			if (!deleted (shown[i])) next = shown[i];
+		for (int i = firstdel - 1; firstdel >= 0 && i >= 0 && next.empty (); --i)
+			if (!deleted (shown[i])) next = shown[i];
+	}
 
-	S = br_folderindex->selected();
-	if (S)
+	for (const std::string &id : ids)
 	{
-		D = (FolderData *) S->data();
-			currentmailbox->ToCollector->PostMessage (CLASS_DELETE, NO_SUBCLASS, D->msgid);
-			currentmailbox->RemoveMessage (D->msgid);
+		currentmailbox->ToCollector->PostMessage (CLASS_DELETE, NO_SUBCLASS, id.c_str());
+		currentmailbox->RemoveMessage ((char *) id.c_str());
 	}
-	else while ((S = br_folderindex->selection()))
-	{
-		D = (FolderData *) S->data();
-			currentmailbox->ToCollector->PostMessage (CLASS_DELETE, NO_SUBCLASS, D->msgid);
-			currentmailbox->RemoveMessage (D->msgid);
-	}
-	//currentmailbox->SaveMailBox();
 	refresh_folder();
 	update_tree_counts();
+
+	if (next.empty ()) return;
+	for (Fl_Toggle_Node_Base *n = br_folderindex->traverse_start (); n; n = br_folderindex->traverse_forward ())
+	{
+		Fl_Toggle_Node *t = (Fl_Toggle_Node *) n;
+		if (t->data () && next == ((FolderData *) t->data ())->msgid)
+		{
+			br_folderindex->select_only (t);
+			cb_selectmessage (br_folderindex, NULL);
+			break;
+		}
+	}
 }
 
 //===============================================================================
