@@ -129,6 +129,7 @@ void cb_viewall (Fl_Menu_ *, void *);
 void cb_viewunread (Fl_Menu_ *, void *);
 void displaymessage (MailMessage *);
 void update_folder (void);
+void refresh_folder (void);
 void redirect_queue (const char *raw, const char *from, const char *to);
 void search_done (WordList *W);
 void clear_folder_index (void);
@@ -404,7 +405,7 @@ void cb_markunread_m (Fl_Menu_ */*w*/, void */*d*/)
 			M->Envelope->SetInt (ENVELOPE_I_READ, 0);
 		if (flags) currentmailbox->ToCollector->PostMessage (CLASS_SETFLAG, NO_SUBCLASS, id.c_str(), "-S");
 	}
-	update_folder();
+	refresh_folder();
 }
 
 void folder_subscriptions_show (WordList *);
@@ -474,7 +475,7 @@ void cb_mark (Fl_Button */*w*/, void */*d*/)
 		}
 		currentmailbox->ToCollector->PostMessage (CLASS_SETFLAG, NO_SUBCLASS, id.c_str(), on ? "+F" : "-F");
 	}
-	update_folder();
+	refresh_folder();
 }
 
 void cb_mark_m (Fl_Menu_ *w, void *d)
@@ -518,7 +519,7 @@ void cb_delete (Fl_Button */*w*/, void */*d*/)
 			currentmailbox->RemoveMessage (D->msgid);
 	}
 	//currentmailbox->SaveMailBox();
-	update_folder();
+	refresh_folder();
 	update_tree_counts();
 }
 
@@ -1201,7 +1202,7 @@ int main (int argc, char *argv[])
 					// message list if it is the one shown.
 					update_tree (current_boxlist);
 					if (currentmailbox && *currentfolder && strcmp (currentmailbox->Name, M->Message->Get(0)) == 0)
-						update_folder();
+						refresh_folder();
 					break;
 
 				case CLASS_FOLDERGONE:
@@ -1246,7 +1247,7 @@ int main (int argc, char *argv[])
 						if (B->Find (M->Message->Get(1)))
 						{
 							B->RemoveMessage (M->Message->Get(1));
-							if (B == currentmailbox) update_folder();
+							if (B == currentmailbox) refresh_folder();
 							update_tree_counts();
 						}
 						break;

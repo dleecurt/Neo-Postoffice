@@ -52,6 +52,7 @@ extern class MailBox 	*MailBoxList[16];
 extern char				 currentfolder[64];
 extern MailBox			*currentmailbox;
 void update_folder (void);
+void refresh_folder (void);
 void update_tree_counts (void);
 
 extern int			 mdi_current;
@@ -1157,7 +1158,7 @@ void cb_sendmessage (Fl_Window */*win*/, Composer_Window *W)
 		OUTBOX->SaveMailBox ();
 		W->draftid[0] = 0;
 		// As Delete does: show the folder without it.
-		if (currentmailbox == OUTBOX) update_folder ();
+		if (currentmailbox == OUTBOX) refresh_folder ();
 		update_tree_counts ();
 	}
 

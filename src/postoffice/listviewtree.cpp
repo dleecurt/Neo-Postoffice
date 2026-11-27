@@ -2,6 +2,8 @@
 #include <signal.h>
 #include "mailheaders.h"
 #include <string>
+#include <vector>
+#include <algorithm>
 #include "semaphore.h"
 #include "helpdesk.h"
 #include "encode.h"
@@ -331,6 +333,59 @@ void update_folder (void)
 	br_folderindex->redraw();
 	
 	//set_status (locs("Done...","status_done"));
+}
+
+// The message list rebuilt after a change to the folder shown (a message
+// deleted, moved, flagged or marked, new mail, a refilter), keeping the
+// place the list was scrolled to (0.9.5; update_folder starts at the top,
+// which is right for another folder or sort order, not here).
+void refresh_folder (void)
+{
+	if (!br_folderindex || !br_folderindex_)
+	{
+		update_folder ();
+		return;
+	}
+	int x = br_folderindex_->xposition ();
+	int y = br_folderindex_->yposition ();
+
+	// The selected messages, to select them again in the new list (a
+	// refresh while a message is open, such as the read flag reaching an
+	// IMAP server, used to drop the selection, so Delete did nothing).
+	std::vector<std::string> sel;
+	if (Fl_Toggle_Node *S = br_folderindex->selected ())
+	{
+		if (S->data ()) sel.push_back (((FolderData *) S->data ())->msgid);
+	}
+	else
+	{
+		while (Fl_Toggle_Node *S = br_folderindex->selection ())
+			if (S->data ()) sel.push_back (((FolderData *) S->data ())->msgid);
+	}
+
+	update_folder ();
+
+	if (!sel.empty ())
+	{
+		std::vector<Fl_Toggle_Node *> found;
+		for (Fl_Toggle_Node_Base *n = br_folderindex->traverse_start (); n; n = br_folderindex->traverse_forward ())
+		{
+			Fl_Toggle_Node *t = (Fl_Toggle_Node *) n;
+			if (t->data () && std::find (sel.begin (), sel.end (), ((FolderData *) t->data ())->msgid) != sel.end ())
+				found.push_back (t);
+		}
+		if (found.size () == 1) br_folderindex->select_only (found[0]);
+		else for (Fl_Toggle_Node *t : found) br_folderindex->select_range (t, t, 1);
+	}
+	// Not past the end, if the list got shorter.
+	int content = br_folderindex->h () + 4;
+	int visible = br_folderindex_->h () - Fl::box_dh (br_folderindex_->box ());
+	if (br_folderindex_->hscrollbar.visible ()) visible -= br_folderindex_->hscrollbar.h ();
+	int maxy = content > visible ? content - visible : 0;
+	if (y > maxy) y = maxy;
+	if (y < 0) y = 0;
+	br_folderindex_->scroll_to (x, y);
+	br_folderindex_->redraw ();
 }
 
 int mysort (Fl_Toggle_Node_Base *A, Fl_Toggle_Node_Base *B)
