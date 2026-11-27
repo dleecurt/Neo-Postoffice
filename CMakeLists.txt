@@ -299,3 +299,15 @@ endforeach()
 install(FILES README.md LICENSE DESTINATION ${PO_DOCDIR})
 install(DIRECTORY docs/ DESTINATION ${PO_DOCDIR})
 
+# Uninstalling (1.0): removes every file listed in install_manifest.txt,
+# which cmake --install writes in the build directory, and the empty
+# documentation folder:
+#   sudo cmake --build build --target uninstall
+configure_file(cmake/uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake @ONLY)
+if(NOT TARGET uninstall)
+  add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    COMMENT "Uninstalling Neo-PostOffice"
+    VERBATIM)
+endif()
+

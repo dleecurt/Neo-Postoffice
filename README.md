@@ -60,8 +60,18 @@ That installs:
 | `share/doc/neo-postoffice/` | this README, the licence and `docs/` |
 
 For packages, stage the files with `DESTDIR=/tmp/pkg cmake --install
-build`. To uninstall, remove the files listed in
-`build/install_manifest.txt` (`xargs sudo rm < build/install_manifest.txt`).
+build`.
+
+To uninstall, run
+
+    sudo cmake --build build --target uninstall
+
+from the same build directory (it removes every file listed in
+`build/install_manifest.txt`, which the install wrote, and the
+documentation folder; add `DESTDIR=...` if the install used it). Your
+settings and mail in `~/.postoffice` are kept; remove that folder too to
+take everything away. If the build directory is gone, build and install
+again with the same prefix, then uninstall.
 The icon is drawn in `data/neo-postoffice.svg`; after changing it, run
 `data/make-icon-header.sh` to render the PNGs and the built-in window
 icon again.

@@ -1,0 +1,47 @@
+# Neo-PostOffice: removes what `cmake --install` installed.
+# Run as   sudo cmake --build build --target uninstall
+# (with DESTDIR set the same way, if the install used one).
+# Generated from cmake/uninstall.cmake.in.
+
+set(MANIFEST "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
+if(NOT EXISTS "${MANIFEST}")
+  message(FATAL_ERROR
+    "Nothing to uninstall: ${MANIFEST} does not exist.\n"
+    "It is written by `cmake --install`. If Neo-PostOffice was installed from "
+    "another build directory, uninstall from that one, or install from this "
+    "one first (same prefix) and then uninstall.")
+endif()
+
+file(STRINGS "${MANIFEST}" installed)
+set(removed 0)
+set(gone 0)
+foreach(file IN LISTS installed)
+  # The manifest leaves DESTDIR out of the paths.
+  set(file "$ENV{DESTDIR}${file}")
+  if(IS_SYMLINK "${file}" OR EXISTS "${file}")
+    message(STATUS "Removing ${file}")
+    file(REMOVE "${file}")
+    if(IS_SYMLINK "${file}" OR EXISTS "${file}")
+      message(FATAL_ERROR "Could not remove ${file} (run the uninstall with sudo).")
+    endif()
+    math(EXPR removed "${removed} + 1")
+  else()
+    message(STATUS "Already gone: ${file}")
+    math(EXPR gone "${gone} + 1")
+  endif()
+endforeach()
+
+# The documentation folder is Neo-PostOffice's own: removed when empty.
+# (bin, share/man/man1, share/applications and the icon folders are shared
+# with other programs and stay.)
+set(docdir "$ENV{DESTDIR}@PO_FULL_DOCDIR@")
+if(IS_DIRECTORY "${docdir}")
+  file(GLOB left "${docdir}/*")
+  if(NOT left)
+    message(STATUS "Removing ${docdir}")
+    file(REMOVE_RECURSE "${docdir}")
+  endif()
+endif()
+
+message(STATUS "Neo-PostOffice uninstalled: ${removed} files removed"
+        ", ${gone} already gone. Settings and mail in ~/.postoffice are kept.")

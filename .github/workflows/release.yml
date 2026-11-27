@@ -77,6 +77,8 @@ jobs:
               cmake --build build -j\$(nproc)
               sudo cmake --install build
 
+          Uninstall with \`sudo cmake --build build --target uninstall\` from the same build directory.
+
           Check the download with \`sha256sum -c neo-postoffice-$v.tar.gz.sha256\`.
           NOTES
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \

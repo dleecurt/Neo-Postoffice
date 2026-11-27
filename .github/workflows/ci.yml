@@ -79,6 +79,12 @@ jobs:
           find stage -type f | sort
           desktop-file-validate stage/usr/local/share/applications/neo-postoffice.desktop
           mandoc -T lint -W warning stage/usr/local/share/man/man1/postoffice.1
+      - name: Uninstall, and check nothing is left
+        if: matrix.install
+        run: |
+          DESTDIR="$PWD/stage" cmake --build build --target uninstall
+          left=$(find stage -type f)
+          if [ -n "$left" ]; then echo "Left behind:"; echo "$left"; exit 1; fi
 
   freebsd:
     name: FreeBSD
@@ -107,6 +113,8 @@ jobs:
             cmake --build build -j"$(sysctl -n hw.ncpu)"
             ./build/postoffice --version
             DESTDIR="$PWD/stage" cmake --install build
+            DESTDIR="$PWD/stage" cmake --build build --target uninstall
+            test -z "$(find stage -type f)"
 
   netbsd:
     name: NetBSD
@@ -136,3 +144,5 @@ jobs:
             cmake --build build -j"$(sysctl -n hw.ncpu)"
             ./build/postoffice --version
             DESTDIR="$PWD/stage" cmake --install build
+            DESTDIR="$PWD/stage" cmake --build build --target uninstall
+            test -z "$(find stage -type f)"
