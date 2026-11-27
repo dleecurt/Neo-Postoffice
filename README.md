@@ -74,7 +74,7 @@ libetpan, and with AddressSanitizer), FreeBSD and NetBSD.
 
 On the BSDs, install the same dependencies from packages or ports
 (FLTK must be 1.4 or newer) and build the same way. CMake looks in
-`/usr/local`; on NetBSD add `-DCMAKE_PREFIX_PATH=/usr/pkg`, and on
+`/usr/local`; on NetBSD add `"-DCMAKE_PREFIX_PATH=/usr/pkg;/usr/X11R7"`, and on
 OpenBSD also `-DCMAKE_PREFIX_PATH=/usr/X11R6` if X11 is not found. The
 BSD builds are checked by GitHub Actions (FreeBSD's `fltk` package is
 still 1.3, so build FLTK 1.4 from source there; NetBSD's pkgsrc has 1.4).

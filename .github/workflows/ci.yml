@@ -25,6 +25,10 @@ jobs:
     name: Debian 13 (${{ matrix.name }})
     runs-on: ubuntu-latest
     container: debian:trixie
+    env:
+      # Start-up globals are never freed; that is not what this job looks for.
+      ASAN_OPTIONS: detect_leaks=0:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     strategy:
       fail-fast: false
       matrix:
@@ -60,9 +64,6 @@ jobs:
         # With an empty home the first-start wizard opens and waits, so the
         # program is still running when timeout stops it (exit 124). Any
         # crash or sanitizer report ends it earlier with another code.
-        env:
-          ASAN_OPTIONS: detect_leaks=0:abort_on_error=1
-          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         run: |
           export HOME="$(mktemp -d)"
           set +e
@@ -99,7 +100,7 @@ jobs:
             cmake -S /tmp/fltk -B /tmp/fltk/build -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_INSTALL_PREFIX=/usr/local/fltk14 -DFLTK_BACKEND_WAYLAND=OFF \
               -DFLTK_BUILD_TEST=OFF -DFLTK_BUILD_EXAMPLES=OFF -DFLTK_BUILD_FLUID=OFF \
-              -DFLTK_BUILD_FLTK_OPTIONS=OFF
+              -DFLTK_BUILD_FLTK_OPTIONS=OFF -DFLTK_BUILD_GL=OFF
             cmake --build /tmp/fltk/build -j"$(sysctl -n hw.ncpu)"
             cmake --install /tmp/fltk/build
             cmake -S . -B build -DWITH_LIBETPAN=ON -DFLTK_CONFIG=/usr/local/fltk14/bin/fltk-config
@@ -120,10 +121,12 @@ jobs:
             /usr/sbin/pkg_info -e pkgin >/dev/null || /usr/sbin/pkg_add pkgin
             /usr/pkg/bin/pkgin -y update
             /usr/pkg/bin/pkgin -y install cmake pkgconf gdbm libetpan fltk
+            # X11 comes with NetBSD's xbase/xcomp sets; without them, from pkgsrc.
+            test -f /usr/X11R7/include/X11/Xlib.h || /usr/pkg/bin/pkgin -y install libX11 libXext
           run: |
             set -e
             export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
-            cmake -S . -B build -DWITH_LIBETPAN=ON -DCMAKE_PREFIX_PATH=/usr/pkg
+            cmake -S . -B build -DWITH_LIBETPAN=ON "-DCMAKE_PREFIX_PATH=/usr/pkg;/usr/X11R7"
             cmake --build build -j"$(sysctl -n hw.ncpu)"
             ./build/postoffice --version
             DESTDIR="$PWD/stage" cmake --install build
