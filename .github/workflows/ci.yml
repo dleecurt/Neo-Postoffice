@@ -132,6 +132,7 @@ jobs:
           run: |
             set -e
             export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
+            fltk-config --use-images --ldflags; ls -l /usr/pkg/lib | grep -i "png\|jpeg\|fltk" || true
             cmake -S . -B build -DWITH_LIBETPAN=ON "-DCMAKE_PREFIX_PATH=/usr/pkg;/usr/X11R7"
             cmake --build build -j"$(sysctl -n hw.ncpu)"
             ./build/postoffice --version
