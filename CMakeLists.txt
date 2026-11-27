@@ -122,7 +122,9 @@ endif()
 if(PO_WARNINGS)
   target_compile_options(po_settings INTERFACE -Wall -Wextra)
 endif()
-target_link_libraries(po_settings INTERFACE ${PO_FLTK_LIBS})
+# FLTK's headers include <X11/Xlib.h>; on the BSDs that is not in
+# /usr/include, so every target gets X11's include directory.
+target_link_libraries(po_settings INTERFACE ${PO_FLTK_LIBS} X11::X11)
 
 # ---------------------------------------------------------------------------
 # Bundled widget libraries

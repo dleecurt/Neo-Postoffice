@@ -120,9 +120,15 @@ jobs:
           prepare: |
             /usr/sbin/pkg_info -e pkgin >/dev/null || /usr/sbin/pkg_add pkgin
             /usr/pkg/bin/pkgin -y update
+            # X11 comes with NetBSD's xbase (libraries) and xcomp (headers)
+            # sets, which the VM image leaves out; pkgsrc's packages need them.
+            if [ ! -f /usr/X11R7/include/X11/Xlib.h ]; then
+              sets="https://cdn.netbsd.org/pub/NetBSD/NetBSD-$(uname -r)/$(uname -m)/binary/sets"
+              for set in xbase xcomp; do
+                ftp -o - "$sets/$set.tar.xz" | xz -dc | tar -xpf - -C /
+              done
+            fi
             /usr/pkg/bin/pkgin -y install cmake pkgconf gdbm libetpan fltk
-            # X11 comes with NetBSD's xbase/xcomp sets; without them, from pkgsrc.
-            test -f /usr/X11R7/include/X11/Xlib.h || /usr/pkg/bin/pkgin -y install libX11 libXext
           run: |
             set -e
             export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
