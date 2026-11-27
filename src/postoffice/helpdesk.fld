@@ -2,6 +2,9 @@
 version 1.0405
 header_name {helpdesk.h}
 code_name {helpdesk.cpp}
+decl {\#include <string.h>} {private local
+}
+
 decl {\#include <FL/Fl_FancyEditor.H>} {private local
 }
 

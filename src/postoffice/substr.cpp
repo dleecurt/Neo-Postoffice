@@ -34,39 +34,5 @@ char *substr (const char *str, int start, int len)
 	return (result);
 }
 
-const char *strcasestr (const char *haystack, const char *needle)
-{
-	int haypos, needlepos, crsr;
-	int result;
-
-	needlepos = haypos = crsr = 0;
-
-	printf ("strcasestr ('%s','%s')\n", haystack, needle);
-
-	while (haystack[haypos])
-	{
-		if (haystack[haypos] == needle[needlepos])
-		{
-			printf ("possible match at %i\n", haypos);
-			result = 0;
-			crsr = 0;
-			needlepos = 0;
-			
-			while ((needle[needlepos])&&(haystack[haypos + crsr])&&(!result))
-			{
-				if (needle[needlepos]==haystack[haypos+crsr])
-				{
-					++needlepos;
-					++crsr;
-					if (!(needle[needlepos]))
-					{
-						return haystack+haypos;
-					}
-				}
-				else result = 1;
-			}
-		}
-		++haypos;
-	}
-	return NULL;
-}
+// (PostOffice 0.7 had its own strcasestr here, case-sensitive and printing
+// debug lines; every libc it runs on has the real one, from <string.h>.)

@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 extern int 				 _USELOCALE;
 extern char 			*_LANGUAGE;

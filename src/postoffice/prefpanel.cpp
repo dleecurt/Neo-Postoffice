@@ -138,6 +138,7 @@ enum { PROTO_POP3 = 0, PROTO_MBOX, PROTO_IMAP4, PROTO_MAILDIR, PROTO_MH };
 //===============================================================================
 
 #include <string>
+#include <string.h>
 extern MailBox		*currentmailbox;
 extern char			 currentfolder[64];
 

@@ -1,3 +1,4 @@
+#include <string.h>
 /*
 
 typedef void * mysqlhandle;

@@ -31,7 +31,7 @@ rclError EditorEngine::LoadFrom(FILE *infile)
 	InsertLine(right, Cursor.Row + 1);		// between two pieces...
 	while(!feof(infile))
 		{
-			short ThisCount = 0;
+			short ThisCount = 0;	(void) ThisCount;	// counted but never used (librcl)
 			s = "";
 //			if(row == Cursor.Row)			// first row?  Add left side of split
 //				s = left;

@@ -90,7 +90,6 @@ class Connection
 		struct sockaddr_in	 Local;
 		int					 Socket;
 		struct in_addr		 BindAddr;
-		FILE				*SockFILE;
 
 #ifdef USE_SSL
 		SSL					*SS;

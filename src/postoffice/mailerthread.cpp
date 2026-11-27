@@ -17,6 +17,7 @@
 #include "style.h"
 
 #include <string>
+#include <string.h>
 
 #define ST_CHECKMESSAGES 0x01
 #define ST_POSTMESSAGES  0x02

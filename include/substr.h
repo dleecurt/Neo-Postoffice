@@ -3,6 +3,6 @@
 
 char *substr (const char *, const char *);
 char *substr (const char *, int, int);
-char *strcasestr (char *, char *);
+#include <string.h>		// strcasestr
 
 #endif

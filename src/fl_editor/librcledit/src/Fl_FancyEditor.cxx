@@ -12,6 +12,7 @@
 #include <FL/fl_draw.H>
 #if (FL_MAJOR_VERSION > 1)
 #include <FL/Fl_Boxtype.H>
+#include <string.h>
 #endif
 
 // **************************************************

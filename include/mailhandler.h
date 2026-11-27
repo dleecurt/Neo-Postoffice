@@ -446,7 +446,6 @@ private:
 	void					 Announce (MailMessage *);
 	WordList				*MBFiles;
 	MBoxStorage			   **MBStorage;
-	int						 lockfd; /* so that we can cleanup */
 	char					*lock_filename;
 };
 

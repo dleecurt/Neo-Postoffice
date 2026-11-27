@@ -6,6 +6,7 @@
 #include <FL/fl_ask.H>
 #include <FL/Fl_Group.H>
 #include <FL/fl_draw.H>
+#include <string.h>
 
 // **************************************************
 //						Callbacks

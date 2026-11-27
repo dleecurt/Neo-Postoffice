@@ -17,7 +17,6 @@
 #include <strings.h>
 
 extern Var PREFERENCES;
-extern const char *strcasestr (const char *, const char *);
 
 MailViewNode::MailViewNode (class MailMessage *Msg, class MailView *MV)
 {
@@ -309,7 +308,6 @@ void MailView::Unassociate (MailMessage *M)
 {
 	MailViewNode *N;
 	int done = 0;
-	int position = 0;
 	
 	Lock->LockRW();
 	
@@ -352,7 +350,6 @@ void MailView::Unassociate (MailMessage *M)
 		else
 		{
 			N=N->Next;
-			++position;
 		}
 	}
 	

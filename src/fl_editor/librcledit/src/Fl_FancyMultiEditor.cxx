@@ -10,6 +10,7 @@
 #include <FL/Fl_Return_Button.H>
 #include <FL/Fl_Group.H>
 #include <FL/fl_draw.H>
+#include <string.h>
 
 // **************************************************
 //				Private structure types

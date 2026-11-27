@@ -22,6 +22,7 @@
 #include "mailbox.h"
 #include "debug.h"
 #include "checksum.h"
+#include <string.h>
 
 //===============================================================================
 // CONSTRUCTOR	StorageList

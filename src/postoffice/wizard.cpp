@@ -3,6 +3,7 @@
 #include "helpdesk.h"
 #include "var.h"
 #include "mailbox.h"
+#include <string.h>
 
 extern Var PREFERENCES;
 
