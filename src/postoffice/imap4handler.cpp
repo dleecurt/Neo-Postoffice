@@ -2311,11 +2311,16 @@ bool IMAP4Handler::FetchBody (const char *msgid, int jid)
 	std::string hash, server;
 	uint32_t validity = 0, uid = 0;
 	if (SplitMsgID (msgid, hash, validity, uid)) server = ServerOf (hash);
-	if (server.empty () || State[server].Validity != validity || !State[server].Uids.count (uid))
+	// Its folder is gone from the server: so is the message.
+	if (server.empty ())
 	{
-		if (!have) Report ("This message is no longer on the IMAP server, so its text cannot be fetched.");
+		if (!have) NotOnServer (msgid, server, uid);
 		return have;
 	}
+	// What is known here of the folder is not asked first (0.9.5): it can be
+	// behind (a check that did not finish, a session that ended early, a
+	// change by another mail program). The server says whether the message
+	// is there.
 	if (!Examine (server))
 	{
 		if (!Broken) Report ("Cannot open the folder of this message on " + Host + ": " + Why (MAILIMAP_ERROR_EXAMINE) + ".");
@@ -2324,7 +2329,7 @@ bool IMAP4Handler::FetchBody (const char *msgid, int jid)
 	}
 	if (SelValidity != validity)
 	{
-		if (!have) Report ("This message is no longer on the IMAP server, so its text cannot be fetched.");
+		if (!have) NotOnServer (msgid, server, uid);
 		return have;
 	}
 
@@ -2360,9 +2365,11 @@ bool IMAP4Handler::FetchBody (const char *msgid, int jid)
 	if (res) mailimap_fetch_list_free (res);
 	if (!found)
 	{
-		if (!have) Report ("This message was deleted on the IMAP server, so its text cannot be fetched.");
+		if (!have) NotOnServer (msgid, server, uid);
 		return have;
 	}
+	// There after all: known here again.
+	if (State[server].Validity == validity) State[server].Uids.insert (uid);
 
 	X = Parent->Find ((char *) msgid);		// still here?
 	if (!X) return true;
@@ -2380,6 +2387,18 @@ bool IMAP4Handler::FetchBody (const char *msgid, int jid)
 	X->CaptureRaw = capture;
 	X->StoreFile ();
 	return true;
+}
+
+// A message whose text was asked for is not on the server (deleted or moved
+// there, perhaps by another mail program): said once, and taken out of the
+// list, so it does not ask again at every click (0.9.5).
+void IMAP4Handler::NotOnServer (const char *msgid, const std::string &server, uint32_t uid)
+{
+	Report ("This message is no longer on the IMAP server (it was deleted or moved there, perhaps by"
+			" another mail program), so it has been taken out of the list.");
+	if (!server.empty ()) State[server].Uids.erase (uid);
+	if (Parent->Have ((char *) msgid))
+		Parent->ToUI->PostMessage (CLASS_GONE, NO_SUBCLASS, Parent->Name, msgid);
 }
 
 void IMAP4Handler::GetBody (char *msgid)

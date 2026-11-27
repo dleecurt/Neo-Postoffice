@@ -269,6 +269,7 @@ private:
 	void					 QueueOp (char kind, const char *msgid, const std::string &target);
 	std::string				 SpoolDir (void);
 	bool					 FetchBody (const char *msgid, int jid);
+	void					 NotOnServer (const char *msgid, const std::string &server, uint32_t uid);
 	void					 ServiceBodies (int jid);
 	void					 Gone (const FolderState &, const std::set<uint32_t> &uids);
 	void					 Prune (void);
